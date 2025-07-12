@@ -3,7 +3,7 @@ const cors = require('cors');
 const session = require('express-session');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
-const multer = require('multer');
+// const multer = require('multer'); // Not used currently
 
 // Import route modules
 const createAuthRoutes = require('./routes/auth');
