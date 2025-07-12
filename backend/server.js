@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 
@@ -15,7 +15,6 @@ const {
   errorHandler,
   asyncHandler,
   requireAuth,
-  requireRole,
   requestLogger,
   securityHeaders,
   corsOptions
@@ -26,10 +25,10 @@ const PORT = 5445;
 
 // MongoDB connection setup
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const MONGO_URL = isDevelopment 
+const MONGO_URL = process.env.MONGODB_URL || (isDevelopment 
   ? 'mongodb://localhost:27017' 
-  : 'mongodb://192.168.0.30:27017';
-const DB_NAME = 'SM_nomu';
+  : 'mongodb://admin:password123@localhost:27017');
+const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 
 let db;
 
@@ -75,14 +74,14 @@ const requirePermission = (permission) => {
   };
 };
 
-// Multer configuration for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  }
-});
+// Multer configuration for file uploads (commented out - not used)
+// const storage = multer.memoryStorage();
+// const upload = multer({
+//   storage: storage,
+//   limits: {
+//     fileSize: 10 * 1024 * 1024, // 10MB limit
+//   }
+// });
 
 // Connect to MongoDB
 async function connectDB() {
@@ -183,7 +182,7 @@ app.use(session({
 // Routes will be initialized after database connection
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -195,7 +194,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Available permissions endpoint
-app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PERMISSIONS), (req, res) => {
+app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PERMISSIONS), (_, res) => {
   const availablePermissions = [
     { id: 'users:view', name: '사용자 조회', category: '사용자 관리' },
     { id: 'users:manage', name: '사용자 관리', category: '사용자 관리' },
@@ -218,13 +217,13 @@ app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PER
 });
 
 // Admin dashboard stats endpoint
-app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (req, res) => {
-  const currentDate = new Date();
-  const currentMonth = currentDate.toISOString().substring(0, 7);
+app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (_, res) => {
+  // const currentDate = new Date();
+  // const currentMonth = currentDate.toISOString().substring(0, 7);
   
   // Get current month data
   const totalUsers = await db.collection('users').countDocuments({ role: { $ne: 'admin' } });
-  const activeUsers = await db.collection('users').countDocuments({ isActive: true, role: { $ne: 'admin' } });
+  // const activeUsers = await db.collection('users').countDocuments({ isActive: true, role: { $ne: 'admin' } });
   
   // Basic payroll stats (placeholder data for now)
   const payrollData = {
@@ -242,7 +241,7 @@ app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (req, res) =>
 }));
 
 // Admin system health endpoint
-app.get('/api/admin/system-health', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => {
   // Check database connection
   let dbHealth = 'excellent';
   let avgResponseTime = Math.floor(Math.random() * 50) + 10; // Mock response time
@@ -271,7 +270,7 @@ app.get('/api/admin/system-health', requireAuth, asyncHandler(async (req, res) =
 }));
 
 // Admin alerts endpoint
-app.get('/api/admin/alerts', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/admin/alerts', requireAuth, asyncHandler(async (_, res) => {
   // Generate some mock alerts
   const alerts = [
     {
@@ -297,7 +296,7 @@ app.get('/api/admin/alerts', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // Admin performance stats endpoint
-app.get('/api/admin/performance-stats', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/admin/performance-stats', requireAuth, asyncHandler(async (_, res) => {
   // Mock performance data
   const performanceData = {
     topPerformers: [
@@ -335,7 +334,7 @@ app.get('/api/admin/performance-stats', requireAuth, asyncHandler(async (req, re
 }));
 
 // Departments endpoints
-app.get('/api/departments', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/departments', requireAuth, asyncHandler(async (_, res) => {
   try {
     // Get unique departments from users collection
     const departments = await db.collection('users').aggregate([
@@ -411,7 +410,7 @@ app.get('/api/departments/:name/employees', requireAuth, asyncHandler(async (req
   }
 }));
 
-app.get('/api/organization-chart', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/organization-chart', requireAuth, asyncHandler(async (_, res) => {
   try {
     const users = await db.collection('users').find(
       { isActive: true },
@@ -448,7 +447,7 @@ app.get('/api/organization-chart', requireAuth, asyncHandler(async (req, res) =>
   }
 }));
 
-app.get('/api/positions', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/positions', requireAuth, asyncHandler(async (_, res) => {
   try {
     // Get unique positions from users collection
     const positions = await db.collection('users').aggregate([
@@ -485,7 +484,7 @@ async function initializeRoutes() {
   console.log('🔗 Initializing routes...');
   
   // Add debug middleware
-  app.use((req, res, next) => {
+  app.use((req, _, next) => {
     console.log(`📍 Request: ${req.method} ${req.url}`);
     next();
   });
@@ -498,7 +497,7 @@ async function initializeRoutes() {
   app.use(errorHandler);
 
   // 404 handler - must be last
-  app.use('*', (req, res) => {
+  app.use('*', (_, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
   });
   
