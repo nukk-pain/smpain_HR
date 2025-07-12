@@ -22,7 +22,7 @@ start.bat
 
 ### 🌐 접속 정보
 - **프론트엔드**: http://localhost:3727
-- **백엔드 API**: http://localhost:5445/api
+- **백엔드 API**: http://localhost:5455/api
 - **기본 계정**: admin / admin
 
 ## 🎯 주요 기능

@@ -21,12 +21,12 @@ const {
 } = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = 5445;
+const PORT = 5455;
 
 // MongoDB connection setup
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const MONGO_URL = process.env.MONGODB_URL || (isDevelopment 
-  ? 'mongodb://localhost:27017' 
+const MONGO_URL = process.env.MONGODB_URL || (isDevelopment
+  ? 'mongodb://localhost:27017'
   : 'mongodb://admin:password123@localhost:27017');
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 
@@ -91,15 +91,15 @@ async function connectDB() {
     db = client.db(DB_NAME);
     console.log(`✅ Connected to MongoDB at ${MONGO_URL}`);
     console.log(`📊 Using database: ${DB_NAME}`);
-    
+
     // Initialize sample data
     await initializeData();
-    
+
     // Update existing users with permissions
     await updateExistingUsersPermissions();
-    
+
     console.log('📊 Database initialization completed');
-    
+
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
     process.exit(1);
@@ -111,7 +111,7 @@ async function initializeData() {
   try {
     // Check if admin user exists
     const adminUser = await db.collection('users').findOne({ username: 'admin' });
-    
+
     if (!adminUser) {
       const hashedPassword = bcrypt.hashSync('admin', 10);
       await db.collection('users').insertOne({
@@ -126,13 +126,13 @@ async function initializeData() {
       });
       console.log('✅ Admin user created');
     }
-    
+
     // Create indexes
     await db.collection('users').createIndex({ username: 1 }, { unique: true });
     await db.collection('leaveRequests').createIndex({ userId: 1 });
     await db.collection('leaveRequests').createIndex({ status: 1 });
     await db.collection('leaveRequests').createIndex({ startDate: 1 });
-    
+
     console.log('✅ Database indexes created');
   } catch (error) {
     console.error('❌ Error initializing data:', error);
@@ -143,7 +143,7 @@ async function initializeData() {
 async function updateExistingUsersPermissions() {
   try {
     const users = await db.collection('users').find({ permissions: { $exists: false } }).toArray();
-    
+
     for (const user of users) {
       const permissions = DEFAULT_PERMISSIONS[user.role] || [];
       await db.collection('users').updateOne(
@@ -151,7 +151,7 @@ async function updateExistingUsersPermissions() {
         { $set: { permissions, updatedAt: new Date() } }
       );
     }
-    
+
     if (users.length > 0) {
       console.log(`✅ Updated ${users.length} users with default permissions`);
     }
@@ -183,8 +183,8 @@ app.use(session({
 
 // Health check
 app.get('/api/health', (_, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     environment: isDevelopment ? 'development' : 'production',
     database: 'MongoDB',
@@ -209,7 +209,7 @@ app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PER
     { id: 'departments:manage', name: '부서 관리', category: '부서 관리' },
     { id: 'admin:permissions', name: '권한 관리', category: '관리자' }
   ];
-  
+
   res.json({
     success: true,
     data: availablePermissions
@@ -220,11 +220,11 @@ app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PER
 app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (_, res) => {
   // const currentDate = new Date();
   // const currentMonth = currentDate.toISOString().substring(0, 7);
-  
+
   // Get current month data
   const totalUsers = await db.collection('users').countDocuments({ role: { $ne: 'admin' } });
   // const activeUsers = await db.collection('users').countDocuments({ isActive: true, role: { $ne: 'admin' } });
-  
+
   // Basic payroll stats (placeholder data for now)
   const payrollData = {
     total_employees: totalUsers,
@@ -233,7 +233,7 @@ app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (_, res) => {
     total_bonus: 0,
     avg_salary: 0
   };
-  
+
   res.json({
     success: true,
     data: payrollData
@@ -245,7 +245,7 @@ app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => 
   // Check database connection
   let dbHealth = 'excellent';
   let avgResponseTime = Math.floor(Math.random() * 50) + 10; // Mock response time
-  
+
   try {
     const startTime = Date.now();
     await db.collection('users').findOne({});
@@ -254,7 +254,7 @@ app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => 
     dbHealth = 'poor';
     avgResponseTime = 999;
   }
-  
+
   const healthData = {
     dbHealth,
     avgResponseTime,
@@ -262,7 +262,7 @@ app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => 
     systemLoad: Math.floor(Math.random() * 40) + 10,
     lastBackup: new Date().toISOString()
   };
-  
+
   res.json({
     success: true,
     data: healthData
@@ -288,7 +288,7 @@ app.get('/api/admin/alerts', requireAuth, asyncHandler(async (_, res) => {
       timestamp: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
     }
   ];
-  
+
   res.json({
     success: true,
     data: alerts
@@ -326,7 +326,7 @@ app.get('/api/admin/performance-stats', requireAuth, asyncHandler(async (_, res)
       }
     ]
   };
-  
+
   res.json({
     success: true,
     data: performanceData
@@ -339,8 +339,8 @@ app.get('/api/departments', requireAuth, asyncHandler(async (_, res) => {
     // Get unique departments from users collection
     const departments = await db.collection('users').aggregate([
       { $match: { isActive: true, department: { $exists: true, $ne: null, $ne: '' } } },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: '$department',
           employeeCount: { $sum: 1 },
           managers: {
@@ -376,7 +376,7 @@ app.get('/api/departments', requireAuth, asyncHandler(async (_, res) => {
 app.get('/api/departments/:name/employees', requireAuth, asyncHandler(async (req, res) => {
   try {
     const departmentName = req.params.name;
-    
+
     const employees = await db.collection('users').find({
       department: departmentName,
       isActive: true
@@ -392,7 +392,7 @@ app.get('/api/departments/:name/employees', requireAuth, asyncHandler(async (req
     const employeesWithDetails = employees.map(emp => ({
       ...emp,
       contractType: 'regular', // Default
-      yearsOfService: emp.createdAt ? 
+      yearsOfService: emp.createdAt ?
         Math.floor((new Date() - new Date(emp.createdAt)) / (365.25 * 24 * 60 * 60 * 1000)) : 0
     }));
 
@@ -452,8 +452,8 @@ app.get('/api/positions', requireAuth, asyncHandler(async (_, res) => {
     // Get unique positions from users collection
     const positions = await db.collection('users').aggregate([
       { $match: { isActive: true, position: { $exists: true, $ne: null, $ne: '' } } },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: '$position',
           employeeCount: { $sum: 1 },
           departments: { $addToSet: '$department' }
@@ -482,17 +482,17 @@ app.get('/api/positions', requireAuth, asyncHandler(async (_, res) => {
 // Initialize routes after database connection
 async function initializeRoutes() {
   console.log('🔗 Initializing routes...');
-  
+
   // Add debug middleware
   app.use((req, _, next) => {
     console.log(`📍 Request: ${req.method} ${req.url}`);
     next();
   });
-  
+
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
   app.use('/api/leave', createLeaveRoutes(db));
-  
+
   // Error handling middleware
   app.use(errorHandler);
 
@@ -500,7 +500,7 @@ async function initializeRoutes() {
   app.use('*', (_, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
   });
-  
+
   console.log('✅ Routes initialized');
 }
 
@@ -508,7 +508,7 @@ async function initializeRoutes() {
 async function startServer() {
   await connectDB();
   await initializeRoutes();
-  
+
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📍 Environment: ${isDevelopment ? 'Development' : 'Production'}`);

@@ -125,7 +125,7 @@ sudo npm run build
 `backend/.env` 파일 생성:
 ```env
 NODE_ENV=production
-PORT=5445
+PORT=5455
 MONGODB_URL=mongodb://localhost:27017
 DB_NAME=SM_nomu
 SESSION_SECRET=your-secret-key-here
@@ -135,7 +135,7 @@ SESSION_SECRET=your-secret-key-here
 
 `frontend/.env.production` 파일 생성:
 ```env
-VITE_API_BASE_URL=http://[시놀로지IP]:5445/api
+VITE_API_BASE_URL=http://[시놀로지IP]:5455/api
 ```
 
 ### 3. MongoDB 연결 설정
@@ -216,7 +216,7 @@ pm2 start "serve -s dist -p 3727" --name "hr-frontend"
 
 포트 추가:
 - 3727 (프론트엔드)
-- 5445 (백엔드)
+- 5455 (백엔드)
 - 27017 (MongoDB, 내부용)
 ```
 
@@ -226,7 +226,7 @@ pm2 start "serve -s dist -p 3727" --name "hr-frontend"
 ```
 외부포트 → 시놀로지IP:내부포트
 80 → [시놀로지IP]:3727
-5445 → [시놀로지IP]:5445
+5455 → [시놀로지IP]:5455
 ```
 
 ### 3. 리버스 프록시 설정 (선택사항)
@@ -325,7 +325,7 @@ module.exports = {
       cwd: '/volume1/web/HR',
       env: {
         NODE_ENV: 'production',
-        PORT: 5445
+        PORT: 5455
       },
       max_memory_restart: '500M',
       instances: 1,
@@ -384,7 +384,7 @@ sudo pm2 restart all
 
 배포 완료 후 접속:
 - **프론트엔드**: `http://[시놀로지IP]:3727`
-- **백엔드 API**: `http://[시놀로지IP]:5445/api`
+- **백엔드 API**: `http://[시놀로지IP]:5455/api`
 - **기본 계정**: admin / admin
 
 ---
