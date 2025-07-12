@@ -7,7 +7,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 5455,
-        MONGODB_URL: 'mongodb://admin:password123@localhost:27017',
+        MONGODB_URL: 'mongodb://localhost:27017',
         DB_NAME: 'SM_nomu',
         SESSION_SECRET: 'hr-synology-secret-2025'
       },
