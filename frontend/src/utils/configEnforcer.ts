@@ -73,8 +73,8 @@ export class ConfigEnforcer {
    * 하드코딩된 메시지 사용 감지
    */
   public checkMessage(value: string, context: string): string {
-    const isSuccessMessage = Object.values(SUCCESS_MESSAGES).includes(value);
-    const isErrorMessage = Object.values(ERROR_MESSAGES).includes(value);
+    const isSuccessMessage = Object.values(SUCCESS_MESSAGES).includes(value as any);
+    const isErrorMessage = Object.values(ERROR_MESSAGES).includes(value as any);
     
     if (!isSuccessMessage && !isErrorMessage) {
       const violation = `⚠️ 하드코딩된 메시지 감지: "${value}" in ${context}. SUCCESS_MESSAGES 또는 ERROR_MESSAGES를 사용하세요.`;

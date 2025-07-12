@@ -36,6 +36,7 @@ export const USER_ROLES = {
 export const LEAVE_CONFIG = {
   TYPES: {
     ANNUAL: 'annual',
+    SICK: 'sick',
     FAMILY: 'family',
     PERSONAL: 'personal',
   },

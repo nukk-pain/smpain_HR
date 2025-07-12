@@ -25,7 +25,6 @@ import {
   Select,
   MenuItem,
   Alert,
-  Divider,
   Tooltip,
   Stack,
 } from '@mui/material';
@@ -36,7 +35,6 @@ import {
   AttachMoney,
   EmojiEvents,
   FilterList,
-  Download,
   Refresh,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
@@ -78,7 +76,7 @@ interface BonusManagementProps {
 const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
   const [bonuses, setBonuses] = useState<Bonus[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBonus, setEditingBonus] = useState<Bonus | null>(null);
   const [formData, setFormData] = useState<BonusFormData>({
@@ -101,7 +99,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
     try {
       const response = await apiService.get(`/payroll/bonuses/${yearMonth}`);
       if (response.success) {
-        setBonuses(response.data || []);
+        setBonuses(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load bonuses');
@@ -115,7 +113,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
     try {
       const response = await apiService.getUsers();
       if (response.success) {
-        setEmployees(response.data || []);
+        setEmployees(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Failed to load employees:', error);

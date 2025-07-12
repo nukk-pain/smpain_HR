@@ -37,10 +37,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const response = await apiService.getCurrentUser()
-      if (response.authenticated && response.user) {
+      if (response.success && response.data) {
         setAuthState({
           isAuthenticated: true,
-          user: response.user as User,
+          user: response.data as User,
         })
       }
     } catch (error) {
@@ -57,10 +57,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await apiService.login(username, password)
-      if (response.success && response.user) {
+      if (response.success && response.data) {
         setAuthState({
           isAuthenticated: true,
-          user: response.user as User,
+          user: response.data as User,
         })
         return true
       }

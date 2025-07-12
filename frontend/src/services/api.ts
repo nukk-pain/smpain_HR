@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { ApiResponse, PaginatedResponse } from '../types';
+import { ApiResponse } from '../types';
 
 class ApiService {
   private api: AxiosInstance;
