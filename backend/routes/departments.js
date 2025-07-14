@@ -24,37 +24,44 @@ function createDepartmentRoutes(db) {
   // Get all departments
   router.get('/', requireAuth, asyncHandler(async (req, res) => {
     try {
-      // Get unique departments from users collection
-      const departments = await db.collection('users').aggregate([
-        { $match: { isActive: true, department: { $exists: true, $ne: null, $ne: '' } } },
-        {
-          $group: {
-            _id: '$department',
-            employeeCount: { $sum: 1 },
-            managers: {
-              $push: {
-                $cond: [
-                  { $eq: ['$role', 'manager'] },
-                  { name: '$name', id: { $toString: '$_id' } },
-                  null
-                ]
+      // Get departments from departments collection
+      const departments = await db.collection('departments').find({ isActive: true }).toArray();
+      
+      // Get employee counts for each department
+      const departmentsWithCounts = await Promise.all(departments.map(async (dept) => {
+        const employeeData = await db.collection('users').aggregate([
+          { $match: { department: dept.name, isActive: true } },
+          {
+            $group: {
+              _id: null,
+              employeeCount: { $sum: 1 },
+              managers: {
+                $push: {
+                  $cond: [
+                    { $eq: ['$role', 'manager'] },
+                    { name: '$name', id: { $toString: '$_id' } },
+                    null
+                  ]
+                }
               }
             }
           }
-        },
-        { $sort: { _id: 1 } }
-      ]).toArray();
+        ]).toArray();
 
-      const departmentsWithData = departments.map(dept => ({
-        _id: dept._id,
-        name: dept._id,
-        employeeCount: dept.employeeCount,
-        managers: dept.managers.filter(m => m !== null),
-        description: '',
-        isActive: true
+        const counts = employeeData[0] || { employeeCount: 0, managers: [] };
+        
+        return {
+          _id: dept._id,
+          name: dept.name,
+          description: dept.description || '',
+          employeeCount: counts.employeeCount,
+          managers: counts.managers.filter(m => m !== null),
+          isActive: dept.isActive,
+          createdAt: dept.createdAt
+        };
       }));
 
-      res.json({ success: true, data: departmentsWithData });
+      res.json({ success: true, data: departmentsWithCounts });
     } catch (error) {
       console.error('Get departments error:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -72,9 +79,9 @@ function createDepartmentRoutes(db) {
 
       const departmentName = name.trim();
 
-      // Check if department already exists (check in users collection)
-      const existingDepartment = await db.collection('users').findOne({ 
-        department: departmentName, 
+      // Check if department already exists in departments collection
+      const existingDepartment = await db.collection('departments').findOne({ 
+        name: departmentName, 
         isActive: true 
       });
 
@@ -82,18 +89,28 @@ function createDepartmentRoutes(db) {
         return res.status(400).json({ error: 'Department already exists' });
       }
 
-      // Since departments are derived from user data, we'll create a placeholder
-      // The department will be visible once users are assigned to it
+      // Create department record
+      const departmentRecord = {
+        name: departmentName,
+        description: description || '',
+        isActive: true,
+        createdAt: new Date(),
+        createdBy: req.session.user.id
+      };
+
+      const result = await db.collection('departments').insertOne(departmentRecord);
+
       res.json({
         success: true,
-        message: 'Department created successfully. Assign users to make it visible.',
+        message: 'Department created successfully',
         data: {
-          _id: departmentName,
+          _id: result.insertedId,
           name: departmentName,
           description,
           employeeCount: 0,
           managers: [],
-          isActive: true
+          isActive: true,
+          createdAt: departmentRecord.createdAt
         }
       });
     } catch (error) {
