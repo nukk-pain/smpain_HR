@@ -248,7 +248,15 @@ function createLeaveRoutes(db) {
     const userId = req.session.user.id;
     const currentYear = new Date().getFullYear();
     
-    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    // Safely handle ObjectId conversion
+    let userObjectId;
+    try {
+      userObjectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+    
+    const user = await db.collection('users').findOne({ _id: userObjectId });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -262,7 +270,7 @@ function createLeaveRoutes(db) {
     const usedLeave = await db.collection('leaveRequests').aggregate([
       {
         $match: {
-          userId: new ObjectId(userId),
+          userId: userObjectId,
           leaveType: 'annual',
           status: 'approved',
           startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
@@ -282,7 +290,7 @@ function createLeaveRoutes(db) {
     const pendingLeave = await db.collection('leaveRequests').aggregate([
       {
         $match: {
-          userId: new ObjectId(userId),
+          userId: userObjectId,
           leaveType: 'annual',
           status: 'pending',
           startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
