@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /mnt/d/my_programs/HR/frontend
+cd /volume1/web/HR/frontend
 serve -s dist -p 3727

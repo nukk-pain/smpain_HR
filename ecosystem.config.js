@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'hr-backend',
       script: './backend/server.js',
-      cwd: '/mnt/d/my_programs/HR',
+      cwd: '/volume1/web/HR',
       env: {
         NODE_ENV: 'production',
         PORT: 5455,
@@ -15,22 +15,22 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
-      error_file: './logs/hr-backend-error.log',
-      out_file: './logs/hr-backend-out.log',
-      log_file: './logs/hr-backend-combined.log',
+      error_file: '/root/.pm2/logs/hr-backend-error.log',
+      out_file: '/root/.pm2/logs/hr-backend-out.log',
+      log_file: '/root/.pm2/logs/hr-backend-combined.log',
       time: true
     },
     {
       name: 'hr-frontend',
-      script: '/mnt/d/my_programs/HR/start-frontend.sh',
-      cwd: '/mnt/d/my_programs/HR',
+      script: '/volume1/web/HR/start-frontend.sh',
+      cwd: '/volume1/web/HR',
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: '200M',
-      error_file: './logs/hr-frontend-error.log',
-      out_file: './logs/hr-frontend-out.log',
-      log_file: './logs/hr-frontend-combined.log',
+      error_file: '/root/.pm2/logs/hr-frontend-error.log',
+      out_file: '/root/.pm2/logs/hr-frontend-out.log',
+      log_file: '/root/.pm2/logs/hr-frontend-combined.log',
       time: true
     }
   ]
