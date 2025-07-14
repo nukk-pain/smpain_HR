@@ -442,7 +442,7 @@ function createLeaveRoutes(db) {
       teamMembers.map(async (member) => {
         const userId = member._id;
         
-        const hireDate = new Date(member.hireDate);
+        const hireDate = member.hireDate ? new Date(member.hireDate) : new Date(member.createdAt);
         const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
         const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
         
@@ -452,7 +452,7 @@ function createLeaveRoutes(db) {
               userId: userId,
               leaveType: 'annual',
               status: 'approved',
-              startDate: { $gte: `${year}-01-01`, $lte: `${year}-12-31` }
+              startDate: { $gte: new Date(`${year}-01-01`), $lte: new Date(`${year}-12-31`) }
             }
           },
           {
@@ -471,7 +471,7 @@ function createLeaveRoutes(db) {
               userId: userId,
               leaveType: 'annual',
               status: 'pending',
-              startDate: { $gte: `${year}-01-01`, $lte: `${year}-12-31` }
+              startDate: { $gte: new Date(`${year}-01-01`), $lte: new Date(`${year}-12-31`) }
             }
           },
           {
@@ -539,6 +539,63 @@ function createLeaveRoutes(db) {
         departments
       }
     });
+  }));
+
+  // Get pending leave requests for managers/admins
+  router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    try {
+      const userRole = req.session.user.role;
+      const userDepartment = req.session.user.department;
+      
+      let matchCondition = { status: 'pending' };
+      
+      // Managers can only see their department
+      if (userRole === 'manager') {
+        const departmentUserIds = await db.collection('users').find({
+          department: userDepartment
+        }).project({ _id: 1 }).toArray();
+        
+        const userIds = departmentUserIds.map(user => user._id);
+        matchCondition.userId = { $in: userIds };
+      }
+      
+      const pendingRequests = await db.collection('leaveRequests').aggregate([
+        { $match: matchCondition },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            id: '$_id',
+            userId: '$userId',
+            userName: { $arrayElemAt: ['$user.name', 0] },
+            userDepartment: { $arrayElemAt: ['$user.department', 0] },
+            leaveType: '$leaveType',
+            startDate: '$startDate',
+            endDate: '$endDate',
+            totalDays: '$totalDays',
+            reason: '$reason',
+            substituteEmployee: '$substituteEmployee',
+            submittedAt: '$submittedAt'
+          }
+        },
+        { $sort: { submittedAt: 1 } }
+      ]).toArray();
+      
+      res.json({
+        success: true,
+        data: pendingRequests
+      });
+      
+    } catch (error) {
+      console.error('Get pending requests error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }));
 
   return router;
