@@ -73,11 +73,11 @@ const UserDashboard: React.FC = () => {
       ]);
 
       const userStats: UserStats = {
-        leaveBalance: leaveBalance.data || {
-          totalAnnualLeave: 0,
-          usedAnnualLeave: 0,
-          remainingAnnualLeave: 0,
-          pendingRequests: 0
+        leaveBalance: {
+          totalAnnualLeave: leaveBalance.data?.totalAnnualLeave || 0,
+          usedAnnualLeave: leaveBalance.data?.usedAnnualLeave || 0,
+          remainingAnnualLeave: leaveBalance.data?.remainingAnnualLeave || 0,
+          pendingRequests: leaveBalance.data?.pendingAnnualLeave || 0
         },
         payroll: {
           currentMonth: new Date().toISOString().substring(0, 7),
