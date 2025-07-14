@@ -89,7 +89,7 @@ const FileUpload: React.FC = () => {
     setUploading(true);
     try {
       const response = await apiService.uploadPayrollFile(file, yearMonth);
-      setUploadResult(response.data);
+      setUploadResult(response.success ? response.data : null);
       showNotification('success', 'Success', 'File uploaded and parsed successfully');
     } catch (error: any) {
       showNotification('error', 'Error', error.response?.data?.error || 'Failed to upload file');
@@ -103,7 +103,7 @@ const FileUpload: React.FC = () => {
     
     try {
       const response = await apiService.getUploadPreview(uploadResult.uploadId);
-      setPreviewData(response.data);
+      setPreviewData(response.success ? response.data : []);
       setIsPreviewOpen(true);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load preview data');

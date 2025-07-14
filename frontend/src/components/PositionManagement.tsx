@@ -62,7 +62,7 @@ const PositionManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.getPositions();
-      setPositions(response.data || response);
+      setPositions(response.success ? response.data : []);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load positions');
     } finally {

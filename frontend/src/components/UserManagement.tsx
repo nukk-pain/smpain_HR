@@ -90,7 +90,7 @@ const UserManagement: React.FC = () => {
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         search: searchTerm || undefined,
       });
-      setUsers(response.data || response);
+      setUsers(response.success ? response.data : []);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load users');
     } finally {
@@ -101,7 +101,7 @@ const UserManagement: React.FC = () => {
   const loadDepartments = useCallback(async () => {
     try {
       const response = await apiService.getDepartments();
-      setDepartments(response.data || response);
+      setDepartments(response.success ? response.data : []);
     } catch (error) {
       console.error('Failed to load departments:', error);
     }
@@ -110,7 +110,7 @@ const UserManagement: React.FC = () => {
   const loadPositions = useCallback(async () => {
     try {
       const response = await apiService.getPositions();
-      setPositions(response.data || response);
+      setPositions(response.success ? response.data : []);
     } catch (error) {
       console.error('Failed to load positions:', error);
     }

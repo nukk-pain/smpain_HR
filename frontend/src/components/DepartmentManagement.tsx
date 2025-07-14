@@ -79,7 +79,7 @@ const DepartmentManagement: React.FC = () => {
   const loadDepartments = useCallback(async () => {
     try {
       const response = await apiService.getDepartments();
-      setDepartments(response.data || response);
+      setDepartments(response.success ? response.data : []);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load departments');
     }
@@ -88,7 +88,7 @@ const DepartmentManagement: React.FC = () => {
   const loadUsers = useCallback(async () => {
     try {
       const response = await apiService.getUsers();
-      setUsers(response.data || response);
+      setUsers(response.success ? response.data : []);
     } catch (error) {
       console.error('Failed to load users:', error);
     }
@@ -97,7 +97,7 @@ const DepartmentManagement: React.FC = () => {
   const loadPositions = useCallback(async () => {
     try {
       const response = await apiService.getPositions();
-      setPositions(response.data || response);
+      setPositions(response.success ? response.data : []);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load positions');
     }
@@ -106,7 +106,7 @@ const DepartmentManagement: React.FC = () => {
   const loadOrganizationChart = useCallback(async () => {
     try {
       const response = await apiService.getOrganizationChart();
-      setOrganizationChart(response.data || response);
+      setOrganizationChart(response.success ? response.data : {});
     } catch (error) {
       console.error('Failed to load organization chart:', error);
     }
@@ -124,7 +124,7 @@ const DepartmentManagement: React.FC = () => {
   const handleViewDepartment = async (departmentName: string) => {
     try {
       const response = await apiService.getDepartmentEmployees(departmentName);
-      setSelectedDepartment(response.data || response);
+      setSelectedDepartment(response.success ? response.data : {});
       setIsEmployeeDialogOpen(true);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load department employees');
