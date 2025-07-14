@@ -18,12 +18,29 @@ start.bat
 
 ### 📋 준비사항
 - **Node.js** (v18+) 설치
-- **MongoDB** 실행 중 (localhost:27017)
+- **MongoDB** 실행 중 (localhost:27017, 인증 없음)
+- **PM2** (프로덕션 배포시): `npm install -g pm2`
+- **serve** (프론트엔드 정적 배포): `npm install -g serve`
 
 ### 🌐 접속 정보
 - **프론트엔드**: http://localhost:3727
 - **백엔드 API**: http://localhost:5455/api
 - **기본 계정**: admin / admin
+
+### 🐳 PM2로 실행 (프로덕션)
+```bash
+# PM2 ecosystem 파일로 실행
+pm2 start ecosystem.config.js
+
+# 로그 확인
+pm2 logs
+
+# 상태 확인
+pm2 status
+
+# 중지
+pm2 stop ecosystem.config.js
+```
 
 ## 🎯 주요 기능
 
@@ -83,12 +100,27 @@ start.bat
 ## 📊 환경 설정
 
 ### 개발 환경
-- MongoDB: `mongodb://localhost:27017`
+- MongoDB: `mongodb://localhost:27017` (인증 없음)
 - Database: `SM_nomu`
+- 백엔드 포트: 5455
+- 프론트엔드 포트: 3727
 
-### 배포 환경
-- MongoDB: `mongodb://192.168.0.30:27017`
+### 프로덕션 환경 (Synology NAS)
+- MongoDB: `mongodb://localhost:27017` (인증 없음)
 - Database: `SM_nomu`
+- 배포 경로: `/volume1/web/HR`
+- PM2 ecosystem 사용
+- 로그 경로: `/root/.pm2/logs/`
+
+### 환경 변수
+```bash
+# 프로덕션 환경에서 설정 가능
+NODE_ENV=production
+PORT=5455
+MONGODB_URL=mongodb://localhost:27017
+DB_NAME=SM_nomu
+SESSION_SECRET=hr-synology-secret-2025
+```
 
 ## 🔧 문제 해결
 
@@ -120,6 +152,26 @@ npm start  # 또는 node server.js
 cd frontend
 npm run dev  # 개발 서버
 npm run build  # 프로덕션 빌드
+npx serve -s dist -p 3727  # 프로덕션 정적 서빙
+```
+
+### 프로덕션 배포 (Synology NAS)
+```bash
+# 1. 프론트엔드 빌드
+cd frontend
+npm run build
+
+# 2. PM2로 서비스 시작
+pm2 start ecosystem.config.js
+
+# 3. 부팅시 자동 시작 설정
+pm2 startup
+pm2 save
+
+# 4. 서비스 상태 확인
+pm2 status
+pm2 logs hr-backend
+pm2 logs hr-frontend
 ```
 
 ## 📁 프로젝트 구조
@@ -131,6 +183,7 @@ HR/  (leave_management_v3 → HR로 리브랜딩)
 ├── 📚 README.md              # 이 문서
 ├── 📚 README2.md             # 시놀로지 배포 가이드
 ├── 📚 CLAUDE.md              # 개발 가이드 및 아키텍처
+├── ⚙️ ecosystem.config.js    # PM2 배포 설정
 ├── 🗄️ backend/               # Node.js Express 백엔드
 │   ├── server.js             # 메인 서버 (257줄, 모듈화됨)
 │   ├── routes/               # API 라우트 모듈
@@ -166,7 +219,9 @@ HR/  (leave_management_v3 → HR로 리브랜딩)
 - **모듈화**: 5,155줄 단일 파일 → 257줄 모듈화된 서버
 - **타입 안전성**: JavaScript → TypeScript 전환
 - **빌드 시스템**: TypeScript 컴파일 최적화
-- **포트 변경**: 백엔드 5445, 프론트엔드 3727
+- **포트 변경**: 백엔드 5455, 프론트엔드 3727
+- **PM2 배포**: ecosystem.config.js로 프로덕션 배포 자동화
+- **MongoDB 최적화**: 인증 없는 로컬 연결로 단순화
 
 #### 🎨 UI/UX 개선
 - **Material-UI v7**: 최신 디자인 시스템 적용
