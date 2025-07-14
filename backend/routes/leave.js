@@ -254,7 +254,7 @@ function createLeaveRoutes(db) {
     }
     
     // Calculate annual leave entitlement
-    const hireDate = new Date(user.hireDate);
+    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
     const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
     const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
     
@@ -265,13 +265,13 @@ function createLeaveRoutes(db) {
           userId: new ObjectId(userId),
           leaveType: 'annual',
           status: 'approved',
-          startDate: { $gte: `${currentYear}-01-01`, $lte: `${currentYear}-12-31` }
+          startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
         }
       },
       {
         $group: {
           _id: null,
-          totalDays: { $sum: '$daysCount' }
+          totalDays: { $sum: '$totalDays' }
         }
       }
     ]).toArray();
@@ -285,13 +285,13 @@ function createLeaveRoutes(db) {
           userId: new ObjectId(userId),
           leaveType: 'annual',
           status: 'pending',
-          startDate: { $gte: `${currentYear}-01-01`, $lte: `${currentYear}-12-31` }
+          startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
         }
       },
       {
         $group: {
           _id: null,
-          totalDays: { $sum: '$daysCount' }
+          totalDays: { $sum: '$totalDays' }
         }
       }
     ]).toArray();
@@ -458,7 +458,7 @@ function createLeaveRoutes(db) {
           {
             $group: {
               _id: null,
-              totalDays: { $sum: '$daysCount' }
+              totalDays: { $sum: '$totalDays' }
             }
           }
         ]).toArray();
@@ -477,7 +477,7 @@ function createLeaveRoutes(db) {
           {
             $group: {
               _id: null,
-              totalDays: { $sum: '$daysCount' }
+              totalDays: { $sum: '$totalDays' }
             }
           }
         ]).toArray();

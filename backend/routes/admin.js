@@ -32,143 +32,110 @@ function createAdminRoutes(db) {
   // Get leave overview for admin
   router.get('/leave/overview', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     try {
-      const currentDate = new Date();
-      const currentMonth = currentDate.toISOString().substring(0, 7);
-
-      // Get leave statistics
-      const leaveStats = await db.collection('leaveRequests').aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            totalDays: { $sum: '$totalDays' }
-          }
-        }
-      ]).toArray();
-
-      // Get monthly leave trends (last 6 months)
-      const sixMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1);
+      const currentYear = new Date().getFullYear();
       
-      const monthlyTrends = await db.collection('leaveRequests').aggregate([
-        {
-          $match: {
-            startDate: { $gte: sixMonthsAgo },
-            status: 'approved'
-          }
-        },
-        {
-          $group: {
-            _id: {
-              year: { $year: '$startDate' },
-              month: { $month: '$startDate' }
+      // Get all employees (excluding admin)
+      const employees = await db.collection('users').find({
+        isActive: true,
+        role: { $ne: 'admin' }
+      }).toArray();
+      
+      // Calculate leave overview for each employee
+      const employeeLeaveOverview = await Promise.all(
+        employees.map(async (employee) => {
+          const userId = employee._id;
+          
+          // Calculate years of service
+          const hireDate = employee.hireDate ? new Date(employee.hireDate) : new Date(employee.createdAt);
+          const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
+          
+          // Calculate annual leave entitlement
+          const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+          
+          // Calculate used annual leave
+          const usedLeave = await db.collection('leaveRequests').aggregate([
+            {
+              $match: {
+                userId: userId,
+                leaveType: 'annual',
+                status: 'approved',
+                startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
+              }
             },
-            totalRequests: { $sum: 1 },
-            totalDays: { $sum: '$totalDays' }
-          }
-        },
-        {
-          $project: {
-            yearMonth: {
-              $concat: [
-                { $toString: '$_id.year' },
-                '-',
-                { 
-                  $cond: {
-                    if: { $lt: ['$_id.month', 10] },
-                    then: { $concat: ['0', { $toString: '$_id.month' }] },
-                    else: { $toString: '$_id.month' }
-                  }
-                }
-              ]
-            },
-            totalRequests: 1,
-            totalDays: 1
-          }
-        },
-        { $sort: { yearMonth: 1 } }
-      ]).toArray();
-
-      // Get department-wise leave usage
-      const departmentStats = await db.collection('leaveRequests').aggregate([
-        {
-          $match: { status: 'approved' }
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'user'
-          }
-        },
-        {
-          $group: {
-            _id: { $arrayElemAt: ['$user.department', 0] },
-            totalRequests: { $sum: 1 },
-            totalDays: { $sum: '$totalDays' },
-            employees: { $addToSet: '$userId' }
-          }
-        },
-        {
-          $project: {
-            department: '$_id',
-            totalRequests: 1,
-            totalDays: 1,
-            employeeCount: { $size: '$employees' },
-            avgDaysPerEmployee: {
-              $round: [{ $divide: ['$totalDays', { $size: '$employees' }] }, 1]
-            }
-          }
-        },
-        { $sort: { totalDays: -1 } }
-      ]).toArray();
-
-      // Get pending requests that need attention
-      const pendingRequests = await db.collection('leaveRequests').aggregate([
-        { $match: { status: 'pending' } },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'user'
-          }
-        },
-        {
-          $project: {
-            employeeName: { $arrayElemAt: ['$user.name', 0] },
-            department: { $arrayElemAt: ['$user.department', 0] },
-            leaveType: 1,
-            startDate: 1,
-            endDate: 1,
-            totalDays: 1,
-            submittedAt: 1,
-            daysSinceSubmission: {
-              $floor: {
-                $divide: [
-                  { $subtract: [new Date(), '$submittedAt'] },
-                  1000 * 60 * 60 * 24
-                ]
+            {
+              $group: {
+                _id: null,
+                totalDays: { $sum: '$totalDays' }
               }
             }
-          }
-        },
-        { $sort: { submittedAt: 1 } }
-      ]).toArray();
-
+          ]).toArray();
+          
+          const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalDays : 0;
+          
+          // Calculate pending annual leave
+          const pendingLeave = await db.collection('leaveRequests').aggregate([
+            {
+              $match: {
+                userId: userId,
+                leaveType: 'annual',
+                status: 'pending',
+                startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalDays: { $sum: '$totalDays' }
+              }
+            }
+          ]).toArray();
+          
+          const pendingAnnualLeave = pendingLeave.length > 0 ? pendingLeave[0].totalDays : 0;
+          const remainingAnnualLeave = totalAnnualLeave - usedAnnualLeave;
+          const usageRate = Math.round((usedAnnualLeave / totalAnnualLeave) * 100);
+          
+          // Calculate risk level (based on unused leave)
+          let riskLevel = 'low';
+          if (usageRate < 30) riskLevel = 'high';
+          else if (usageRate < 60) riskLevel = 'medium';
+          
+          return {
+            employeeId: employee._id,
+            name: employee.name,
+            department: employee.department || '미분류',
+            position: employee.position || '직원',
+            totalAnnualLeave,
+            usedAnnualLeave,
+            pendingAnnualLeave,
+            remainingAnnualLeave,
+            usageRate,
+            riskLevel,
+            yearsOfService
+          };
+        })
+      );
+      
+      // Calculate overall statistics
+      const totalEmployees = employeeLeaveOverview.length;
+      const averageUsageRate = totalEmployees > 0 ? Math.round(
+        employeeLeaveOverview.reduce((sum, emp) => sum + emp.usageRate, 0) / totalEmployees
+      ) : 0;
+      const highRiskCount = employeeLeaveOverview.filter(emp => emp.riskLevel === 'high').length;
+      
       res.json({
         success: true,
         data: {
-          leaveStatistics: leaveStats,
-          monthlyTrends,
-          departmentStatistics: departmentStats,
-          pendingRequests,
-          generatedAt: new Date()
+          statistics: {
+            totalEmployees,
+            averageUsageRate,
+            highRiskCount
+          },
+          employees: employeeLeaveOverview
         }
       });
-
+      
     } catch (error) {
-      console.error('Get leave overview error:', error);
+      console.error('Get admin leave overview error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }));
