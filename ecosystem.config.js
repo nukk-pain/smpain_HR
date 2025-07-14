@@ -22,8 +22,8 @@ module.exports = {
     },
     {
       name: 'hr-frontend',
-      script: 'serve',
-      args: '-s dist -p 3727',
+      script: 'npx',
+      args: ['serve', '-s', 'dist', '-p', '3727'],
       cwd: '/volume1/web/HR/frontend',
       instances: 1,
       autorestart: true,

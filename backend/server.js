@@ -25,9 +25,7 @@ const PORT = 5455;
 
 // MongoDB connection setup
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const MONGO_URL = process.env.MONGODB_URL || (isDevelopment
-  ? 'mongodb://localhost:27017'
-  : 'mongodb://admin:password123@localhost:27017');
+const MONGO_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 
 let db;
