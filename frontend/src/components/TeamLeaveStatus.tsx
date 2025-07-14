@@ -375,7 +375,7 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Avatar sx={{ width: 32, height: 32 }}>
-                                  {member.name[0]}
+                                  {member.name?.[0] || '?'}
                                 </Avatar>
                                 <Box>
                                   <Typography variant="subtitle2">

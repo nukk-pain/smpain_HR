@@ -105,6 +105,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
     try {
       setDetailsLoading(true);
       const response = await apiService.getEmployeeLeaveDetails(employeeId);
+      console.log('Employee details received:', response.data);
       setEmployeeDetails(response.data);
     } catch (error) {
       console.error('Error loading employee details:', error);
@@ -201,7 +202,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
   const calculatePreviewBalance = () => {
     if (!employeeDetails) return 0;
     const adjustmentAmount = adjustmentType === 'add' ? amount : -amount;
-    return employeeDetails.leaveStatus.remainingAnnualLeave + adjustmentAmount;
+    return (employeeDetails?.leaveInfo?.currentBalance || 0) + adjustmentAmount;
   };
 
   if (detailsLoading) {
@@ -222,81 +223,81 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
         ⚙️ {employeeName}님 연차 조정
       </DialogTitle>
       <DialogContent>
-        {employeeDetails && (
+        {employeeDetails && employeeDetails.leaveInfo ? (
           <Grid container spacing={3} sx={{ mt: 1 }}>
             {/* 현재 연차 현황 */}
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Typography variant="h6" gutterBottom>
                 현재 연차 현황
               </Typography>
               <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       기본 연차
                     </Typography>
                     <Typography variant="h6">
-                      {employeeDetails.leaveStatus.baseAnnualLeave}일
+                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      ({employeeDetails.employee.yearsOfService}년차)
+                      ({employeeDetails?.employee?.yearsOfService || 0}년차)
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       이월 연차
                     </Typography>
                     <Typography variant="h6">
-                      {employeeDetails.leaveStatus.carryOverLeave}일
+                      0일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       조정 연차
                     </Typography>
-                    <Typography variant="h6" color={employeeDetails.leaveStatus.totalAdjustments >= 0 ? 'success.main' : 'error.main'}>
-                      {employeeDetails.leaveStatus.totalAdjustments >= 0 ? '+' : ''}{employeeDetails.leaveStatus.totalAdjustments}일
+                    <Typography variant="h6" color="info.main">
+                      {employeeDetails?.adjustments?.length || 0}건
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       총 연차
                     </Typography>
                     <Typography variant="h6" color="primary">
-                      {employeeDetails.leaveStatus.totalAnnualLeave}일
+                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       사용 연차
                     </Typography>
                     <Typography variant="h6">
-                      {employeeDetails.leaveStatus.usedAnnualLeave}일
+                      {employeeDetails?.leaveInfo?.totalUsedThisYear || 0}일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid xs={6} md={3}>
                     <Typography variant="body2" color="text.secondary">
                       잔여 연차
                     </Typography>
                     <Typography variant="h6" color="success.main">
-                      {employeeDetails.leaveStatus.remainingAnnualLeave}일
+                      {employeeDetails?.leaveInfo?.currentBalance || 0}일
                     </Typography>
                   </Grid>
                 </Grid>
               </Box>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Divider />
             </Grid>
 
             {/* 조정 옵션 */}
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Typography variant="h6" gutterBottom>
                 🔧 조정 옵션
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     select
@@ -310,7 +311,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                     <MenuItem value="cancel_usage">사용 취소</MenuItem>
                   </TextField>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     type="number"
@@ -320,7 +321,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                     inputProps={{ min: 0, max: 50 }}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     label="조정 사유"
@@ -336,11 +337,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
 
             {/* 미리보기 */}
             {amount > 0 && (
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Alert severity="info">
                   <Typography variant="body2">
                     <strong>조정 미리보기:</strong><br />
-                    현재 잔여 연차: {employeeDetails.leaveStatus.remainingAnnualLeave}일<br />
+                    현재 잔여 연차: {employeeDetails?.leaveInfo?.currentBalance || 0}일<br />
                     조정 후 잔여 연차: {calculatePreviewBalance()}일<br />
                     변경량: {adjustmentType === 'add' ? '+' : '-'}{amount}일
                   </Typography>
@@ -349,8 +350,8 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
             )}
 
             {/* 조정 히스토리 */}
-            {employeeDetails.adjustmentHistory.length > 0 && (
-              <Grid item xs={12}>
+            {(employeeDetails?.adjustments?.length || 0) > 0 && (
+              <Grid xs={12}>
                 <Typography variant="h6" gutterBottom>
                   조정 히스토리
                 </Typography>
@@ -368,7 +369,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {employeeDetails.adjustmentHistory.slice(0, 5).map((adjustment) => (
+                      {(employeeDetails?.adjustments || []).slice(0, 5).map((adjustment) => (
                         <TableRow key={adjustment._id}>
                           <TableCell>
                             {format(new Date(adjustment.adjustedAt), 'yyyy-MM-dd HH:mm', { locale: ko })}
@@ -396,6 +397,12 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
               </Grid>
             )}
           </Grid>
+        ) : (
+          !detailsLoading && (
+            <Alert severity="warning">
+              직원 연차 정보를 불러올 수 없습니다.
+            </Alert>
+          )
         )}
       </DialogContent>
       <DialogActions>

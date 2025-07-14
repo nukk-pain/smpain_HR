@@ -278,15 +278,12 @@ const Layout: React.FC = () => {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">
-              {user?.name || user?.username}
-            </Typography>
             <Button
               color="inherit"
               startIcon={<Avatar sx={{ width: 24, height: 24 }}><Person /></Avatar>}
               onClick={handleProfileMenuOpen}
             >
-              {user?.role === 'admin' ? '관리자' : user?.role === 'manager' ? '매니저' : '사용자'}
+              {user?.name || '사용자'}
             </Button>
           </Box>
 

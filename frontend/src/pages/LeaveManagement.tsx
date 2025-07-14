@@ -356,7 +356,7 @@ const LeaveManagement: React.FC = () => {
                 📊 내 휴가 현황 ({leaveBalance.year}년)
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Box flex={1}>
                       <Typography variant="body2" color="text.secondary">
@@ -373,9 +373,9 @@ const LeaveManagement: React.FC = () => {
                     </Box>
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <Grid container spacing={2}>
-                    <Grid item xs={6}>
+                    <Grid xs={6}>
                       <Typography variant="body2" color="text.secondary">
                         잔여 연차
                       </Typography>
@@ -383,7 +383,7 @@ const LeaveManagement: React.FC = () => {
                         {leaveBalance.remainingAnnualLeave}일
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid xs={6}>
                       <Typography variant="body2" color="text.secondary">
                         대기중
                       </Typography>
@@ -510,31 +510,31 @@ const LeaveManagement: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {pendingRequests.map((request) => (
-                      <TableRow key={request.id}>
+                    {pendingRequests?.map((request) => (
+                      <TableRow key={request?.id || request?._id}>
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Avatar sx={{ width: 24, height: 24 }}>
-                              {request.userName[0]}
+                              {request?.userName?.[0] || '?'}
                             </Avatar>
-                            {request.userName}
+                            {request?.userName || '사용자 정보 없음'}
                           </Box>
                         </TableCell>
-                        <TableCell>{request.userDepartment}</TableCell>
+                        <TableCell>{request?.userDepartment || '부서 정보 없음'}</TableCell>
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request.leaveType)}
-                            {getLeaveTypeLabel(request.leaveType)}
+                            {getLeaveTypeIcon(request?.leaveType)}
+                            {getLeaveTypeLabel(request?.leaveType)}
                           </Box>
                         </TableCell>
                         <TableCell>
-                          {safeFormatDate(request.startDate)} ~{' '}
-                          {safeFormatDate(request.endDate)}
+                          {safeFormatDate(request?.startDate)} ~{' '}
+                          {safeFormatDate(request?.endDate)}
                         </TableCell>
-                        <TableCell>{request.daysCount}일</TableCell>
-                        <TableCell>{request.reason}</TableCell>
+                        <TableCell>{request?.daysCount || 0}일</TableCell>
+                        <TableCell>{request?.reason || '-'}</TableCell>
                         <TableCell>
-                          {safeFormatDate(request.createdAt)}
+                          {safeFormatDate(request?.createdAt)}
                         </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1}>
@@ -543,8 +543,10 @@ const LeaveManagement: React.FC = () => {
                                 size="small"
                                 color="success"
                                 onClick={() => {
-                                  setSelectedRequest(request);
-                                  handleApproval('approve');
+                                  if (request) {
+                                    setSelectedRequest(request);
+                                    handleApproval('approve');
+                                  }
                                 }}
                               >
                                 <CheckIcon />
@@ -554,7 +556,7 @@ const LeaveManagement: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => handleOpenApprovalDialog(request)}
+                                onClick={() => request && handleOpenApprovalDialog(request)}
                               >
                                 <CloseIcon />
                               </IconButton>
@@ -563,7 +565,7 @@ const LeaveManagement: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {pendingRequests.length === 0 && (
+                    {(!pendingRequests || pendingRequests.length === 0) && (
                       <TableRow>
                         <TableCell colSpan={8} align="center">
                           <Typography color="text.secondary">
@@ -586,7 +588,7 @@ const LeaveManagement: React.FC = () => {
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <TextField
                   fullWidth
                   label="휴가 종류"
@@ -599,7 +601,7 @@ const LeaveManagement: React.FC = () => {
                   <MenuItem value={leave.types.PERSONAL}>개인휴가 (무급)</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <TextField
                   fullWidth
                   label="대체 인력 (선택사항)"
@@ -608,7 +610,7 @@ const LeaveManagement: React.FC = () => {
                   helperText="필요시 대체 인력을 입력하세요"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <DatePicker
                   label="시작일"
                   value={formData.startDate ? parseISO(formData.startDate) : null}
@@ -625,7 +627,7 @@ const LeaveManagement: React.FC = () => {
                   format="yyyy-MM-dd"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <DatePicker
                   label="종료일"
                   value={formData.endDate ? parseISO(formData.endDate) : null}
@@ -643,7 +645,7 @@ const LeaveManagement: React.FC = () => {
                   minDate={formData.startDate ? parseISO(formData.startDate) : undefined}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <TextField
                   fullWidth
                   label="신청 사유"
@@ -654,7 +656,7 @@ const LeaveManagement: React.FC = () => {
                 />
               </Grid>
               {formData.startDate && formData.endDate && (
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Alert severity="info">
                     총 휴가 일수: {calculateDays(formData.startDate, formData.endDate)}일
                     (일요일 제외, 토요일 0.5일 계산)

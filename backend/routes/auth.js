@@ -48,7 +48,7 @@ function createAuthRoutes(db) {
       
       // Store user in session
       req.session.user = {
-        id: user._id,
+        id: user._id.toString(),
         username: user.username,
         name: user.name,
         role: user.role,
@@ -59,7 +59,7 @@ function createAuthRoutes(db) {
         success: true,
         message: 'Login successful', 
         user: {
-          id: user._id,
+          id: user._id.toString(),
           username: user.username,
           name: user.name,
           role: user.role,
@@ -82,26 +82,44 @@ function createAuthRoutes(db) {
     });
   });
 
+  // Clear session (development only)
+  router.post('/clear-session', (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ error: 'Only available in development' });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Could not clear session' });
+      }
+      res.json({ message: 'Session cleared successfully' });
+    });
+  });
+
   // Get current user
   router.get('/me', async (req, res) => {
     try {
       if (req.session && req.session.user) {
-        const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
-        if (user && user.isActive) {
-          res.json({
-            authenticated: true,
-            user: {
-              id: user._id,
-              username: user.username,
-              name: user.name,
-              role: user.role,
-              department: user.department,
-              position: user.position,
-              employeeId: user.employeeId,
-              permissions: user.permissions || []
-            }
-          });
-        } else {
+        try {
+          const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
+          if (user && user.isActive) {
+            res.json({
+              authenticated: true,
+              user: {
+                id: user._id.toString(),
+                username: user.username,
+                name: user.name,
+                role: user.role,
+                department: user.department,
+                position: user.position,
+                employeeId: user.employeeId,
+                permissions: user.permissions || []
+              }
+            });
+          } else {
+            res.json({ authenticated: false });
+          }
+        } catch (innerError) {
+          console.error('Inner auth error:', innerError);
           res.json({ authenticated: false });
         }
       } else {
