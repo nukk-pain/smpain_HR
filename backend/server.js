@@ -9,6 +9,13 @@ const bcrypt = require('bcryptjs');
 const createAuthRoutes = require('./routes/auth');
 const createUserRoutes = require('./routes/users');
 const createLeaveRoutes = require('./routes/leave');
+const createDepartmentRoutes = require('./routes/departments');
+const createPayrollRoutes = require('./routes/payroll');
+const createBonusRoutes = require('./routes/bonus');
+const createSalesRoutes = require('./routes/sales');
+const createUploadRoutes = require('./routes/upload');
+const createReportsRoutes = require('./routes/reports');
+const createAdminRoutes = require('./routes/admin');
 
 // Import middleware
 const {
@@ -332,81 +339,6 @@ app.get('/api/admin/performance-stats', requireAuth, asyncHandler(async (_, res)
 }));
 
 // Departments endpoints
-app.get('/api/departments', requireAuth, asyncHandler(async (_, res) => {
-  try {
-    // Get unique departments from users collection
-    const departments = await db.collection('users').aggregate([
-      { $match: { isActive: true, department: { $exists: true, $ne: null, $ne: '' } } },
-      {
-        $group: {
-          _id: '$department',
-          employeeCount: { $sum: 1 },
-          managers: {
-            $push: {
-              $cond: [
-                { $eq: ['$role', 'manager'] },
-                { name: '$name', id: { $toString: '$_id' } },
-                null
-              ]
-            }
-          }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]).toArray();
-
-    const departmentsWithData = departments.map(dept => ({
-      _id: dept._id,
-      name: dept._id,
-      employeeCount: dept.employeeCount,
-      managers: dept.managers.filter(m => m !== null),
-      description: '',
-      isActive: true
-    }));
-
-    res.json({ success: true, data: departmentsWithData });
-  } catch (error) {
-    console.error('Get departments error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-}));
-
-app.get('/api/departments/:name/employees', requireAuth, asyncHandler(async (req, res) => {
-  try {
-    const departmentName = req.params.name;
-
-    const employees = await db.collection('users').find({
-      department: departmentName,
-      isActive: true
-    }, { projection: { password: 0 } }).toArray();
-
-    const summary = {
-      totalEmployees: employees.length,
-      managers: employees.filter(emp => emp.role === 'manager').length,
-      regular: employees.filter(emp => emp.role === 'user').length,
-      contract: 0 // Placeholder
-    };
-
-    const employeesWithDetails = employees.map(emp => ({
-      ...emp,
-      contractType: 'regular', // Default
-      yearsOfService: emp.createdAt ?
-        Math.floor((new Date() - new Date(emp.createdAt)) / (365.25 * 24 * 60 * 60 * 1000)) : 0
-    }));
-
-    res.json({
-      success: true,
-      data: {
-        department: departmentName,
-        summary,
-        employees: employeesWithDetails
-      }
-    });
-  } catch (error) {
-    console.error('Get department employees error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-}));
 
 app.get('/api/organization-chart', requireAuth, asyncHandler(async (_, res) => {
   try {
@@ -490,6 +422,13 @@ async function initializeRoutes() {
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
   app.use('/api/leave', createLeaveRoutes(db));
+  app.use('/api/departments', createDepartmentRoutes(db));
+  app.use('/api/payroll', createPayrollRoutes(db));
+  app.use('/api/bonus', createBonusRoutes(db));
+  app.use('/api/sales', createSalesRoutes(db));
+  app.use('/api/payroll-upload', createUploadRoutes(db));
+  app.use('/api/reports', createReportsRoutes(db));
+  app.use('/api/admin', createAdminRoutes(db));
 
   // Error handling middleware
   app.use(errorHandler);
