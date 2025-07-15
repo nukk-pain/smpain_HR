@@ -20,6 +20,108 @@ const getUserObjectId = async (db, userId) => {
   }
 };
 
+// Helper function to calculate annual leave entitlement based on hire date
+const calculateAnnualLeaveEntitlement = (hireDate) => {
+  const now = new Date();
+  const hire = new Date(hireDate);
+  
+  // Calculate years of service
+  const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
+  
+  if (yearsOfService === 0) {
+    // For 0-year employees: 1 day per month since hire date
+    const monthsWorked = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
+    return Math.min(monthsWorked, 11); // Maximum 11 days in first year
+  } else {
+    // For 1+ year employees: 15 + (years - 1), max 25 days
+    return Math.min(15 + (yearsOfService - 1), 25);
+  }
+};
+
+// Helper function to get carry-over leave from previous year
+const getCarryOverLeave = async (db, userId, currentYear) => {
+  try {
+    // Get carry-over adjustments for current year
+    const carryOverAdjustments = await db.collection('leaveAdjustments').aggregate([
+      {
+        $match: {
+          userId: userId,
+          year: currentYear,
+          adjustmentType: 'carry_over'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCarryOver: { $sum: '$amount' }
+        }
+      }
+    ]).toArray();
+
+    const manualCarryOver = carryOverAdjustments.length > 0 ? carryOverAdjustments[0].totalCarryOver : 0;
+
+    // Calculate automatic carry-over from previous year's unused leave
+    const previousYear = currentYear - 1;
+    
+    // Get previous year's total leave entitlement
+    const user = await db.collection('users').findOne({ _id: userId });
+    if (!user) return manualCarryOver;
+    
+    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+    const hireYear = hireDate.getFullYear();
+    
+    // If user was hired in current year or later, no carry-over
+    if (hireYear >= currentYear) return manualCarryOver;
+    
+    // Calculate previous year's entitlement (use date from previous year for calculation)
+    const previousYearDate = new Date(previousYear, 11, 31); // Dec 31 of previous year
+    const previousYearHire = new Date(hireDate);
+    const yearsOfServicePrevious = Math.floor((previousYearDate - previousYearHire) / (1000 * 60 * 60 * 24 * 365.25));
+    
+    let previousYearEntitlement;
+    if (yearsOfServicePrevious === 0) {
+      const monthsWorked = Math.floor((previousYearDate - previousYearHire) / (1000 * 60 * 60 * 24 * 30.44));
+      previousYearEntitlement = Math.min(monthsWorked, 11);
+    } else {
+      previousYearEntitlement = Math.min(15 + (yearsOfServicePrevious - 1), 25);
+    }
+
+    // Get previous year's used leave
+    const previousYearUsed = await db.collection('leaveRequests').aggregate([
+      {
+        $match: {
+          userId: userId,
+          leaveType: 'annual',
+          status: 'approved',
+          startDate: { 
+            $gte: new Date(`${previousYear}-01-01`), 
+            $lte: new Date(`${previousYear}-12-31`) 
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalUsed: { $sum: '$daysCount' }
+        }
+      }
+    ]).toArray();
+
+    const previousYearUsedLeave = previousYearUsed.length > 0 ? previousYearUsed[0].totalUsed : 0;
+    
+    // Calculate unused leave from previous year
+    const unusedFromPrevious = Math.max(0, previousYearEntitlement - previousYearUsedLeave);
+    
+    // Apply carry-over limit (maximum 15 days can be carried over)
+    const autoCarryOver = Math.min(unusedFromPrevious, 15);
+    
+    return manualCarryOver + autoCarryOver;
+  } catch (error) {
+    console.error('Error calculating carry-over leave:', error);
+    return 0;
+  }
+};
+
 // Helper function to safely convert to ObjectId
 const toObjectId = (id) => {
   if (ObjectId.isValid(id)) {
@@ -159,10 +261,11 @@ function createLeaveRoutes(db) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Calculate annual leave entitlement
+    // Calculate annual leave entitlement including carry-over
     const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
-    const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
-    const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+    const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+    const carryOverLeave = await getCarryOverLeave(db, user._id, currentYear);
+    const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
     
     // Get used annual leave using the actual user ObjectId
     const usedLeave = await db.collection('leaveRequests').aggregate([
@@ -207,12 +310,20 @@ function createLeaveRoutes(db) {
     const leaveBalance = {
       userId: user._id,
       year: currentYear,
+      baseAnnualLeave,
+      carryOverLeave,
       totalAnnualLeave,
       usedAnnualLeave,
       pendingAnnualLeave,
       remainingAnnualLeave: totalAnnualLeave - usedAnnualLeave,
       breakdown: {
-        annual: { total: totalAnnualLeave, used: usedAnnualLeave, remaining: totalAnnualLeave - usedAnnualLeave },
+        annual: { 
+          base: baseAnnualLeave,
+          carryOver: carryOverLeave,
+          total: totalAnnualLeave, 
+          used: usedAnnualLeave, 
+          remaining: totalAnnualLeave - usedAnnualLeave 
+        },
         sick: { total: 12, used: 0, remaining: 12 },
         personal: { total: 3, used: 0, remaining: 3 },
         family: { total: 0, used: 0, remaining: 0 }
@@ -354,8 +465,7 @@ function createLeaveRoutes(db) {
         const userId = member._id;
         
         const hireDate = member.hireDate ? new Date(member.hireDate) : new Date(member.createdAt);
-        const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
-        const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+        const totalAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
         
         const usedLeave = await db.collection('leaveRequests').aggregate([
           {
@@ -615,94 +725,6 @@ function createLeaveRoutes(db) {
     });
   }));
 
-  // Get leave balance
-  router.get('/balance', requireAuth, asyncHandler(async (req, res) => {
-    const userId = req.session.user.id;
-    const currentYear = new Date().getFullYear();
-    
-    // Handle case where userId might be a name instead of ObjectId
-    let user;
-    if (ObjectId.isValid(userId)) {
-      user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
-    } else {
-      // If userId is not valid ObjectId, try to find by name or username
-      user = await db.collection('users').findOne({ 
-        $or: [
-          { name: userId },
-          { username: userId }
-        ]
-      });
-    }
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Calculate annual leave entitlement
-    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
-    const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
-    const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
-    
-    // Get used annual leave using the actual user ObjectId
-    const usedLeave = await db.collection('leaveRequests').aggregate([
-      {
-        $match: {
-          userId: user._id,
-          leaveType: 'annual',
-          status: 'approved',
-          startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalDays: { $sum: '$daysCount' }
-        }
-      }
-    ]).toArray();
-    
-    const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalDays : 0;
-    
-    // Get pending annual leave using the actual user ObjectId
-    const pendingLeave = await db.collection('leaveRequests').aggregate([
-      {
-        $match: {
-          userId: user._id,
-          leaveType: 'annual',
-          status: 'pending',
-          startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalDays: { $sum: '$daysCount' }
-        }
-      }
-    ]).toArray();
-    
-    const pendingAnnualLeave = pendingLeave.length > 0 ? pendingLeave[0].totalDays : 0;
-    
-    const leaveBalance = {
-      userId: user._id,
-      year: currentYear,
-      totalAnnualLeave,
-      usedAnnualLeave,
-      pendingAnnualLeave,
-      remainingAnnualLeave: totalAnnualLeave - usedAnnualLeave,
-      breakdown: {
-        annual: { total: totalAnnualLeave, used: usedAnnualLeave, remaining: totalAnnualLeave - usedAnnualLeave },
-        sick: { total: 12, used: 0, remaining: 12 },
-        personal: { total: 3, used: 0, remaining: 3 },
-        family: { total: 0, used: 0, remaining: 0 }
-      }
-    };
-    
-    res.json({
-      success: true,
-      data: leaveBalance
-    });
-  }));
-
   // Calendar endpoints
   router.get('/calendar/:month', requireAuth, asyncHandler(async (req, res) => {
     const { month } = req.params;
@@ -832,8 +854,7 @@ function createLeaveRoutes(db) {
         const userId = member._id;
         
         const hireDate = member.hireDate ? new Date(member.hireDate) : new Date(member.createdAt);
-        const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
-        const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+        const totalAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
         
         const usedLeave = await db.collection('leaveRequests').aggregate([
           {
@@ -984,6 +1005,160 @@ function createLeaveRoutes(db) {
     } catch (error) {
       console.error('Get pending requests error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
+  // Year-end carry-over processing API
+  router.post('/carry-over/:year', requireAuth, asyncHandler(async (req, res) => {
+    const { year } = req.params;
+    const targetYear = parseInt(year);
+    const nextYear = targetYear + 1;
+    
+    // Only admin can process carry-over
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    try {
+      // Get all users except admin users
+      const users = await db.collection('users').find({ 
+        role: { $ne: 'admin' },
+        isActive: { $ne: false }
+      }).toArray();
+
+      const carryOverResults = [];
+
+      for (const user of users) {
+        try {
+          const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+          const hireYear = hireDate.getFullYear();
+          
+          // Skip if user was hired after the target year
+          if (hireYear > targetYear) {
+            continue;
+          }
+
+          // Calculate target year's entitlement
+          const targetYearDate = new Date(targetYear, 11, 31);
+          const yearsOfService = Math.floor((targetYearDate - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
+          
+          let targetYearEntitlement;
+          if (yearsOfService === 0) {
+            const monthsWorked = Math.floor((targetYearDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+            targetYearEntitlement = Math.min(monthsWorked, 11);
+          } else {
+            targetYearEntitlement = Math.min(15 + (yearsOfService - 1), 25);
+          }
+
+          // Get target year's used leave
+          const usedLeave = await db.collection('leaveRequests').aggregate([
+            {
+              $match: {
+                userId: user._id,
+                leaveType: 'annual',
+                status: 'approved',
+                startDate: { 
+                  $gte: new Date(`${targetYear}-01-01`), 
+                  $lte: new Date(`${targetYear}-12-31`) 
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalUsed: { $sum: '$daysCount' }
+              }
+            }
+          ]).toArray();
+
+          const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalUsed : 0;
+          
+          // Calculate unused leave
+          const unusedLeave = Math.max(0, targetYearEntitlement - usedAnnualLeave);
+          
+          // Apply carry-over limit (maximum 15 days)
+          const carryOverAmount = Math.min(unusedLeave, 15);
+
+          if (carryOverAmount > 0) {
+            // Check if carry-over already exists for this user and year
+            const existingCarryOver = await db.collection('leaveAdjustments').findOne({
+              userId: user._id,
+              year: nextYear,
+              adjustmentType: 'carry_over'
+            });
+
+            if (!existingCarryOver) {
+              // Create carry-over adjustment record
+              await db.collection('leaveAdjustments').insertOne({
+                userId: user._id,
+                year: nextYear,
+                adjustmentType: 'carry_over',
+                amount: carryOverAmount,
+                reason: `Automatic carry-over from ${targetYear}`,
+                createdAt: new Date(),
+                createdBy: req.session.user.id
+              });
+
+              carryOverResults.push({
+                userId: user._id,
+                userName: user.name,
+                targetYearEntitlement,
+                usedAnnualLeave,
+                unusedLeave,
+                carryOverAmount,
+                status: 'processed'
+              });
+            } else {
+              carryOverResults.push({
+                userId: user._id,
+                userName: user.name,
+                targetYearEntitlement,
+                usedAnnualLeave,
+                unusedLeave,
+                carryOverAmount: existingCarryOver.amount,
+                status: 'already_exists'
+              });
+            }
+          } else {
+            carryOverResults.push({
+              userId: user._id,
+              userName: user.name,
+              targetYearEntitlement,
+              usedAnnualLeave,
+              unusedLeave,
+              carryOverAmount: 0,
+              status: 'no_carry_over'
+            });
+          }
+        } catch (userError) {
+          console.error(`Error processing carry-over for user ${user._id}:`, userError);
+          carryOverResults.push({
+            userId: user._id,
+            userName: user.name,
+            status: 'error',
+            error: userError.message
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Carry-over processing completed for year ${targetYear}`,
+        data: {
+          targetYear,
+          nextYear,
+          totalUsers: users.length,
+          processed: carryOverResults.filter(r => r.status === 'processed').length,
+          alreadyExists: carryOverResults.filter(r => r.status === 'already_exists').length,
+          noCarryOver: carryOverResults.filter(r => r.status === 'no_carry_over').length,
+          errors: carryOverResults.filter(r => r.status === 'error').length,
+          results: carryOverResults
+        }
+      });
+
+    } catch (error) {
+      console.error('Carry-over processing error:', error);
+      res.status(500).json({ error: 'Failed to process carry-over' });
     }
   }));
 

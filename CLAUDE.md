@@ -43,7 +43,7 @@ npm run dev         # Start with nodemon for development
 - **Database**: MongoDB (development: localhost:27017, production: 192.168.0.30:27017)
 - **Database Name**: `SM_nomu`
 - **Authentication**: Session-based with bcryptjs
-- **Port**: 5445
+- **Port**: 5455
 - **Architecture**: Modularized with separated route handlers
 
 #### Backend Structure (Recently Refactored)
@@ -53,11 +53,20 @@ backend/
 ├── routes/
 │   ├── auth.js (authentication endpoints)
 │   ├── users.js (user management endpoints)
-│   └── leave.js (leave management endpoints)
+│   ├── leave.js (leave management endpoints)
+│   ├── payroll.js (payroll system endpoints)
+│   ├── departments.js (department management endpoints)
+│   ├── bonus.js (bonus and award management)
+│   ├── sales.js (sales data endpoints)
+│   ├── upload.js (file upload handling)
+│   ├── reports.js (analytics and reporting)
+│   └── admin.js (admin-specific endpoints)
 ├── controllers/ (prepared for future use)
 ├── utils/ (prepared for future use)
 └── middleware/
-    └── errorHandler.js
+    ├── errorHandler.js (error handling, auth, security)
+    ├── security.js (security headers)
+    └── validation.js (input validation)
 ```
 
 ### Frontend (`frontend/`)
@@ -128,7 +137,7 @@ backend/
 
 ## API Architecture
 
-### Base URL: `http://localhost:5445/api`
+### Base URL: `http://localhost:5455/api`
 
 ### Route Structure
 - **`/auth`**: Authentication endpoints (login, logout, password change)
@@ -137,6 +146,10 @@ backend/
 - **`/payroll`**: Payroll calculations and management
 - **`/reports`**: Report generation and analytics
 - **`/departments`**: Department and position management
+- **`/bonus`**: Bonus and award management
+- **`/sales`**: Sales data management
+- **`/upload`**: File upload handling
+- **`/admin`**: Admin-specific operations
 
 ### Key API Endpoints
 ```
@@ -155,6 +168,7 @@ GET /api/leave/balance              # Get leave balance
 GET /api/leave/calendar/:month      # Monthly calendar data
 GET /api/leave/team-calendar/:month # Team calendar data
 GET /api/leave/team-status          # Team leave statistics
+POST /api/leave/carry-over/:year    # Process year-end carry-over (admin only)
 
 # User Management
 GET /api/users                      # Get all users
@@ -168,8 +182,9 @@ PUT /api/users/:id/permissions      # Update user permissions
 ## Business Rules
 
 ### Leave Calculation Rules
-- **1st Year**: 11 days annual leave
-- **2nd+ Years**: 15 days + (years of service - 1), maximum 25 days
+- **0 Year (First Year)**: 1 day per month since hire date, maximum 11 days
+- **1st+ Years**: 15 days + (years of service - 1), maximum 25 days
+- **Carry-over Policy**: Maximum 15 days unused leave can be carried over to next year
 - **Saturday Leave**: Counts as 0.5 days
 - **Sunday Leave**: Counts as 0 days (not allowed)
 
@@ -187,7 +202,7 @@ PUT /api/users/:id/permissions      # Update user permissions
 
 ### Development
 - MongoDB: `mongodb://localhost:27017`
-- Backend: `http://localhost:5445`
+- Backend: `http://localhost:5455`
 - Frontend: `http://localhost:3727`
 
 ### Production
@@ -239,3 +254,44 @@ PUT /api/users/:id/permissions      # Update user permissions
 - Pagination for large datasets
 - Efficient calendar data loading with month-based queries
 - Memoization for expensive calculations
+
+## Testing
+
+### Current Testing Approach
+- **Test Documentation**: `TEST_GUIDE.md` provides comprehensive manual testing procedures
+- **No Automated Tests**: Currently relies on manual testing for validation
+- **Test Categories**:
+  - Backend API endpoint validation
+  - Frontend UI component testing
+  - Integration workflow testing
+  - Role-based access control testing
+  - Database validation and error handling
+
+### Manual Testing Commands
+```bash
+# No automated test commands available
+# Refer to TEST_GUIDE.md for manual testing procedures
+```
+
+## Build and Deployment
+
+### Production Configuration
+- **PM2 Process Manager**: Uses `ecosystem.config.js` for process management
+- **Environment**: Synology NAS deployment target
+- **Port**: 5455 (updated from previous 5445)
+- **Memory Limits**: Backend 500MB, Frontend 200MB
+
+### Build Commands
+```bash
+# Frontend production build
+cd frontend && npm run build
+
+# TypeScript validation
+cd frontend && npm run build-check
+```
+
+### File Upload Support
+- **Supported Formats**: .xlsx, .xls, .csv
+- **Size Limit**: 10MB
+- **Processing Library**: ExcelJS for payroll data import
+- **Upload Endpoint**: `/api/upload` route handles file processing
