@@ -24,7 +24,11 @@ import {
   Select,
   MenuItem,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Switch,
+  FormControlLabel,
+  TextField,
+  Badge
 } from '@mui/material';
 import {
   ChevronLeft,
@@ -33,7 +37,11 @@ import {
   Person,
   BeachAccess,
   Event,
-  Work
+  Work,
+  Settings,
+  Add,
+  Edit,
+  Delete
 } from '@mui/icons-material';
 import { format, 
   startOfMonth, 
@@ -67,12 +75,25 @@ interface LeaveCalendarEvent {
   reason: string;
 }
 
+interface LeaveException {
+  _id?: string;
+  date: string;
+  maxConcurrentLeaves: number;
+  reason: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface CalendarDayProps {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
   events: LeaveCalendarEvent[];
+  exception?: LeaveException;
+  isManagementMode: boolean;
   onClick: (date: Date, events: LeaveCalendarEvent[]) => void;
+  onManagementClick?: (date: Date) => void;
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
@@ -80,27 +101,40 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   isCurrentMonth,
   isToday,
   events,
-  onClick
+  exception,
+  isManagementMode,
+  onClick,
+  onManagementClick
 }) => {
   const dayNumber = format(date, 'd');
   const isWeekendDay = isWeekend(date);
   const approvedEvents = events.filter(e => e.status === 'approved');
   const pendingEvents = events.filter(e => e.status === 'pending');
 
+  const handleClick = () => {
+    if (isManagementMode && onManagementClick) {
+      onManagementClick(date);
+    } else {
+      onClick(date, events);
+    }
+  };
+
   return (
     <Paper
       sx={{
         height: 100,
+        width: '100%',
         p: 1,
         cursor: 'pointer',
         position: 'relative',
         backgroundColor: isCurrentMonth ? 'background.paper' : 'background.default',
-        border: isToday ? '2px solid primary.main' : '1px solid divider',
+        border: isToday ? '2px solid primary.main' : 
+                exception ? '2px solid orange' : '1px solid divider',
         '&:hover': {
           backgroundColor: 'action.hover'
         }
       }}
-      onClick={() => onClick(date, events)}
+      onClick={handleClick}
     >
       <Box
         sx={{
@@ -123,9 +157,19 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         >
           {dayNumber}
         </Typography>
-        {isToday && (
-          <Today fontSize="small" color="primary" />
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {isToday && (
+            <Today fontSize="small" color="primary" />
+          )}
+          {exception && (
+            <Badge badgeContent={exception.maxConcurrentLeaves} color="warning">
+              <Settings fontSize="small" color="warning" />
+            </Badge>
+          )}
+          {isManagementMode && !exception && (
+            <Add fontSize="small" color="action" />
+          )}
+        </Box>
       </Box>
       
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -170,16 +214,32 @@ const LeaveCalendar: React.FC = () => {
   const { showError } = useNotification();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarEvents, setCalendarEvents] = useState<LeaveCalendarEvent[]>([]);
+  const [leaveExceptions, setLeaveExceptions] = useState<LeaveException[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvents, setSelectedEvents] = useState<LeaveCalendarEvent[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [departments, setDepartments] = useState<string[]>([]);
+  
+  // Management mode states
+  const [isManagementMode, setIsManagementMode] = useState(false);
+  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+  const [selectedExceptionDate, setSelectedExceptionDate] = useState<Date | null>(null);
+  const [exceptionForm, setExceptionForm] = useState({
+    maxConcurrentLeaves: 2,
+    reason: ''
+  });
 
   useEffect(() => {
     loadCalendarData();
-  }, [currentDate, departmentFilter]);
+    if (isManagementMode) {
+      loadLeaveExceptions();
+    }
+  }, [currentDate, departmentFilter, isManagementMode]);
+
+  // Check if user has management permissions
+  const hasManagementPermission = user?.permissions?.includes('leave:manage') || user?.role === 'admin';
 
   const loadCalendarData = async () => {
     try {
@@ -202,6 +262,80 @@ const LeaveCalendar: React.FC = () => {
       showError('달력 데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLeaveExceptions = async () => {
+    try {
+      const monthString = format(currentDate, 'yyyy-MM');
+      const response = await apiService.get(`/leave/exceptions?month=${monthString}`);
+      setLeaveExceptions(response.data || []);
+    } catch (error) {
+      console.error('Error loading leave exceptions:', error);
+      showError('예외 설정을 불러오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleManagementClick = (date: Date) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    const existingException = leaveExceptions.find(ex => ex.date === dateString);
+    
+    setSelectedExceptionDate(date);
+    if (existingException) {
+      setExceptionForm({
+        maxConcurrentLeaves: existingException.maxConcurrentLeaves,
+        reason: existingException.reason
+      });
+    } else {
+      setExceptionForm({
+        maxConcurrentLeaves: 2,
+        reason: ''
+      });
+    }
+    setExceptionDialogOpen(true);
+  };
+
+  const handleSaveException = async () => {
+    if (!selectedExceptionDate) return;
+
+    try {
+      const dateString = format(selectedExceptionDate, 'yyyy-MM-dd');
+      const existingException = leaveExceptions.find(ex => ex.date === dateString);
+
+      if (existingException) {
+        // Update existing exception
+        await apiService.put(`/leave/exceptions/${existingException._id}`, exceptionForm);
+      } else {
+        // Create new exception
+        await apiService.post('/leave/exceptions', {
+          date: dateString,
+          ...exceptionForm
+        });
+      }
+
+      await loadLeaveExceptions();
+      setExceptionDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving exception:', error);
+      showError('예외 설정 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteException = async () => {
+    if (!selectedExceptionDate) return;
+
+    try {
+      const dateString = format(selectedExceptionDate, 'yyyy-MM-dd');
+      const existingException = leaveExceptions.find(ex => ex.date === dateString);
+
+      if (existingException) {
+        await apiService.delete(`/leave/exceptions/${existingException._id}`);
+        await loadLeaveExceptions();
+        setExceptionDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error deleting exception:', error);
+      showError('예외 설정 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -286,6 +420,11 @@ const LeaveCalendar: React.FC = () => {
     });
   };
 
+  const getExceptionForDate = (date: Date) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    return leaveExceptions.find(exception => exception.date === dateString);
+  };
+
   return (
     <Box>
       {/* Header */}
@@ -295,6 +434,20 @@ const LeaveCalendar: React.FC = () => {
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Management Mode Toggle - Only for admin/manager */}
+          {hasManagementPermission && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isManagementMode}
+                  onChange={(e) => setIsManagementMode(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="관리 모드"
+            />
+          )}
+          
           {/* Department Filter */}
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>부서</InputLabel>
@@ -344,9 +497,9 @@ const LeaveCalendar: React.FC = () => {
           ) : (
             <>
               {/* Week Header */}
-              <Grid container spacing={1} sx={{ mb: 1 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, mb: 1 }}>
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                  <Grid item xs={12/7} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Box key={index} sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
                     <Typography
                       variant="subtitle2"
                       sx={{
@@ -356,24 +509,27 @@ const LeaveCalendar: React.FC = () => {
                     >
                       {day}
                     </Typography>
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
 
               {/* Calendar Days */}
-              <Grid container spacing={1}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
                 {calendarDays.map((date, index) => (
-                  <Grid item xs={12/7} key={index} sx={{ display: 'flex', minHeight: 100 }}>
+                  <Box key={index} sx={{ minHeight: 100 }}>
                     <CalendarDay
                       date={date}
                       isCurrentMonth={isSameMonth(date, currentDate)}
                       isToday={isSameDay(date, new Date())}
                       events={getEventsForDate(date)}
+                      exception={getExceptionForDate(date)}
+                      isManagementMode={isManagementMode}
                       onClick={handleDateClick}
+                      onManagementClick={handleManagementClick}
                     />
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
             </>
           )}
         </CardContent>
@@ -410,6 +566,20 @@ const LeaveCalendar: React.FC = () => {
               />
               <Typography variant="body2">승인 대기</Typography>
             </Box>
+            {hasManagementPermission && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Badge badgeContent="2" color="warning">
+                  <Settings fontSize="small" color="warning" />
+                </Badge>
+                <Typography variant="body2">복수 휴가 허용 (숫자: 최대 인원)</Typography>
+              </Box>
+            )}
+            {isManagementMode && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Add fontSize="small" color="action" />
+                <Typography variant="body2">클릭하여 예외 설정 추가</Typography>
+              </Box>
+            )}
           </Box>
         </CardContent>
       </Card>
@@ -481,6 +651,62 @@ const LeaveCalendar: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>닫기</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Exception Management Dialog */}
+      <Dialog
+        open={exceptionDialogOpen}
+        onClose={() => setExceptionDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedExceptionDate && format(selectedExceptionDate, 'yyyy년 MM월 dd일 (E)', { locale: ko })} 예외 설정
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label="최대 동시 휴가 허용 인원"
+              type="number"
+              value={exceptionForm.maxConcurrentLeaves}
+              onChange={(e) => setExceptionForm({
+                ...exceptionForm,
+                maxConcurrentLeaves: parseInt(e.target.value) || 2
+              })}
+              inputProps={{ min: 2, max: 10 }}
+              sx={{ mb: 2 }}
+              helperText="2명 이상의 직원이 동시에 휴가를 신청할 수 있습니다."
+            />
+            <TextField
+              fullWidth
+              label="설정 사유 (선택사항)"
+              multiline
+              rows={3}
+              value={exceptionForm.reason}
+              onChange={(e) => setExceptionForm({
+                ...exceptionForm,
+                reason: e.target.value
+              })}
+              placeholder="예: 연말연시, 회사 휴무일, 특별 행사일 등"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          {selectedExceptionDate && leaveExceptions.find(ex => 
+            ex.date === format(selectedExceptionDate, 'yyyy-MM-dd')
+          ) && (
+            <Button onClick={handleDeleteException} color="error" startIcon={<Delete />}>
+              삭제
+            </Button>
+          )}
+          <Button onClick={() => setExceptionDialogOpen(false)}>
+            취소
+          </Button>
+          <Button onClick={handleSaveException} variant="contained">
+            저장
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

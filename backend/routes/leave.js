@@ -112,6 +112,113 @@ function createLeaveRoutes(db) {
       next();
     };
   };
+
+  // Leave exception management routes (for admin/manager) - MUST BE BEFORE /:id ROUTES
+  // Create leave exception (allow multiple leaves on specific dates)
+  router.post('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { date, maxConcurrentLeaves, reason } = req.body;
+    const createdBy = await getUserObjectId(db, req.session.user.id);
+    
+    if (!createdBy) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Validate input
+    if (!date || !maxConcurrentLeaves || maxConcurrentLeaves < 2) {
+      return res.status(400).json({ error: '날짜와 최소 2명 이상의 허용 인원을 입력해주세요.' });
+    }
+
+    // Check if exception already exists for this date
+    const existingException = await db.collection('leaveExceptions').findOne({ date });
+    if (existingException) {
+      return res.status(400).json({ error: '해당 날짜에 이미 예외 설정이 존재합니다.' });
+    }
+
+    const exception = {
+      date,
+      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
+      reason: reason || '',
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection('leaveExceptions').insertOne(exception);
+    
+    res.json({
+      success: true,
+      data: { id: result.insertedId, ...exception }
+    });
+  }));
+
+  // Get leave exceptions
+  router.get('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { month } = req.query;
+    
+    let query = {};
+    if (month) {
+      // Filter by month if provided (YYYY-MM format)
+      query.date = { $regex: `^${month}` };
+    }
+
+    const exceptions = await db.collection('leaveExceptions').find(query).sort({ date: 1 }).toArray();
+    
+    res.json({
+      success: true,
+      data: exceptions
+    });
+  }));
+
+  // Update leave exception
+  router.put('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { maxConcurrentLeaves, reason } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid exception ID' });
+    }
+
+    const updateData = {
+      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
+      reason: reason || '',
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection('leaveExceptions').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Exception not found' });
+    }
+
+    res.json({
+      success: true,
+      message: '예외 설정이 업데이트되었습니다.'
+    });
+  }));
+
+  // Delete leave exception
+  router.delete('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid exception ID' });
+    }
+
+    const result = await db.collection('leaveExceptions').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Exception not found' });
+    }
+
+    res.json({
+      success: true,
+      message: '예외 설정이 삭제되었습니다.'
+    });
+  }));
+
   // CRUD endpoints for leave requests
   router.post('/', requireAuth, asyncHandler(async (req, res) => {
     const { leaveType, startDate, endDate, reason, substituteEmployee } = req.body;
@@ -1270,112 +1377,6 @@ function createLeaveRoutes(db) {
       console.error('Carry-over processing error:', error);
       res.status(500).json({ error: 'Failed to process carry-over' });
     }
-  }));
-
-  // Leave exception management routes (for admin/manager)
-  // Create leave exception (allow multiple leaves on specific dates)
-  router.post('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
-    const { date, maxConcurrentLeaves, reason } = req.body;
-    const createdBy = await getUserObjectId(db, req.session.user.id);
-    
-    if (!createdBy) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Validate input
-    if (!date || !maxConcurrentLeaves || maxConcurrentLeaves < 2) {
-      return res.status(400).json({ error: '날짜와 최소 2명 이상의 허용 인원을 입력해주세요.' });
-    }
-
-    // Check if exception already exists for this date
-    const existingException = await db.collection('leaveExceptions').findOne({ date });
-    if (existingException) {
-      return res.status(400).json({ error: '해당 날짜에 이미 예외 설정이 존재합니다.' });
-    }
-
-    const exception = {
-      date,
-      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
-      reason: reason || '',
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const result = await db.collection('leaveExceptions').insertOne(exception);
-    
-    res.json({
-      success: true,
-      data: { id: result.insertedId, ...exception }
-    });
-  }));
-
-  // Get leave exceptions
-  router.get('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
-    const { month } = req.query;
-    
-    let query = {};
-    if (month) {
-      // Filter by month if provided (YYYY-MM format)
-      query.date = { $regex: `^${month}` };
-    }
-
-    const exceptions = await db.collection('leaveExceptions').find(query).sort({ date: 1 }).toArray();
-    
-    res.json({
-      success: true,
-      data: exceptions
-    });
-  }));
-
-  // Update leave exception
-  router.put('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { maxConcurrentLeaves, reason } = req.body;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid exception ID' });
-    }
-
-    const updateData = {
-      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
-      reason: reason || '',
-      updatedAt: new Date()
-    };
-
-    const result = await db.collection('leaveExceptions').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updateData }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Exception not found' });
-    }
-
-    res.json({
-      success: true,
-      message: '예외 설정이 업데이트되었습니다.'
-    });
-  }));
-
-  // Delete leave exception
-  router.delete('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid exception ID' });
-    }
-
-    const result = await db.collection('leaveExceptions').deleteOne({ _id: new ObjectId(id) });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Exception not found' });
-    }
-
-    res.json({
-      success: true,
-      message: '예외 설정이 삭제되었습니다.'
-    });
   }));
 
   return router;
