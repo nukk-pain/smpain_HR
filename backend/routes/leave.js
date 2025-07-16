@@ -411,9 +411,9 @@ function createLeaveRoutes(db) {
       matchQuery.userDepartment = department;
     }
     
-    if (userRole !== 'admin') {
-      matchQuery.status = 'approved';
-    }
+    // 모든 사용자가 pending과 approved 휴가를 볼 수 있도록 수정
+    // rejected 상태만 제외
+    matchQuery.status = { $in: ['pending', 'approved'] };
     
     const leaveRequests = await db.collection('leaveRequests').find(matchQuery).toArray();
     
@@ -842,9 +842,9 @@ function createLeaveRoutes(db) {
       matchQuery.userDepartment = department;
     }
     
-    if (userRole !== 'admin') {
-      matchQuery.status = 'approved';
-    }
+    // 모든 사용자가 pending과 approved 휴가를 볼 수 있도록 수정
+    // rejected 상태만 제외
+    matchQuery.status = { $in: ['pending', 'approved'] };
     
     const leaveRequests = await db.collection('leaveRequests').find(matchQuery).toArray();
     

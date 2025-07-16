@@ -79,9 +79,15 @@ const UserDashboard: React.FC = () => {
           remainingAnnualLeave: leaveBalance.data?.remainingAnnualLeave || 0,
           pendingRequests: leaveBalance.data?.pendingAnnualLeave || 0
         },
-        payroll: {
+        payroll: user?.role === 'admin' ? {
           currentMonth: new Date().toISOString().substring(0, 7),
           baseSalary: user?.baseSalary || 0,
+          totalPayment: 0,
+          incentive: 0,
+          bonus: 0
+        } : {
+          currentMonth: '',
+          baseSalary: 0,
           totalPayment: 0,
           incentive: 0,
           bonus: 0
@@ -186,26 +192,28 @@ const UserDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        {/* 급여 정보 */}
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <MonetizationOn sx={{ mr: 1, color: 'warning.main' }} />
-                <Typography variant="h6">급여 정보</Typography>
-              </Box>
-              <Typography variant="h4" color="warning.main">
-                {(stats?.payroll.baseSalary || 0).toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                기본급 (원)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {stats?.payroll.currentMonth} 기준
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* 급여 정보 - Admin만 표시 */}
+        {user?.role === 'admin' && (
+          <Grid item xs={12} md={6} lg={3}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <MonetizationOn sx={{ mr: 1, color: 'warning.main' }} />
+                  <Typography variant="h6">급여 정보</Typography>
+                </Box>
+                <Typography variant="h4" color="warning.main">
+                  {(stats?.payroll.baseSalary || 0).toLocaleString()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  기본급 (원)
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {stats?.payroll.currentMonth} 기준
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
 
         {/* 대기중인 신청 */}
         <Grid item xs={12} md={6} lg={3}>
