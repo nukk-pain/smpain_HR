@@ -15,6 +15,9 @@ frontend/.cache/
 .env.local
 .env.production
 
+# Database credentials
+MONGODB_CREDENTIALS.md
+
 # Logs
 *.log
 
