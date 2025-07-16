@@ -245,7 +245,7 @@ export const ENV_CONFIG = {
     LOG_LEVEL: 'debug',
   },
   production: {
-    API_URL: '/api',
+    API_URL: '/api', // 역방향 프록시 사용시 상대 경로
     DEBUG: false,
     LOG_LEVEL: 'error',
   },
