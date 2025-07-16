@@ -43,7 +43,7 @@ if (!admin) {
         role: 'admin',
         baseSalary: 0,
         hireDate: new Date(),
-        permissions: ['users:view', 'users:manage', 'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions'],
+        permissions: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete', 'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions'],
         createdAt: new Date(),
         updatedAt: new Date()
     });

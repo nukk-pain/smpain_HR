@@ -58,9 +58,10 @@ const DEFAULT_PERMISSIONS = {
   user: ['leave:view'],
   manager: ['leave:view', 'leave:manage', 'users:view'],
   admin: [
-    'leave:view', 'leave:manage', 'users:view', 'users:manage',
-    'payroll:view', 'payroll:manage', 'reports:view', 'files:view',
-    'files:manage', 'departments:view', 'departments:manage', 'admin:permissions'
+    'users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
+    'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage', 
+    'reports:view', 'files:view', 'files:manage', 'departments:view', 
+    'departments:manage', 'admin:permissions'
   ]
 };
 
@@ -441,9 +442,32 @@ async function initializeRoutes() {
   console.log('✅ Routes initialized');
 }
 
+// Ensure admin permissions are up to date
+async function ensureAdminPermissions() {
+  try {
+    const result = await db.collection('users').updateOne(
+      { username: 'admin' },
+      { 
+        $set: { 
+          permissions: DEFAULT_PERMISSIONS.admin 
+        }
+      }
+    );
+    
+    if (result.modifiedCount > 0) {
+      console.log('✅ Admin permissions updated');
+    } else {
+      console.log('✅ Admin permissions already up to date');
+    }
+  } catch (error) {
+    console.error('❌ Error updating admin permissions:', error.message);
+  }
+}
+
 // Start server
 async function startServer() {
   await connectDB();
+  await ensureAdminPermissions();
   await initializeRoutes();
 
   app.listen(PORT, () => {
