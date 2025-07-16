@@ -23,8 +23,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  ToggleButton,
-  ToggleButtonGroup,
   Alert,
   CircularProgress
 } from '@mui/material';
@@ -35,9 +33,7 @@ import {
   Person,
   BeachAccess,
   Event,
-  Work,
-  CalendarMonth,
-  CalendarViewWeek
+  Work
 } from '@mui/icons-material';
 import { format, 
   startOfMonth, 
@@ -173,7 +169,6 @@ const LeaveCalendar: React.FC = () => {
   const { user } = useAuth();
   const { showError } = useNotification();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'team'>('month');
   const [calendarEvents, setCalendarEvents] = useState<LeaveCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -184,23 +179,17 @@ const LeaveCalendar: React.FC = () => {
 
   useEffect(() => {
     loadCalendarData();
-  }, [currentDate, viewMode, departmentFilter]);
+  }, [currentDate, departmentFilter]);
 
   const loadCalendarData = async () => {
     try {
       setLoading(true);
       const monthString = format(currentDate, 'yyyy-MM');
       
-      let response;
-      if (viewMode === 'month') {
-        // Load personal leave calendar
-        response = await apiService.get(`/leave/calendar/${monthString}`);
-      } else {
-        // Load team leave calendar
-        response = await apiService.get(`/leave/team-calendar/${monthString}`, {
-          department: departmentFilter !== 'all' ? departmentFilter : undefined
-        });
-      }
+      // 항상 전체 직원 달력 로드 (팀 달력)
+      const response = await apiService.get(`/leave/team-calendar/${monthString}`, {
+        department: departmentFilter !== 'all' ? departmentFilter : undefined
+      });
       
       setCalendarEvents(response.data || []);
       
@@ -302,43 +291,24 @@ const LeaveCalendar: React.FC = () => {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" fontWeight={600}>
-          휴가 달력
+          전체 직원 휴가 달력
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* View Mode Toggle */}
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newMode) => newMode && setViewMode(newMode)}
-            size="small"
-          >
-            <ToggleButton value="month">
-              <CalendarMonth sx={{ mr: 1 }} />
-              내 달력
-            </ToggleButton>
-            <ToggleButton value="team">
-              <CalendarViewWeek sx={{ mr: 1 }} />
-              팀 달력
-            </ToggleButton>
-          </ToggleButtonGroup>
-
           {/* Department Filter */}
-          {viewMode === 'team' && (
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>부서</InputLabel>
-              <Select
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-                label="부서"
-              >
-                <MenuItem value="all">전체</MenuItem>
-                {departments.map((dept) => (
-                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>부서</InputLabel>
+            <Select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              label="부서"
+            >
+              <MenuItem value="all">전체</MenuItem>
+              {departments.map((dept) => (
+                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
       </Box>
 
@@ -376,7 +346,7 @@ const LeaveCalendar: React.FC = () => {
               {/* Week Header */}
               <Grid container spacing={1} sx={{ mb: 1 }}>
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                  <Grid item xs key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Grid item xs={12/7} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Typography
                       variant="subtitle2"
                       sx={{
@@ -393,7 +363,7 @@ const LeaveCalendar: React.FC = () => {
               {/* Calendar Days */}
               <Grid container spacing={1}>
                 {calendarDays.map((date, index) => (
-                  <Grid item xs key={index} sx={{ display: 'flex', minHeight: 100 }}>
+                  <Grid item xs={12/7} key={index} sx={{ display: 'flex', minHeight: 100 }}>
                     <CalendarDay
                       date={date}
                       isCurrentMonth={isSameMonth(date, currentDate)}

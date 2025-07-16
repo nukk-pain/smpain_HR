@@ -147,6 +147,68 @@ function createLeaveRoutes(db) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    // Check for conflicting leave requests from other employees
+    const conflictingLeaves = await db.collection('leaveRequests').find({
+      userId: { $ne: user._id }, // 다른 사용자
+      status: { $in: ['approved', 'pending'] }, // 승인되었거나 대기중인 휴가
+      $or: [
+        // 신청 날짜가 기존 휴가 기간과 겹치는 경우
+        {
+          $and: [
+            { startDate: { $lte: endDate } },
+            { endDate: { $gte: startDate } }
+          ]
+        }
+      ]
+    }).toArray();
+
+    if (conflictingLeaves.length > 0) {
+      // Check if there are any exception dates that allow multiple leaves
+      const requestStart = new Date(startDate);
+      const requestEnd = new Date(endDate);
+      let hasExceptionForEntirePeriod = true;
+
+      // Check each day in the requested period
+      for (let d = new Date(requestStart); d <= requestEnd; d.setDate(d.getDate() + 1)) {
+        const dateString = d.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Get exception for this date
+        const exception = await db.collection('leaveExceptions').findOne({ date: dateString });
+        
+        if (!exception) {
+          hasExceptionForEntirePeriod = false;
+          break;
+        }
+
+        // Count current leaves on this date
+        const leavesOnThisDate = conflictingLeaves.filter(leave => {
+          const leaveStart = new Date(leave.startDate);
+          const leaveEnd = new Date(leave.endDate);
+          return d >= leaveStart && d <= leaveEnd;
+        }).length;
+
+        // If this date already has max concurrent leaves or more, reject
+        if (leavesOnThisDate >= exception.maxConcurrentLeaves) {
+          hasExceptionForEntirePeriod = false;
+          break;
+        }
+      }
+
+      // If no exceptions cover the entire period or limits are exceeded, reject
+      if (!hasExceptionForEntirePeriod) {
+        const conflictingUsers = conflictingLeaves.map(leave => leave.userName).join(', ');
+        return res.status(400).json({ 
+          error: `해당 기간에 이미 휴가를 신청한 직원이 있습니다: ${conflictingUsers}`,
+          conflictingLeaves: conflictingLeaves.map(leave => ({
+            userName: leave.userName,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+            status: leave.status
+          }))
+        });
+      }
+    }
+
     // Check leave balance for annual leave (allow -3 days advance)
     if (leaveType === 'annual') {
       const currentYear = new Date().getFullYear();
@@ -1208,6 +1270,112 @@ function createLeaveRoutes(db) {
       console.error('Carry-over processing error:', error);
       res.status(500).json({ error: 'Failed to process carry-over' });
     }
+  }));
+
+  // Leave exception management routes (for admin/manager)
+  // Create leave exception (allow multiple leaves on specific dates)
+  router.post('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { date, maxConcurrentLeaves, reason } = req.body;
+    const createdBy = await getUserObjectId(db, req.session.user.id);
+    
+    if (!createdBy) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Validate input
+    if (!date || !maxConcurrentLeaves || maxConcurrentLeaves < 2) {
+      return res.status(400).json({ error: '날짜와 최소 2명 이상의 허용 인원을 입력해주세요.' });
+    }
+
+    // Check if exception already exists for this date
+    const existingException = await db.collection('leaveExceptions').findOne({ date });
+    if (existingException) {
+      return res.status(400).json({ error: '해당 날짜에 이미 예외 설정이 존재합니다.' });
+    }
+
+    const exception = {
+      date,
+      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
+      reason: reason || '',
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection('leaveExceptions').insertOne(exception);
+    
+    res.json({
+      success: true,
+      data: { id: result.insertedId, ...exception }
+    });
+  }));
+
+  // Get leave exceptions
+  router.get('/exceptions', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { month } = req.query;
+    
+    let query = {};
+    if (month) {
+      // Filter by month if provided (YYYY-MM format)
+      query.date = { $regex: `^${month}` };
+    }
+
+    const exceptions = await db.collection('leaveExceptions').find(query).sort({ date: 1 }).toArray();
+    
+    res.json({
+      success: true,
+      data: exceptions
+    });
+  }));
+
+  // Update leave exception
+  router.put('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { maxConcurrentLeaves, reason } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid exception ID' });
+    }
+
+    const updateData = {
+      maxConcurrentLeaves: parseInt(maxConcurrentLeaves),
+      reason: reason || '',
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection('leaveExceptions').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Exception not found' });
+    }
+
+    res.json({
+      success: true,
+      message: '예외 설정이 업데이트되었습니다.'
+    });
+  }));
+
+  // Delete leave exception
+  router.delete('/exceptions/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid exception ID' });
+    }
+
+    const result = await db.collection('leaveExceptions').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Exception not found' });
+    }
+
+    res.json({
+      success: true,
+      message: '예외 설정이 삭제되었습니다.'
+    });
   }));
 
   return router;
