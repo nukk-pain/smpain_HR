@@ -7,9 +7,9 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 5455,
-        MONGODB_URL: 'mongodb://hr_app_user:HrSecure2025@localhost:27018',
+        MONGODB_URL: 'mongodb://hr_app_user:Hr2025Secure@localhost:27018',
         MONGODB_USER: 'hr_app_user',
-        MONGODB_PASSWORD: 'HrSecure2025',
+        MONGODB_PASSWORD: 'Hr2025Secure',
         DB_NAME: 'SM_nomu',
         SESSION_SECRET: 'hr-synology-secret-2025'
       },
