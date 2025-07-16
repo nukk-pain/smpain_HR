@@ -50,14 +50,19 @@ pm2 stop ecosystem.config.js
 - **상여금/포상금**: 실시간 추가 및 월별 합계
 - **매출 데이터**: 인센티브 자동 반영
 
-### 🏖️ 휴가 관리
+### 🏖️ 휴가 관리 ⭐ **NEW**
 - **휴가 신청/승인**: 연차, 병가, 개인휴가, 경조사 지원
-- **자동 계산**: 근속연수 기반 연차 할당 (1년차 11일, 2년차+ 15일+α)
-- **캘린더 뷰**: 월별 팀 휴가 현황 시각화
-- **팀 현황**: 부서별 휴가 통계 및 분석
+- **한국 근로기준법 준수**: 입사월 기준 정확한 연차 계산 (1개월 개근 시 1일)
+- **전체 직원 달력**: 모든 직원의 휴가 현황 통합 뷰
+- **관리 모드**: admin/manager용 예외 날짜 설정 기능
+- **동시 휴가 제한**: 기본 1명, 예외 날짜는 복수 허용 (2~10명 설정 가능)
+- **실시간 캘린더**: 휴가 신청 즉시 달력 반영
+- **부서별 필터링**: 특정 부서 휴가 현황만 선별 조회
 - **승인 워크플로우**: 매니저→관리자 단계별 승인
 
-### 👥 사용자 관리
+### 👥 사용자 관리 ⭐ **UPDATED**
+- **역할 기반 접근 제어**: admin(전체 관리) → manager(직원 관리) → user(개인)
+- **개인정보 보호**: 사번, 급여 정보는 admin만 조회 가능
 - **권한 시스템**: 세분화된 권한 관리 (users, leave, payroll, reports 등)
 - **부서 관리**: 조직도 및 부서별 직원 관리
 - **직책 관리**: 직책별 권한 및 역할 정의
@@ -74,10 +79,6 @@ pm2 stop ecosystem.config.js
 | 계정 | 비밀번호 | 역할 | 권한 |
 |------|----------|------|------|
 | admin | admin | 관리자 | 모든 기능 |
-| shin | password123 | 사용자 | 개인 데이터만 |
-| jung | password123 | 사용자 | 개인 데이터만 |
-| oh | password123 | 매니저 | 부서 관리 |
-| kim | password123 | 사용자 | 개인 데이터만 |
 
 ## 🏗️ 기술 스택
 
@@ -155,23 +156,63 @@ npm run build  # 프로덕션 빌드
 npx serve -s dist -p 3727  # 프로덕션 정적 서빙
 ```
 
-### 프로덕션 배포 (Synology NAS)
+### 🚀 프로덕션 배포 (Synology NAS)
+
+#### **전체 배포 절차**
 ```bash
-# 1. 프론트엔드 빌드
-cd frontend
+# Step 1: 준비 및 빌드
+cd /mnt/d/my_programs/HR/frontend
 npm run build
 
-# 2. PM2로 서비스 시작
+# Step 2: 프로덕션 서버로 파일 복사 (예: Synology NAS)
+# 전체 프로젝트를 /volume1/web/HR/ 경로로 복사
+
+# Step 3: 기존 서비스 중지 (재배포시)
+pm2 delete ecosystem.config.js  # 또는 pm2 stop all
+
+# Step 4: PM2로 서비스 시작 ⭐ 핵심!
 pm2 start ecosystem.config.js
 
-# 3. 부팅시 자동 시작 설정
+# Step 5: 부팅시 자동 시작 설정 (최초 1회만)
 pm2 startup
 pm2 save
+```
 
-# 4. 서비스 상태 확인
+#### **배포 상태 확인**
+```bash
+# 서비스 상태 확인
 pm2 status
+
+# 실시간 로그 확인
+pm2 logs
+
+# 개별 서비스 로그 확인
 pm2 logs hr-backend
 pm2 logs hr-frontend
+
+# 웹 브라우저 테스트
+# http://[서버IP]:3727
+```
+
+#### **⚠️ 배포 전 체크리스트**
+- [ ] MongoDB 서비스 실행 중 (`mongodb://localhost:27017`)
+- [ ] Node.js 18+ 설치됨
+- [ ] PM2 글로벌 설치됨 (`npm install -g pm2`)
+- [ ] 포트 5455(백엔드), 3727(프론트엔드) 사용 가능
+- [ ] `/volume1/web/HR/start-frontend.sh` 파일 존재
+- [ ] 프론트엔드 빌드 완료 (`npm run build`)
+
+#### **빠른 재배포 (코드 변경시)**
+```bash
+# 1단계: 빌드
+cd frontend && npm run build
+
+# 2단계: 재시작
+pm2 restart ecosystem.config.js
+
+# 또는 개별 재시작
+pm2 restart hr-backend
+pm2 restart hr-frontend
 ```
 
 ## 📁 프로젝트 구조
@@ -211,11 +252,25 @@ HR/  (leave_management_v3 → HR로 리브랜딩)
     └── package.json          # hr-frontend 의존성
 ```
 
-## 🚀 최신 업데이트 (v1.0.0)
+## 🚀 최신 업데이트 (v1.1.0) ⭐ **NEW**
 
 ### ✅ 완료된 주요 개선사항
 
-#### 🏗️ 아키텍처 현대화
+#### 🏖️ 휴가 관리 시스템 대폭 개선 (2025-07-16)
+- **한국 근로기준법 준수**: 정확한 연차 계산 로직 (입사일 기준 1개월 개근 시 1일)
+- **전체 직원 달력 뷰**: 개인/팀 구분 없이 모든 직원 휴가 현황 통합 표시
+- **관리 모드**: admin/manager 전용 예외 날짜 설정 기능
+- **동시 휴가 제한 완화**: 특정 날짜에 복수 휴가 허용 (연말연시, 특별 행사일 등)
+- **실시간 달력 반영**: 휴가 신청 즉시 캘린더에 표시 (대기/승인/거부 상태별)
+- **CSS Grid 달력**: 표준 7x6 달력 그리드 뷰로 UI 개선
+- **차세대 carry-over 시스템**: 수동 조정 기반으로 전환, 자동 계산 비활성화
+
+#### 👥 사용자 관리 강화
+- **역할별 메뉴 분리**: 매니저용 "내 휴가 관리" vs "직원 휴가 관리" 분리
+- **개인정보 보호**: 사번, 급여 정보 admin 전용 표시
+- **권한 기반 UI**: 역할에 따른 동적 메뉴 및 기능 제한
+
+#### 🏗️ 아키텍처 현대화 (기존)
 - **모듈화**: 5,155줄 단일 파일 → 257줄 모듈화된 서버
 - **타입 안전성**: JavaScript → TypeScript 전환
 - **빌드 시스템**: TypeScript 컴파일 최적화
@@ -247,10 +302,36 @@ HR/  (leave_management_v3 → HR로 리브랜딩)
 - **빌드 최적화**: Vite 7 + Terser 적용
 - **개발 도구**: 소스맵 및 HMR 지원
 
+## 🗄️ 데이터베이스 구조
+
+### MongoDB 컬렉션 (SM_nomu)
+- **`users`**: 사용자 계정 및 권한 정보
+- **`leaveRequests`**: 휴가 신청 및 승인 데이터
+- **`leaveExceptions`**: ⭐ **NEW** 예외 날짜 설정 (복수 휴가 허용)
+- **`leaveAdjustments`**: 연차 수동 조정 기록
+- **`monthly_payments`**: 급여 데이터
+- **`bonuses`**: 상여금/포상금 기록
+- **`sales_data`**: 매출 데이터 (인센티브 계산용)
+- **`departments`**: 부서 정보
+- **`positions`**: 직책 정보
+
+### 새로운 leaveExceptions 컬렉션
+```javascript
+{
+  _id: ObjectId,
+  date: "2024-12-25",           // YYYY-MM-DD 형식
+  maxConcurrentLeaves: 3,       // 동시 허용 휴가자 수
+  reason: "크리스마스",         // 설정 사유
+  createdBy: ObjectId,          // 설정한 관리자
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 ---
 
 🎯 **프로덕션 준비 완료! 엔터프라이즈급 HR 관리 시스템** 🚀
 
 > **프로젝트 리브랜딩**: `leave_management_v3` → `HR` 시스템으로 확장
 > 
-> **최신 커밋**: TypeScript 빌드 오류 수정 및 의존성 업데이트 완료
+> **최신 커밋**: v1.1.0 - 휴가 관리 시스템 대폭 개선 및 관리 모드 추가
