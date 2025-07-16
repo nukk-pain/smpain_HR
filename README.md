@@ -123,9 +123,49 @@ DB_NAME=SM_nomu
 SESSION_SECRET=hr-synology-secret-2025
 ```
 
-## 🔧 문제 해결
+## 🗄️ 데이터베이스 관리
 
-### MongoDB 연결 안됨
+### 🔄 데이터베이스 초기화 (admin만 남기기)
+```bash
+# 방법 1: 빠른 초기화 (추천)
+./scripts/quick-reset.sh
+
+# 방법 2: MongoDB 스크립트 파일
+mongo SM_nomu scripts/simple-reset.js
+
+# 방법 3: 한 줄 명령어
+mongo SM_nomu --eval "
+db.leaveRequests.drop();
+db.leaveExceptions.drop();
+db.leaveAdjustments.drop();
+db.monthly_payments.drop();
+db.bonuses.drop();
+db.sales_data.drop();
+db.departments.drop();
+db.positions.drop();
+db.users.deleteMany({username: {\$ne: 'admin'}});
+print('✅ 초기화 완료!');
+"
+```
+
+### 📊 데이터베이스 상태 확인
+```bash
+# MongoDB 접속
+mongo SM_nomu
+
+# 컬렉션 목록 확인
+show collections
+
+# 사용자 목록 확인
+db.users.find({}, {username: 1, name: 1, role: 1})
+
+# 휴가 신청 수 확인
+db.leaveRequests.countDocuments()
+```
+
+### 🔧 문제 해결
+
+#### MongoDB 연결 안됨
 ```bash
 # Windows
 net start MongoDB
@@ -134,13 +174,22 @@ net start MongoDB
 sudo systemctl start mongod
 ```
 
-### 포트 사용 중
+#### 포트 사용 중
 ```bash
 # 프로세스 확인 및 종료
-netstat -ano | findstr :5445  # Windows (Backend)
+netstat -ano | findstr :5455  # Windows (Backend)
 netstat -ano | findstr :3727  # Windows (Frontend)
-lsof -i :5445                 # Linux/macOS (Backend)
+lsof -i :5455                 # Linux/macOS (Backend)
 lsof -i :3727                 # Linux/macOS (Frontend)
+```
+
+#### 데이터베이스 권한 문제
+```bash
+# MongoDB 재시작 (권한 없음 모드)
+mongod --noauth
+
+# 또는 기본 설정으로 실행
+mongod --config /etc/mongod.conf
 ```
 
 ### 수동 실행
@@ -225,25 +274,45 @@ HR/  (leave_management_v3 → HR로 리브랜딩)
 ├── 📚 README2.md             # 시놀로지 배포 가이드
 ├── 📚 CLAUDE.md              # 개발 가이드 및 아키텍처
 ├── ⚙️ ecosystem.config.js    # PM2 배포 설정
+├── 🛠️ scripts/              # 유틸리티 스크립트 ⭐ NEW
+│   ├── quick-reset.sh        # 빠른 DB 초기화 (추천)
+│   ├── simple-reset.js       # MongoDB 초기화 스크립트
+│   └── reset-database.mjs    # Node.js 초기화 스크립트
 ├── 🗄️ backend/               # Node.js Express 백엔드
 │   ├── server.js             # 메인 서버 (257줄, 모듈화됨)
 │   ├── routes/               # API 라우트 모듈
 │   │   ├── auth.js           # 인증 API
 │   │   ├── users.js          # 사용자 관리 API
-│   │   └── leave.js          # 휴가 관리 API
+│   │   ├── leave.js          # 휴가 관리 API (예외 설정 포함) ⭐ UPDATED
+│   │   ├── payroll.js        # 급여 관리 API
+│   │   ├── departments.js    # 부서 관리 API
+│   │   ├── bonus.js          # 상여금 관리 API
+│   │   ├── sales.js          # 매출 데이터 API
+│   │   ├── upload.js         # 파일 업로드 API
+│   │   ├── reports.js        # 보고서 API
+│   │   └── admin.js          # 관리자 전용 API
 │   ├── middleware/           # 미들웨어
-│   │   └── errorHandler.js   # 에러 처리
+│   │   ├── errorHandler.js   # 에러 처리 및 인증
+│   │   ├── security.js       # 보안 헤더
+│   │   └── validation.js     # 입력 검증
 │   └── package.json          # hr-backend 의존성
 └── ⚛️ frontend/              # React TypeScript 프론트엔드
     ├── src/
     │   ├── components/       # 재사용 컴포넌트
-    │   │   ├── AuthProvider.tsx     # 인증 컨텍스트
-    │   │   ├── Layout.tsx           # 메인 레이아웃
-    │   │   ├── UnifiedDashboard.tsx # 관리자 대시보드
-    │   │   ├── LeaveCalendar.tsx    # 휴가 캘린더
-    │   │   ├── TeamLeaveStatus.tsx  # 팀 휴가 현황
+    │   │   ├── AuthProvider.tsx        # 인증 컨텍스트
+    │   │   ├── Layout.tsx              # 메인 레이아웃
+    │   │   ├── UnifiedDashboard.tsx    # 관리자 대시보드
+    │   │   ├── UserDashboard.tsx       # 개인 대시보드
+    │   │   ├── LeaveCalendar.tsx       # 휴가 캘린더 (관리 모드 포함) ⭐ UPDATED
+    │   │   ├── TeamLeaveStatus.tsx     # 팀 휴가 현황
+    │   │   ├── UserManagement.tsx      # 사용자 관리
     │   │   └── DepartmentManagement.tsx # 부서 관리
     │   ├── pages/            # 페이지 컴포넌트
+    │   │   ├── Dashboard.tsx           # 대시보드 라우터
+    │   │   ├── LeaveManagement.tsx     # 휴가 관리 페이지
+    │   │   ├── EmployeeLeaveManagement.tsx # 직원 휴가 관리 ⭐ NEW
+    │   │   ├── PayrollManagement.tsx   # 급여 관리 페이지
+    │   │   └── Login.tsx               # 로그인 페이지
     │   ├── services/         # API 서비스
     │   ├── types/            # TypeScript 타입 정의
     │   ├── config/           # 설정 상수
