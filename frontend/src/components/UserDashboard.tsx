@@ -156,9 +156,6 @@ const UserDashboard: React.FC = () => {
                 <Typography variant="h6">개인 정보</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                사번: {user?.employeeId}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
                 부서: {user?.department}
               </Typography>
               <Typography variant="body2" color="text.secondary">

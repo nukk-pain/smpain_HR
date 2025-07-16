@@ -151,7 +151,7 @@ const LeaveManagement: React.FC = () => {
 
   const loadPendingRequests = async () => {
     try {
-      if (user?.role === 'admin' || user?.role === 'manager') {
+      if (user?.role === 'admin') {
         const response = await apiService.getPendingLeaveRequests();
         setPendingRequests(response.data || []);
       }
@@ -379,9 +379,17 @@ const LeaveManagement: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         잔여 연차
                       </Typography>
-                      <Typography variant="h5" color="primary">
+                      <Typography 
+                        variant="h5" 
+                        color={leaveBalance.remainingAnnualLeave < 0 ? "error" : "primary"}
+                      >
                         {leaveBalance.remainingAnnualLeave}일
                       </Typography>
+                      {leaveBalance.remainingAnnualLeave < 0 && (
+                        <Typography variant="caption" color="error">
+                          (최대 -3일까지 가능)
+                        </Typography>
+                      )}
                     </Grid>
                     <Grid xs={6}>
                       <Typography variant="body2" color="text.secondary">
@@ -402,7 +410,7 @@ const LeaveManagement: React.FC = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab label={user?.role === 'admin' ? '휴가 내역' : '내 휴가 신청'} />
-              {(user?.role === 'admin' || user?.role === 'manager') && (
+              {user?.role === 'admin' && (
                 <Tab
                   label={
                     <Badge badgeContent={pendingRequests.length} color="error">
@@ -493,7 +501,7 @@ const LeaveManagement: React.FC = () => {
             </TableContainer>
           </TabPanel>
 
-          {(user?.role === 'admin' || user?.role === 'manager') && (
+          {user?.role === 'admin' && (
             <TabPanel value={tabValue} index={1}>
               <TableContainer>
                 <Table>
@@ -661,6 +669,27 @@ const LeaveManagement: React.FC = () => {
                     총 휴가 일수: {calculateDays(formData.startDate, formData.endDate)}일
                     (일요일 제외, 토요일 0.5일 계산)
                   </Alert>
+                  {formData.leaveType === 'annual' && leaveBalance && (
+                    (() => {
+                      const requestedDays = calculateDays(formData.startDate, formData.endDate);
+                      const remainingAfterRequest = leaveBalance.remainingAnnualLeave - requestedDays;
+                      
+                      if (remainingAfterRequest < 0 && remainingAfterRequest >= -3) {
+                        return (
+                          <Alert severity="warning" sx={{ mt: 1 }}>
+                            이 요청 후 잔여 연차: {remainingAfterRequest}일 (미리 사용 중)
+                          </Alert>
+                        );
+                      } else if (remainingAfterRequest < -3) {
+                        return (
+                          <Alert severity="error" sx={{ mt: 1 }}>
+                            연차 한도를 초과합니다. 최대 3일까지만 미리 사용할 수 있습니다.
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()
+                  )}
                 </Grid>
               )}
             </Grid>

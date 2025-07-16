@@ -12,9 +12,9 @@ export const API_CONFIG = {
 
 // 서버 설정
 export const SERVER_CONFIG = {
-  BACKEND_PORT: 5444,
+  BACKEND_PORT: 5455,
   FRONTEND_PORT: 3000,
-  BACKEND_URL: 'http://localhost:5444',
+  BACKEND_URL: 'http://localhost:5455',
   FRONTEND_URL: 'http://localhost:3000',
 } as const;
 

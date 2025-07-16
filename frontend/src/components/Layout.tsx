@@ -67,10 +67,16 @@ const navigationItems: NavigationItem[] = [
     permissions: ['payroll:view', 'payroll:manage'],
   },
   {
-    text: '휴가 관리',
+    text: '내 휴가 관리',
     icon: <BeachAccess />,
     path: '/leave',
-    permissions: ['leave:view', 'leave:manage'],
+    permissions: ['leave:view'],
+  },
+  {
+    text: '직원 휴가 관리',
+    icon: <BeachAccess />,
+    path: '/employee-leave',
+    permissions: ['leave:manage'],
   },
   {
     text: '휴가 달력',
@@ -79,7 +85,7 @@ const navigationItems: NavigationItem[] = [
     permissions: ['leave:view', 'leave:manage'],
   },
   {
-    text: '팀 휴가 현황',
+    text: '전체 직원 휴가 현황',
     icon: <Group />,
     path: '/team-leave-status',
     permissions: ['leave:manage'],
@@ -112,7 +118,7 @@ const navigationItems: NavigationItem[] = [
     text: '관리자 휴가 현황',
     icon: <BeachAccess />,
     path: '/admin/leave-overview',
-    permissions: ['leave:manage'],
+    permissions: ['admin:permissions'],
   },
   {
     text: '휴가 정책 설정',

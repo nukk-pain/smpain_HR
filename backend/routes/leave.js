@@ -29,9 +29,25 @@ const calculateAnnualLeaveEntitlement = (hireDate) => {
   const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
   
   if (yearsOfService === 0) {
-    // For 0-year employees: 1 day per month since hire date
-    const monthsWorked = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
-    return Math.min(monthsWorked, 11); // Maximum 11 days in first year
+    // For employees with less than 1 year: 1 day per completed month from hire date
+    // 근로기준법: 1개월 개근 시 1일의 유급휴가
+    let monthsPassed = 0;
+    let checkDate = new Date(hire);
+    
+    // Count completed months from hire date
+    while (true) {
+      // Move to the same day next month
+      checkDate.setMonth(checkDate.getMonth() + 1);
+      
+      // If this date hasn't passed yet, break
+      if (checkDate > now) {
+        break;
+      }
+      
+      monthsPassed++;
+    }
+    
+    return Math.min(monthsPassed, 11); // Maximum 11 days in first year
   } else {
     // For 1+ year employees: 15 + (years - 1), max 25 days
     return Math.min(15 + (yearsOfService - 1), 25);
@@ -60,62 +76,11 @@ const getCarryOverLeave = async (db, userId, currentYear) => {
 
     const manualCarryOver = carryOverAdjustments.length > 0 ? carryOverAdjustments[0].totalCarryOver : 0;
 
-    // Calculate automatic carry-over from previous year's unused leave
-    const previousYear = currentYear - 1;
+    // 자동 carry-over 계산 비활성화
+    // 앞으로는 수동으로만 carry-over 추가하도록 함
+    // 프로그램 시작 시에는 현재 년도 기본 연차만 계산
     
-    // Get previous year's total leave entitlement
-    const user = await db.collection('users').findOne({ _id: userId });
-    if (!user) return manualCarryOver;
-    
-    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
-    const hireYear = hireDate.getFullYear();
-    
-    // If user was hired in current year or later, no carry-over
-    if (hireYear >= currentYear) return manualCarryOver;
-    
-    // Calculate previous year's entitlement (use date from previous year for calculation)
-    const previousYearDate = new Date(previousYear, 11, 31); // Dec 31 of previous year
-    const previousYearHire = new Date(hireDate);
-    const yearsOfServicePrevious = Math.floor((previousYearDate - previousYearHire) / (1000 * 60 * 60 * 24 * 365.25));
-    
-    let previousYearEntitlement;
-    if (yearsOfServicePrevious === 0) {
-      const monthsWorked = Math.floor((previousYearDate - previousYearHire) / (1000 * 60 * 60 * 24 * 30.44));
-      previousYearEntitlement = Math.min(monthsWorked, 11);
-    } else {
-      previousYearEntitlement = Math.min(15 + (yearsOfServicePrevious - 1), 25);
-    }
-
-    // Get previous year's used leave
-    const previousYearUsed = await db.collection('leaveRequests').aggregate([
-      {
-        $match: {
-          userId: userId,
-          leaveType: 'annual',
-          status: 'approved',
-          startDate: { 
-            $gte: new Date(`${previousYear}-01-01`), 
-            $lte: new Date(`${previousYear}-12-31`) 
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalUsed: { $sum: '$daysCount' }
-        }
-      }
-    ]).toArray();
-
-    const previousYearUsedLeave = previousYearUsed.length > 0 ? previousYearUsed[0].totalUsed : 0;
-    
-    // Calculate unused leave from previous year
-    const unusedFromPrevious = Math.max(0, previousYearEntitlement - previousYearUsedLeave);
-    
-    // Apply carry-over limit (maximum 15 days can be carried over)
-    const autoCarryOver = Math.min(unusedFromPrevious, 15);
-    
-    return manualCarryOver + autoCarryOver;
+    return manualCarryOver;
   } catch (error) {
     console.error('Error calculating carry-over leave:', error);
     return 0;
@@ -182,6 +147,48 @@ function createLeaveRoutes(db) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    // Check leave balance for annual leave (allow -3 days advance)
+    if (leaveType === 'annual') {
+      const currentYear = new Date().getFullYear();
+      
+      // Calculate total annual leave including carry-over
+      const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+      const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+      const carryOverLeave = await getCarryOverLeave(db, user._id, currentYear);
+      const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
+      
+      // Get used annual leave
+      const usedLeave = await db.collection('leaveRequests').aggregate([
+        {
+          $match: {
+            userId: user._id,
+            leaveType: 'annual',
+            status: { $in: ['approved', 'pending'] },
+            startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalDays: { $sum: '$daysCount' }
+          }
+        }
+      ]).toArray();
+      
+      const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalDays : 0;
+      const remainingLeave = totalAnnualLeave - usedAnnualLeave;
+      
+      // Allow advance usage up to -3 days
+      if (remainingLeave - daysCount < -3) {
+        return res.status(400).json({ 
+          error: '연차 잔여일수가 부족합니다. 최대 3일까지 미리 사용할 수 있습니다.',
+          currentBalance: remainingLeave,
+          requestedDays: daysCount,
+          allowedMinimum: -3
+        });
+      }
+    }
+    
     const leaveRequest = {
       userId: userObjectId,
       userName: user.name,
@@ -212,8 +219,8 @@ function createLeaveRoutes(db) {
     
     let query = {};
     
-    // Regular users can only see their own requests
-    if (userRole === 'user') {
+    // Regular users and managers can only see their own requests
+    if (userRole === 'user' || userRole === 'manager') {
       const userObjectId = await getUserObjectId(db, userId);
       if (!userObjectId) {
         return res.status(404).json({ error: 'User not found' });
@@ -322,7 +329,8 @@ function createLeaveRoutes(db) {
           carryOver: carryOverLeave,
           total: totalAnnualLeave, 
           used: usedAnnualLeave, 
-          remaining: totalAnnualLeave - usedAnnualLeave 
+          remaining: totalAnnualLeave - usedAnnualLeave,
+          allowedAdvanceUsage: 3
         },
         sick: { total: 12, used: 0, remaining: 12 },
         personal: { total: 3, used: 0, remaining: 3 },
@@ -446,10 +454,8 @@ function createLeaveRoutes(db) {
     let userQuery = { isActive: true };
     
     if (userRole === 'manager') {
-      const currentUser = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
-      if (currentUser && currentUser.department) {
-        userQuery.department = currentUser.department;
-      }
+      // Manager는 admin 바로 아래급으로 전체 직원을 관리할 수 있음
+      // 별도 필터링 없이 모든 직원 확인 가능
     }
     
     if (department && department !== 'all') {
@@ -570,8 +576,8 @@ function createLeaveRoutes(db) {
     
     let query = { _id: toObjectId(id) };
     
-    // Regular users can only see their own requests
-    if (userRole === 'user') {
+    // Regular users and managers can only see their own requests
+    if (userRole === 'user' || userRole === 'manager') {
       const userObjectId = await getUserObjectId(db, userId);
       if (!userObjectId) {
         return res.status(404).json({ error: 'User not found' });
@@ -630,6 +636,50 @@ function createLeaveRoutes(db) {
         daysCount++;
       }
       currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Check leave balance for annual leave (allow -3 days advance)
+    if (leaveType === 'annual') {
+      const currentYear = new Date().getFullYear();
+      const user = await db.collection('users').findOne({ _id: userObjectId });
+      
+      // Calculate total annual leave including carry-over
+      const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+      const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+      const carryOverLeave = await getCarryOverLeave(db, user._id, currentYear);
+      const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
+      
+      // Get used annual leave (exclude current request)
+      const usedLeave = await db.collection('leaveRequests').aggregate([
+        {
+          $match: {
+            userId: userObjectId,
+            leaveType: 'annual',
+            status: { $in: ['approved', 'pending'] },
+            _id: { $ne: toObjectId(id) },
+            startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalDays: { $sum: '$daysCount' }
+          }
+        }
+      ]).toArray();
+      
+      const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalDays : 0;
+      const remainingLeave = totalAnnualLeave - usedAnnualLeave;
+      
+      // Allow advance usage up to -3 days
+      if (remainingLeave - daysCount < -3) {
+        return res.status(400).json({ 
+          error: '연차 잔여일수가 부족합니다. 최대 3일까지 미리 사용할 수 있습니다.',
+          currentBalance: remainingLeave,
+          requestedDays: daysCount,
+          allowedMinimum: -3
+        });
+      }
     }
     
     const updateData = {
@@ -835,10 +885,8 @@ function createLeaveRoutes(db) {
     let userQuery = { isActive: true };
     
     if (userRole === 'manager') {
-      const currentUser = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
-      if (currentUser && currentUser.department) {
-        userQuery.department = currentUser.department;
-      }
+      // Manager는 admin 바로 아래급으로 전체 직원을 관리할 수 있음
+      // 별도 필터링 없이 모든 직원 확인 가능
     }
     
     if (department && department !== 'all') {

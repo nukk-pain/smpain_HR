@@ -49,8 +49,31 @@ function createAdminRoutes(db) {
           const hireDate = employee.hireDate ? new Date(employee.hireDate) : new Date(employee.createdAt);
           const yearsOfService = Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25));
           
-          // Calculate annual leave entitlement
-          const totalAnnualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+          // Calculate annual leave entitlement using correct logic
+          let totalAnnualLeave;
+          if (yearsOfService === 0) {
+            // For employees with less than 1 year: 1 day per completed month from hire date
+            let monthsPassed = 0;
+            let checkDate = new Date(hireDate);
+            const now = new Date();
+            
+            // Count completed months from hire date
+            while (true) {
+              // Move to the same day next month
+              checkDate.setMonth(checkDate.getMonth() + 1);
+              
+              // If this date hasn't passed yet, break
+              if (checkDate > now) {
+                break;
+              }
+              
+              monthsPassed++;
+            }
+            
+            totalAnnualLeave = Math.min(monthsPassed, 11); // Maximum 11 days in first year
+          } else {
+            totalAnnualLeave = Math.min(15 + (yearsOfService - 1), 25);
+          }
           
           // Calculate used annual leave
           const usedLeave = await db.collection('leaveRequests').aggregate([
@@ -277,10 +300,28 @@ function createAdminRoutes(db) {
       const yearsOfService = employee.createdAt ? 
         Math.floor((new Date() - new Date(employee.createdAt)) / (365.25 * 24 * 60 * 60 * 1000)) : 0;
 
-      // Calculate annual leave entitlement
+      // Calculate annual leave entitlement using correct logic
       let annualLeaveEntitlement;
       if (yearsOfService === 0) {
-        annualLeaveEntitlement = 11; // First year
+        // For employees with less than 1 year: 1 day per completed month from hire date
+        let monthsPassed = 0;
+        let checkDate = new Date(employee.hireDate || employee.createdAt);
+        const now = new Date();
+        
+        // Count completed months from hire date
+        while (true) {
+          // Move to the same day next month
+          checkDate.setMonth(checkDate.getMonth() + 1);
+          
+          // If this date hasn't passed yet, break
+          if (checkDate > now) {
+            break;
+          }
+          
+          monthsPassed++;
+        }
+        
+        annualLeaveEntitlement = Math.min(monthsPassed, 11); // Maximum 11 days in first year
       } else {
         annualLeaveEntitlement = Math.min(15 + (yearsOfService - 1), 25); // Max 25 days
       }

@@ -80,6 +80,14 @@ const UserManagement: React.FC = () => {
     incentiveFormula: '',
   });
 
+  // Username validation function
+  const validateUsername = (username: string) => {
+    const pattern = /^[a-zA-Z0-9가-힣_-]{2,30}$/;
+    return pattern.test(username);
+  };
+
+  const [usernameError, setUsernameError] = useState('');
+
   const { showNotification } = useNotification();
 
   const loadUsers = useCallback(async () => {
@@ -209,6 +217,12 @@ const UserManagement: React.FC = () => {
 
   const handleSaveUser = async () => {
     try {
+      // Validate username format before submitting
+      if (!validateUsername(userForm.username)) {
+        setUsernameError('영문, 한글, 숫자, _, - 만 사용 가능 (2-30자)');
+        return;
+      }
+
       if (isEditing && selectedUser) {
         await apiService.updateUser(selectedUser._id, userForm);
         showNotification('success', 'Success', 'User updated successfully');
@@ -219,6 +233,7 @@ const UserManagement: React.FC = () => {
         showNotification('success', 'Success', 'User created successfully');
       }
       setIsDialogOpen(false);
+      setUsernameError('');
       loadUsers();
     } catch (error: any) {
       showNotification('error', 'Error', error.response?.data?.error || 'Failed to save user');
@@ -374,12 +389,6 @@ const UserManagement: React.FC = () => {
   };
 
   const columnDefs: ColDef[] = [
-    {
-      headerName: 'Employee ID',
-      field: 'employeeId',
-      width: 120,
-      filter: 'agTextColumnFilter',
-    },
     {
       headerName: 'Name',
       field: 'name',
@@ -554,9 +563,21 @@ const UserManagement: React.FC = () => {
                 fullWidth
                 label="Username"
                 value={userForm.username}
-                onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUserForm({ ...userForm, username: value });
+                  
+                  // Real-time validation
+                  if (value && !validateUsername(value)) {
+                    setUsernameError('영문, 한글, 숫자, _, - 만 사용 가능 (2-30자)');
+                  } else {
+                    setUsernameError('');
+                  }
+                }}
                 required
                 disabled={isEditing}
+                error={!!usernameError}
+                helperText={usernameError || "영문, 한글, 숫자, _, - 사용 가능 (2-30자)"}
               />
             </Grid>
             {!isEditing && (

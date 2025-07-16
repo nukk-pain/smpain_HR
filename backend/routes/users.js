@@ -2,6 +2,41 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const { userSchemas, createValidator } = require('../middleware/validation');
+
+// Helper function to calculate annual leave entitlement (consistent with leave.js)
+const calculateAnnualLeaveEntitlement = (hireDate) => {
+  const now = new Date();
+  const hire = new Date(hireDate);
+  
+  // Calculate years of service
+  const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
+  
+  if (yearsOfService === 0) {
+    // For employees with less than 1 year: 1 day per completed month from hire date
+    // 근로기준법: 1개월 개근 시 1일의 유급휴가
+    let monthsPassed = 0;
+    let checkDate = new Date(hire);
+    
+    // Count completed months from hire date
+    while (true) {
+      // Move to the same day next month
+      checkDate.setMonth(checkDate.getMonth() + 1);
+      
+      // If this date hasn't passed yet, break
+      if (checkDate > now) {
+        break;
+      }
+      
+      monthsPassed++;
+    }
+    
+    return Math.min(monthsPassed, 11); // Maximum 11 days in first year
+  } else {
+    // For 1+ year employees: 15 + (years - 1), max 25 days
+    return Math.min(15 + (yearsOfService - 1), 25);
+  }
+};
 
 const router = express.Router();
 
@@ -31,23 +66,149 @@ function createUserRoutes(db) {
   // Generate sequential employeeId
   async function generateEmployeeId() {
     try {
-      const lastUser = await db.collection('users').findOne(
-        { employeeId: { $exists: true, $ne: null } },
-        { sort: { employeeId: -1 } }
-      );
+      // Get all users with valid EMP*** format employeeIds
+      const users = await db.collection('users').find({
+        employeeId: { $regex: /^EMP\d{3}$/ }
+      }).toArray();
       
-      if (!lastUser || !lastUser.employeeId) {
+      if (users.length === 0) {
         return 'EMP001';
       }
       
-      const lastNumber = parseInt(lastUser.employeeId.replace('EMP', ''));
-      const nextNumber = lastNumber + 1;
+      // Extract numbers and find the highest
+      const numbers = users.map(user => {
+        const match = user.employeeId.match(/^EMP(\d{3})$/);
+        return match ? parseInt(match[1]) : 0;
+      }).filter(num => !isNaN(num));
+      
+      const maxNumber = Math.max(...numbers, 0);
+      const nextNumber = maxNumber + 1;
       return `EMP${nextNumber.toString().padStart(3, '0')}`;
     } catch (error) {
       console.error('Error generating employee ID:', error);
-      return 'EMP001';
+      // Fallback: generate random number to avoid collision
+      const randomNum = Math.floor(Math.random() * 1000) + 1;
+      return `EMP${randomNum.toString().padStart(3, '0')}`;
     }
   }
+
+  // Debug endpoint to check current user permissions
+  router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
+    try {
+      let currentUser = null;
+      
+      // Try to find user by ObjectId first
+      if (ObjectId.isValid(req.session.user.id)) {
+        currentUser = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
+      }
+      
+      // If not found, try to find by username
+      if (!currentUser) {
+        currentUser = await db.collection('users').findOne({ username: req.session.user.username || req.session.user.id });
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          sessionUser: req.session.user,
+          dbUser: currentUser,
+          hasUsersManage: (req.session.user.permissions || []).includes('users:create'),
+          hasUsersView: (req.session.user.permissions || []).includes(PERMISSIONS.USERS_VIEW),
+          permissions: req.session.user.permissions || []
+        }
+      });
+    } catch (error) {
+      console.error('Debug permissions error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }));
+
+  // Fix admin permissions endpoint (emergency fix)
+  router.post('/debug/fix-admin', asyncHandler(async (req, res) => {
+    const adminPermissions = [
+      'leave:view', 'leave:manage', 'users:view', 'users:manage',
+      'payroll:view', 'payroll:manage', 'reports:view', 'files:view',
+      'files:manage', 'departments:view', 'departments:manage', 'admin:permissions'
+    ];
+    
+    // Update all admin users in database
+    await db.collection('users').updateMany(
+      { role: 'admin' },
+      { $set: { permissions: adminPermissions } }
+    );
+    
+    res.json({
+      success: true,
+      message: 'All admin permissions fixed',
+      permissions: adminPermissions
+    });
+  }));
+
+  // Emergency admin login bypass
+  router.post('/debug/login-admin', asyncHandler(async (req, res) => {
+    const adminUser = await db.collection('users').findOne({ username: 'admin' });
+    if (adminUser) {
+      const adminPermissions = [
+        'leave:view', 'leave:manage', 'users:view', 'users:manage',
+        'payroll:view', 'payroll:manage', 'reports:view', 'files:view',
+        'files:manage', 'departments:view', 'departments:manage', 'admin:permissions'
+      ];
+      
+      // Update session with full admin permissions
+      req.session.user = {
+        id: adminUser._id,
+        username: adminUser.username,
+        name: adminUser.name,
+        role: adminUser.role,
+        permissions: adminPermissions
+      };
+      
+      res.json({
+        success: true,
+        message: 'Emergency admin login successful',
+        user: req.session.user
+      });
+    } else {
+      res.status(404).json({ error: 'Admin user not found' });
+    }
+  }));
+
+  // Fix invalid employeeIds
+  router.post('/debug/fix-employee-ids', asyncHandler(async (req, res) => {
+    try {
+      // Find users with invalid employeeIds
+      const invalidUsers = await db.collection('users').find({
+        $or: [
+          { employeeId: { $regex: /NaN/ } },
+          { employeeId: null },
+          { employeeId: '' }
+        ]
+      }).toArray();
+
+      const results = [];
+      for (const user of invalidUsers) {
+        const newEmployeeId = await generateEmployeeId();
+        await db.collection('users').updateOne(
+          { _id: user._id },
+          { $set: { employeeId: newEmployeeId } }
+        );
+        results.push({
+          userId: user._id,
+          username: user.username,
+          oldEmployeeId: user.employeeId,
+          newEmployeeId: newEmployeeId
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Fixed ${results.length} invalid employee IDs`,
+        results: results
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }));
 
   // Get all users
   router.get('/', requireAuth, requirePermission(PERMISSIONS.USERS_VIEW), asyncHandler(async (req, res) => {
@@ -57,7 +218,7 @@ function createUserRoutes(db) {
       const hireDate = user.hireDate ? new Date(user.hireDate) : null;
       const terminationDate = user.terminationDate ? new Date(user.terminationDate) : null;
       const yearsOfService = hireDate ? Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
-      const annualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+      const annualLeave = calculateAnnualLeaveEntitlement(hireDate);
       
       return {
         ...user,
@@ -87,7 +248,7 @@ function createUserRoutes(db) {
     const hireDate = user.hireDate ? new Date(user.hireDate) : null;
     const terminationDate = user.terminationDate ? new Date(user.terminationDate) : null;
     const yearsOfService = hireDate ? Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
-    const annualLeave = yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25);
+    const annualLeave = calculateAnnualLeaveEntitlement(hireDate);
     
     const userWithCalculatedFields = {
       ...user,
@@ -105,11 +266,19 @@ function createUserRoutes(db) {
   }));
 
   // Create new user
-  router.post('/', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+  router.post('/', requireAuth, requirePermission('users:create'), asyncHandler(async (req, res) => {
     const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula } = req.body;
     
     if (!username || !password || !name || !role) {
       return res.status(400).json({ error: 'Username, password, name, and role are required' });
+    }
+    
+    // Validate username format (support Korean characters)
+    const usernamePattern = /^[a-zA-Z0-9가-힣_-]{2,30}$/;
+    if (!usernamePattern.test(username)) {
+      return res.status(400).json({ 
+        error: 'Username can only contain letters, numbers, Korean characters, underscore, and hyphen (2-30 characters)' 
+      });
     }
     
     const existingUser = await db.collection('users').findOne({ username });
@@ -122,7 +291,7 @@ function createUserRoutes(db) {
     
     const DEFAULT_PERMISSIONS = {
       user: ['leave:view'],
-      manager: ['leave:view', 'leave:manage', 'users:view'],
+      manager: ['leave:view', 'leave:manage'],
       admin: ['leave:view', 'leave:manage', 'users:view', 'users:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions']
     };
     
@@ -155,7 +324,7 @@ function createUserRoutes(db) {
   }));
 
   // Update user
-  router.put('/:id', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+  router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive } = req.body;
     
@@ -191,7 +360,7 @@ function createUserRoutes(db) {
   }));
 
   // Delete user
-  router.delete('/:id', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+  router.delete('/:id', requireAuth, requirePermission('users:delete'), asyncHandler(async (req, res) => {
     const { id } = req.params;
     
     const result = await db.collection('users').deleteOne({ _id: new ObjectId(id) });

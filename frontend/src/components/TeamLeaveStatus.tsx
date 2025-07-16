@@ -381,9 +381,6 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                                   <Typography variant="subtitle2">
                                     {member.name}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {member.employeeId}
-                                  </Typography>
                                 </Box>
                               </Box>
                             </TableCell>
@@ -514,9 +511,6 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                     기본 정보
                   </Typography>
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2">
-                      <strong>사번:</strong> {selectedMember.employeeId}
-                    </Typography>
                     <Typography variant="body2">
                       <strong>부서:</strong> {selectedMember.department}
                     </Typography>

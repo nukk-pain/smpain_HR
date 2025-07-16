@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import PayrollManagement from './pages/PayrollManagement'
 import LeaveManagement from './pages/LeaveManagement'
+import EmployeeLeaveManagement from './pages/EmployeeLeaveManagement'
 import LeaveCalendarPage from './pages/LeaveCalendarPage'
 import TeamLeaveStatusPage from './pages/TeamLeaveStatusPage'
 import UserManagementPage from './pages/UserManagementPage'
@@ -77,6 +78,12 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="leave" element={<LeaveManagement />} />
+        
+        <Route path="employee-leave" element={
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+            <EmployeeLeaveManagement />
+          </ProtectedRoute>
+        } />
         
         <Route path="leave-calendar" element={<LeaveCalendarPage />} />
         

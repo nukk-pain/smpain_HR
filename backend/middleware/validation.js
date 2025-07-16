@@ -3,7 +3,9 @@ const Joi = require('joi');
 // User validation schemas
 const userSchemas = {
   create: Joi.object({
-    username: Joi.string().alphanum().min(3).max(30).required(),
+    username: Joi.string().pattern(/^[a-zA-Z0-9가-힣_-]{2,30}$/).required().messages({
+      'string.pattern.base': 'Username can contain letters, numbers, Korean characters, underscore, and hyphen (2-30 characters)'
+    }),
     password: Joi.string().min(6).max(100).required(),
     name: Joi.string().min(2).max(50).required(),
     email: Joi.string().email().required(),
