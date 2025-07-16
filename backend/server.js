@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 // const multer = require('multer'); // Not used currently
@@ -178,11 +179,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 app.use(securityHeaders);
 
-// Session configuration
+// Session configuration with MongoDB store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-here',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: MONGO_URL,
+    dbName: DB_NAME,
+    collectionName: 'sessions',
+    touchAfter: 24 * 3600 // lazy session update
+  }),
   cookie: {
     secure: false, // Set to true in production with HTTPS
     httpOnly: true,
