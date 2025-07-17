@@ -419,6 +419,8 @@ const usernamePattern = /^[a-zA-Z0-9가-힣_-]{2,30}$/; // 사용자명 패턴
 
 ### 유틸리티
 - `addIdField(request)` - 프론트엔드 호환성 필드 추가 (leave.js)
+- `cn(...inputs)` - Tailwind 클래스 병합 헬퍼 (frontend/src/utils/cn.ts)
+- `theme` - 공통 색상 및 간격 설정 객체 (frontend/src/utils/theme.ts)
 
 ### 파일 업로드 관련
 - `multer.memoryStorage()` - 메모리 저장소 설정 (upload.js)
@@ -460,5 +462,5 @@ const usernamePattern = /^[a-zA-Z0-9가-힣_-]{2,30}$/; // 사용자명 패턴
 
 ---
 
-**최종 업데이트**: 2025-01-17
+**최종 업데이트**: 2025-07-17
 **담당자**: HR 시스템 개발팀
