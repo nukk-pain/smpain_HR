@@ -35,7 +35,6 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks
           vendor: ['react', 'react-dom'],
-          mui: ['@mui/material', '@mui/icons-material', '@mui/system'],
           routing: ['react-router-dom'],
           utils: ['date-fns', 'axios'],
           
@@ -85,8 +84,6 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
-      '@mui/material',
-      '@mui/icons-material',
       'react-router-dom',
       'axios',
       'date-fns'

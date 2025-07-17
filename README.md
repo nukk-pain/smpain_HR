@@ -11,7 +11,7 @@ This system provides complete HR management capabilities including employee leav
 - **Backend**: Node.js + Express
 - **Frontend**: React 19 + TypeScript + Vite
 - **Database**: MongoDB
-- **UI Library**: Material-UI (MUI)
+- **UI Library**: shadcn/ui + Tailwind CSS
 - **Data Grid**: AG Grid Community
 - **Authentication**: Session-based with bcryptjs
 - **Process Manager**: PM2 (Production)
@@ -60,6 +60,17 @@ This system provides complete HR management capabilities including employee leav
    - Frontend: http://localhost:3727
    - Backend API: http://localhost:5455/api
    - Default login: `admin` / `admin`
+
+### UI Migration to shadcn/ui
+
+The frontend now uses **shadcn/ui** with Tailwind CSS instead of Material‑UI.
+Run `npm install` in the `frontend` directory to install the new dependencies:
+
+```bash
+npm install
+```
+
+Tailwind CSS is configured via `tailwind.config.js` and `postcss.config.js`.
 
 ---
 
