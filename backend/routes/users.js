@@ -267,7 +267,7 @@ function createUserRoutes(db) {
 
   // Create new user
   router.post('/', requireAuth, requirePermission('users:create'), asyncHandler(async (req, res) => {
-    const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula } = req.body;
+    const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, birthDate, phoneNumber } = req.body;
     
     if (!username || !password || !name || !role) {
       return res.status(400).json({ error: 'Username, password, name, and role are required' });
@@ -309,6 +309,8 @@ function createUserRoutes(db) {
       contractType: contractType || 'regular',
       baseSalary: baseSalary || 0,
       incentiveFormula: incentiveFormula || null,
+      birthDate: birthDate || null,
+      phoneNumber: phoneNumber || null,
       isActive: true,
       permissions: DEFAULT_PERMISSIONS[role] || [],
       createdAt: new Date(),
@@ -323,10 +325,49 @@ function createUserRoutes(db) {
     });
   }));
 
-  // Update user
+  // Update user profile (self-edit - only personal info)
+  router.put('/profile/:id', requireAuth, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { name, birthDate, phoneNumber } = req.body;
+    
+    // Ensure user can only update their own profile
+    if (req.session.user.id !== id) {
+      return res.status(403).json({ error: 'You can only update your own profile' });
+    }
+    
+    const updateData = {
+      name,
+      birthDate: birthDate || null,
+      phoneNumber: phoneNumber || null,
+      updatedAt: new Date()
+    };
+    
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully'
+    });
+  }));
+
+  // Update user (admin/manager function)
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive } = req.body;
+    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber } = req.body;
     
     const updateData = {
       username,
@@ -340,6 +381,8 @@ function createUserRoutes(db) {
       contractType: contractType || 'regular',
       baseSalary: baseSalary || 0,
       incentiveFormula: incentiveFormula || null,
+      birthDate: birthDate || null,
+      phoneNumber: phoneNumber || null,
       isActive: isActive !== undefined ? isActive : true,
       updatedAt: new Date()
     };

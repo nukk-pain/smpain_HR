@@ -93,47 +93,13 @@ const AdminLeavePolicy: React.FC = () => {
   const loadCurrentPolicy = async () => {
     try {
       setLoading(true);
-      // 임시 기본 정책 데이터 (실제로는 API에서 가져옴)
-      const defaultPolicy: LeavePolicy = {
-        policyId: 'policy_2024',
-        annualLeaveRules: {
-          firstYear: 11,
-          baseSecondYear: 15,
-          maxAnnualLeave: 25,
-          monthlyProration: true
-        },
-        specialRules: {
-          saturdayLeave: 0.5,
-          sundayLeave: 0,
-          holidayLeave: 0
-        },
-        leaveTypes: {
-          annual: {
-            advanceNotice: 3,
-            maxConsecutive: 15
-          },
-          family: {
-            managerApproval: true,
-            documentRequired: true
-          },
-          personal: {
-            yearlyLimit: 3,
-            paid: false
-          }
-        },
-        businessRules: {
-          minAdvanceDays: 3,
-          maxConcurrentRequests: 1
-        },
-        carryOverRules: {
-          maxCarryOverDays: 5,
-          carryOverDeadline: '02-28'
-        },
-        updatedAt: new Date().toISOString(),
-        updatedBy: 'admin'
-      };
+      const response = await apiService.getLeavePolicy();
       
-      setPolicy(defaultPolicy);
+      if (response.success) {
+        setPolicy(response.data);
+      } else {
+        showError('정책 정보를 불러올 수 없습니다.');
+      }
     } catch (error) {
       console.error('Error loading policy:', error);
       showError('정책 정보를 불러오는 중 오류가 발생했습니다.');
@@ -147,11 +113,16 @@ const AdminLeavePolicy: React.FC = () => {
     
     try {
       setSaving(true);
-      // 실제로는 API 호출
-      // await apiService.updateLeavePolicy(policy);
+      const response = await apiService.updateLeavePolicy(policy);
       
-      showSuccess('휴가 정책이 저장되었습니다.');
-      setHasChanges(false);
+      if (response.success) {
+        showSuccess('휴가 정책이 저장되었습니다.');
+        setHasChanges(false);
+        // Reload to get updated timestamps
+        await loadCurrentPolicy();
+      } else {
+        showError(response.error || '정책 저장에 실패했습니다.');
+      }
     } catch (error) {
       console.error('Error saving policy:', error);
       showError('정책 저장 중 오류가 발생했습니다.');

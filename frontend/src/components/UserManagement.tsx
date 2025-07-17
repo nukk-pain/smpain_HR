@@ -78,6 +78,8 @@ const UserManagement: React.FC = () => {
     contractType: 'regular',
     baseSalary: 0,
     incentiveFormula: '',
+    birthDate: '',
+    phoneNumber: '',
   });
 
   // Username validation function
@@ -150,6 +152,8 @@ const UserManagement: React.FC = () => {
       contractType: 'regular',
       baseSalary: 0,
       incentiveFormula: '',
+      birthDate: '',
+      phoneNumber: '',
     });
     setIsDialogOpen(true);
   };
@@ -170,6 +174,8 @@ const UserManagement: React.FC = () => {
       contractType: user.contractType || 'regular',
       baseSalary: user.baseSalary || 0,
       incentiveFormula: user.incentiveFormula || '',
+      birthDate: user.birthDate || '',
+      phoneNumber: user.phoneNumber || '',
     });
     setIsDialogOpen(true);
   };
@@ -402,6 +408,12 @@ const UserManagement: React.FC = () => {
       filter: 'agTextColumnFilter',
     },
     {
+      headerName: 'Phone',
+      field: 'phoneNumber',
+      width: 130,
+      filter: 'agTextColumnFilter',
+    },
+    {
       headerName: 'Department',
       field: 'department',
       width: 120,
@@ -595,10 +607,36 @@ const UserManagement: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Full Name"
+                label="이름 (Full Name)"
                 value={userForm.name}
                 onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
                 required
+                placeholder="홍길동"
+                inputProps={{
+                  style: { imeMode: 'active' }
+                }}
+                helperText="한글 이름을 입력하세요"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="생년월일 (Birth Date)"
+                type="date"
+                value={userForm.birthDate}
+                onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                helperText="YYYY-MM-DD 형식"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="전화번호 (Phone Number)"
+                value={userForm.phoneNumber}
+                onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+                placeholder="010-1234-5678"
+                helperText="연락 가능한 전화번호를 입력하세요"
               />
             </Grid>
             {isEditing && (
@@ -748,6 +786,14 @@ const UserManagement: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Username</Typography>
                 <Typography variant="body1">{selectedUser.username}</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2">Birth Date</Typography>
+                <Typography variant="body1">{selectedUser.birthDate || 'Not provided'}</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2">Phone Number</Typography>
+                <Typography variant="body1">{selectedUser.phoneNumber || 'Not provided'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Department</Typography>

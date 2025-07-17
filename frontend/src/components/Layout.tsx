@@ -39,6 +39,7 @@ import {
   CloudUpload,
   Event,
   Group,
+  Edit as EditProfileIcon,
 } from '@mui/icons-material'
 import { useAuth } from './AuthProvider'
 import { useNotification } from './NotificationProvider'
@@ -166,6 +167,11 @@ const Layout: React.FC = () => {
       newPassword: '',
       confirmPassword: ''
     })
+  }
+
+  const handleProfileEdit = () => {
+    navigate('/profile')
+    setAnchorEl(null)
   }
 
   const handlePasswordChange = async () => {
@@ -306,6 +312,12 @@ const Layout: React.FC = () => {
               horizontal: 'right',
             }}
           >
+            <MenuItem onClick={handleProfileEdit}>
+              <ListItemIcon>
+                <EditProfileIcon fontSize="small" />
+              </ListItemIcon>
+              내 정보 수정
+            </MenuItem>
             <MenuItem onClick={handlePasswordChangeOpen}>
               <ListItemIcon>
                 <VpnKey fontSize="small" />

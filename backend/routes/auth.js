@@ -59,10 +59,18 @@ function createAuthRoutes(db) {
         success: true,
         message: 'Login successful', 
         user: {
+          _id: user._id.toString(),
           id: user._id.toString(),
           username: user.username,
           name: user.name,
           role: user.role,
+          department: user.department,
+          position: user.position,
+          employeeId: user.employeeId,
+          hireDate: user.hireDate,
+          birthDate: user.birthDate,
+          phoneNumber: user.phoneNumber,
+          contractType: user.contractType,
           permissions: user.permissions || []
         }
       });
@@ -102,9 +110,15 @@ function createAuthRoutes(db) {
         try {
           const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
           if (user && user.isActive) {
+            // Calculate additional fields
+            const hireDate = user.hireDate ? new Date(user.hireDate) : null;
+            const yearsOfService = hireDate ? Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
+            const annualLeave = hireDate ? (yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25)) : 0;
+            
             res.json({
               authenticated: true,
               user: {
+                _id: user._id.toString(),
                 id: user._id.toString(),
                 username: user.username,
                 name: user.name,
@@ -112,6 +126,13 @@ function createAuthRoutes(db) {
                 department: user.department,
                 position: user.position,
                 employeeId: user.employeeId,
+                hireDate: user.hireDate,
+                hireDateFormatted: hireDate ? hireDate.toLocaleDateString() : null,
+                contractType: user.contractType,
+                birthDate: user.birthDate,
+                phoneNumber: user.phoneNumber,
+                yearsOfService,
+                annualLeave,
                 permissions: user.permissions || []
               }
             });

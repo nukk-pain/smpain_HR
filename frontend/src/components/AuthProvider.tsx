@@ -5,6 +5,7 @@ import apiService from '../services/api'
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<boolean>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
   loading: boolean
 }
 
@@ -28,6 +29,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user: null,
   })
   const [loading, setLoading] = useState(true)
+
+  // Auto-logout functionality
+  useEffect(() => {
+    if (!authState.isAuthenticated) return
+
+    let inactivityTimer: NodeJS.Timeout
+    const INACTIVITY_TIMEOUT = 10 * 60 * 1000 // 10 minutes
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer)
+      inactivityTimer = setTimeout(() => {
+        logout()
+        alert('세션이 만료되어 자동으로 로그아웃됩니다.')
+      }, INACTIVITY_TIMEOUT)
+    }
+
+    const handleActivity = () => {
+      resetTimer()
+    }
+
+    // Track user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, true)
+    })
+
+    // Start the timer
+    resetTimer()
+
+    return () => {
+      clearTimeout(inactivityTimer)
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity, true)
+      })
+    }
+  }, [authState.isAuthenticated])
 
   // Check if user is already authenticated on app start
   useEffect(() => {
@@ -84,10 +121,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const response = await apiService.getCurrentUser()
+      if (response.authenticated && response.user) {
+        setAuthState(prev => ({
+          ...prev,
+          user: response.user as User,
+        }))
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error)
+    }
+  }
+
   const value: AuthContextType = {
     ...authState,
     login,
     logout,
+    refreshUser,
     loading,
   }
 

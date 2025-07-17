@@ -109,6 +109,10 @@ class ApiService {
     return this.put(`/users/${id}`, data);
   }
 
+  async updateUserProfile(id: string, data: { name: string; birthDate?: string; phoneNumber?: string }) {
+    return this.put(`/users/profile/${id}`, data);
+  }
+
   async deleteUser(id: string, permanent: boolean = false) {
     return this.delete(`/users/${id}`, { permanent });
   }
@@ -371,6 +375,33 @@ class ApiService {
   // Admin
   async changePassword(currentPassword: string, newPassword: string) {
     return this.post('/auth/change-password', { currentPassword, newPassword });
+  }
+
+  // Leave Policy Management
+  async getLeavePolicy() {
+    return this.get('/admin/policy');
+  }
+
+  async updateLeavePolicy(policy: any) {
+    return this.put('/admin/policy', policy);
+  }
+
+  async getPolicyHistory(page: number = 1, limit: number = 10) {
+    return this.get('/admin/policy/history', { page, limit });
+  }
+
+  // Bulk Leave Management
+  async getBulkPendingRequests(filters?: {
+    department?: string;
+    leaveType?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    return this.get('/admin/leave/bulk-pending', filters);
+  }
+
+  async bulkApproveLeaveRequests(requestIds: string[], action: 'approve' | 'reject', comment?: string) {
+    return this.post('/admin/leave/bulk-approve', { requestIds, action, comment });
   }
 }
 

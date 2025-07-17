@@ -96,6 +96,109 @@ const toObjectId = (id) => {
   }
 };
 
+// Helper function to get current leave policy
+const getCurrentPolicy = async (db) => {
+  try {
+    const policy = await db.collection('leavePolicy').findOne(
+      { isActive: true },
+      { sort: { createdAt: -1 } }
+    );
+    
+    if (!policy) {
+      // Return default policy if none exists
+      return {
+        specialRules: {
+          saturdayLeave: 0.5,
+          sundayLeave: 0,
+          holidayLeave: 0
+        },
+        leaveTypes: {
+          annual: {
+            advanceNotice: 3,
+            maxConsecutive: 15
+          },
+          family: {
+            managerApproval: true,
+            documentRequired: true
+          },
+          personal: {
+            yearlyLimit: 3,
+            paid: false
+          }
+        },
+        businessRules: {
+          minAdvanceDays: 3,
+          maxConcurrentRequests: 1
+        },
+        carryOverRules: {
+          maxCarryOverDays: 5,
+          carryOverDeadline: '02-28'
+        }
+      };
+    }
+    
+    return policy;
+  } catch (error) {
+    console.error('Error fetching leave policy:', error);
+    // Return default values if error
+    return {
+      specialRules: {
+        saturdayLeave: 0.5,
+        sundayLeave: 0,
+        holidayLeave: 0
+      },
+      leaveTypes: {
+        annual: {
+          advanceNotice: 3,
+          maxConsecutive: 15
+        },
+        family: {
+          managerApproval: true,
+          documentRequired: true
+        },
+        personal: {
+          yearlyLimit: 3,
+          paid: false
+        }
+      },
+      businessRules: {
+        minAdvanceDays: 3,
+        maxConcurrentRequests: 1
+      },
+      carryOverRules: {
+        maxCarryOverDays: 5,
+        carryOverDeadline: '02-28'
+      }
+    };
+  }
+};
+
+// Helper function to calculate business days based on policy
+const calculateBusinessDaysWithPolicy = async (db, startDate, endDate) => {
+  const policy = await getCurrentPolicy(db);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  let daysCount = 0;
+  let currentDate = new Date(start);
+  
+  while (currentDate <= end) {
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek === 0) { 
+      // Sunday - use policy value
+      daysCount += policy.specialRules.sundayLeave || 0;
+    } else if (dayOfWeek === 6) { 
+      // Saturday - use policy value
+      daysCount += policy.specialRules.saturdayLeave || 0.5;
+    } else { 
+      // Monday-Friday - 1 day
+      daysCount++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return Math.max(daysCount, 0);
+};
+
 // Helper function to add id field mapping for frontend consistency
 const addIdField = (request) => ({
   ...request,
@@ -240,24 +343,46 @@ function createLeaveRoutes(db) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Calculate days count
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    let daysCount = 0;
-    let currentDate = new Date(start);
+    // Calculate days count using policy-based calculation
+    const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate);
     
-    while (currentDate <= end) {
-      const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek === 0) { 
-        // Sunday - 0 days
-      } else if (dayOfWeek === 6) { 
-        // Saturday - 0.5 days
-        daysCount += 0.5;
-      } else { 
-        // Monday-Friday - 1 day
-        daysCount++;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
+    // Get current policy for validation
+    const policy = await getCurrentPolicy(db);
+    
+    // Validate advance notice requirement
+    const startDateObj = new Date(startDate);
+    const today = new Date();
+    const daysInAdvance = Math.floor((startDateObj - today) / (1000 * 60 * 60 * 24));
+    
+    if (leaveType === 'annual' && daysInAdvance < policy.leaveTypes.annual.advanceNotice) {
+      return res.status(400).json({ 
+        error: `연차는 최소 ${policy.leaveTypes.annual.advanceNotice}일 전에 신청해야 합니다.` 
+      });
+    }
+    
+    if (daysInAdvance < policy.businessRules.minAdvanceDays) {
+      return res.status(400).json({ 
+        error: `휴가는 최소 ${policy.businessRules.minAdvanceDays}일 전에 신청해야 합니다.` 
+      });
+    }
+    
+    // Validate consecutive days limit for annual leave
+    if (leaveType === 'annual' && daysCount > policy.leaveTypes.annual.maxConsecutive) {
+      return res.status(400).json({ 
+        error: `연차는 최대 ${policy.leaveTypes.annual.maxConsecutive}일까지 연속으로 사용할 수 있습니다.` 
+      });
+    }
+    
+    // Check concurrent requests limit
+    const pendingRequestsCount = await db.collection('leaveRequests').countDocuments({
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
+      status: 'pending'
+    });
+    
+    if (pendingRequestsCount >= policy.businessRules.maxConcurrentRequests) {
+      return res.status(400).json({ 
+        error: `최대 ${policy.businessRules.maxConcurrentRequests}개의 휴가 신청만 동시에 대기할 수 있습니다.` 
+      });
     }
     
     // Check for conflicting leave requests from other employees
@@ -311,7 +436,7 @@ function createLeaveRoutes(db) {
       if (!hasExceptionForEntirePeriod) {
         const conflictingUsers = conflictingLeaves.map(leave => leave.userName).join(', ');
         return res.status(400).json({ 
-          error: `해당 기간에 이미 휴가를 신청한 직원이 있습니다: ${conflictingUsers}`,
+          error: `해당 기간에 이미 휴가를 신청한 직원이 있습니다: ${conflictingUsers}. 팀 달력에서 다른 직원들의 연차 현황을 확인하실 수 있습니다.`,
           conflictingLeaves: conflictingLeaves.map(leave => ({
             userName: leave.userName,
             startDate: leave.startDate,
@@ -365,7 +490,7 @@ function createLeaveRoutes(db) {
     }
     
     const leaveRequest = {
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       userName: user.name,
       userDepartment: user.department,
       leaveType,
@@ -530,7 +655,7 @@ function createLeaveRoutes(db) {
     }
     
     const leaveRequests = await db.collection('leaveRequests').find({
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       $or: [
         { startDate: { $regex: `^${month}` } },
         { endDate: { $regex: `^${month}` } },
@@ -785,7 +910,7 @@ function createLeaveRoutes(db) {
     
     const leaveRequest = await db.collection('leaveRequests').findOne({ 
       _id: toObjectId(id),
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       status: 'pending'
     });
     
@@ -793,25 +918,8 @@ function createLeaveRoutes(db) {
       return res.status(404).json({ error: 'Leave request not found or cannot be modified' });
     }
     
-    // Calculate days count
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    let daysCount = 0;
-    let currentDate = new Date(start);
-    
-    while (currentDate <= end) {
-      const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek === 0) { 
-        // Sunday - 0 days
-      } else if (dayOfWeek === 6) { 
-        // Saturday - 0.5 days
-        daysCount += 0.5;
-      } else { 
-        // Monday-Friday - 1 day
-        daysCount++;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    // Calculate days count using policy-based calculation
+    const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate);
     
     // Check leave balance for annual leave (allow -3 days advance)
     if (leaveType === 'annual') {
@@ -828,7 +936,7 @@ function createLeaveRoutes(db) {
       const usedLeave = await db.collection('leaveRequests').aggregate([
         {
           $match: {
-            userId: userObjectId,
+            status: { $in: ['pending', 'approved'] }, // rejected는 제외
             leaveType: 'annual',
             status: { $in: ['approved', 'pending'] },
             _id: { $ne: toObjectId(id) },
@@ -890,7 +998,7 @@ function createLeaveRoutes(db) {
     
     const result = await db.collection('leaveRequests').deleteOne({ 
       _id: toObjectId(id),
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       status: 'pending'
     });
     
@@ -934,6 +1042,30 @@ function createLeaveRoutes(db) {
       return res.status(404).json({ error: 'Leave request not found or already processed' });
     }
     
+    // 연차 승인 시 즉시 연차 잔여일수 차감
+    if (action === 'approve') {
+      const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
+      if (leaveRequest && leaveRequest.leaveType === 'annual') {
+        const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
+        if (user) {
+          const currentBalance = user.leaveBalance || 0;
+          const newBalance = Math.max(0, currentBalance - leaveRequest.daysCount);
+          
+          await db.collection('users').updateOne(
+            { _id: leaveRequest.userId },
+            { 
+              $set: { 
+                leaveBalance: newBalance,
+                updatedAt: new Date()
+              }
+            }
+          );
+          
+          console.log(`연차 승인: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.daysCount}일, 잔여: ${newBalance}일`);
+        }
+      }
+    }
+    
     res.json({
       success: true,
       message: `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully`
@@ -961,7 +1093,7 @@ function createLeaveRoutes(db) {
     }
     
     const leaveRequests = await db.collection('leaveRequests').find({
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       $or: [
         { startDate: { $regex: `^${month}` } },
         { endDate: { $regex: `^${month}` } },
@@ -1504,6 +1636,27 @@ function createLeaveRoutes(db) {
       return res.status(404).json({ error: 'Failed to update cancellation request' });
     }
     
+    // 연차 취소 승인 시 연차 잔여일수 복원
+    if (action === 'approve' && leaveRequest.leaveType === 'annual') {
+      const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
+      if (user) {
+        const currentBalance = user.leaveBalance || 0;
+        const restoredBalance = currentBalance + leaveRequest.daysCount;
+        
+        await db.collection('users').updateOne(
+          { _id: leaveRequest.userId },
+          { 
+            $set: { 
+              leaveBalance: restoredBalance,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        console.log(`연차 취소 승인: ${user.name} (${user.employeeId}) - 복원: ${leaveRequest.daysCount}일, 잔여: ${restoredBalance}일`);
+      }
+    }
+    
     res.json({
       success: true,
       message: `Leave cancellation ${action === 'approve' ? 'approved' : 'rejected'} successfully`
@@ -1582,7 +1735,7 @@ function createLeaveRoutes(db) {
     }
     
     const cancellationHistory = await db.collection('leaveRequests').find({
-      userId: userObjectId,
+      status: { $in: ['pending', 'approved'] }, // rejected는 제외
       cancellationRequested: true
     }).sort({ cancellationRequestedAt: -1 }).toArray();
     

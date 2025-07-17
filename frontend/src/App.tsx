@@ -16,6 +16,7 @@ import Reports from './pages/Reports'
 import FileManagement from './pages/FileManagement'
 import AdminLeaveOverview from './pages/AdminLeaveOverview'
 import AdminLeavePolicy from './pages/AdminLeavePolicy'
+import UserProfile from './pages/UserProfile'
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
@@ -70,6 +71,8 @@ const AppContent: React.FC = () => {
       }>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
+        
+        <Route path="profile" element={<UserProfile />} />
         
         <Route path="payroll" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>

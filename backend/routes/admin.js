@@ -431,6 +431,402 @@ function createAdminRoutes(db) {
     }
   }));
 
+  // Leave Policy Management
+  // Get current leave policy
+  router.get('/policy', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      const policy = await db.collection('leavePolicy').findOne(
+        { isActive: true },
+        { sort: { createdAt: -1 } }
+      );
+
+      if (!policy) {
+        // Return default policy if none exists
+        const defaultPolicy = {
+          policyId: 'policy_default',
+          annualLeaveRules: {
+            firstYear: 11,
+            baseSecondYear: 15,
+            maxAnnualLeave: 25,
+            monthlyProration: true
+          },
+          specialRules: {
+            saturdayLeave: 0.5,
+            sundayLeave: 0,
+            holidayLeave: 0
+          },
+          leaveTypes: {
+            annual: {
+              advanceNotice: 3,
+              maxConsecutive: 15
+            },
+            family: {
+              managerApproval: true,
+              documentRequired: true
+            },
+            personal: {
+              yearlyLimit: 3,
+              paid: false
+            }
+          },
+          businessRules: {
+            minAdvanceDays: 3,
+            maxConcurrentRequests: 1
+          },
+          carryOverRules: {
+            maxCarryOverDays: 5,
+            carryOverDeadline: '02-28'
+          },
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          updatedBy: 'system'
+        };
+
+        res.json({
+          success: true,
+          data: defaultPolicy
+        });
+      } else {
+        res.json({
+          success: true,
+          data: policy
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching leave policy:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch leave policy' 
+      });
+    }
+  }));
+
+  // Update leave policy
+  router.put('/policy', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      const {
+        annualLeaveRules,
+        specialRules,
+        leaveTypes,
+        businessRules,
+        carryOverRules
+      } = req.body;
+
+      // Validate required fields
+      if (!annualLeaveRules || !specialRules || !leaveTypes || !businessRules || !carryOverRules) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required policy fields'
+        });
+      }
+
+      // Validate numeric ranges
+      const validations = [
+        { field: 'annualLeaveRules.firstYear', value: annualLeaveRules.firstYear, min: 1, max: 30 },
+        { field: 'annualLeaveRules.baseSecondYear', value: annualLeaveRules.baseSecondYear, min: 1, max: 30 },
+        { field: 'annualLeaveRules.maxAnnualLeave', value: annualLeaveRules.maxAnnualLeave, min: 1, max: 50 },
+        { field: 'specialRules.saturdayLeave', value: specialRules.saturdayLeave, min: 0, max: 1 },
+        { field: 'specialRules.sundayLeave', value: specialRules.sundayLeave, min: 0, max: 1 },
+        { field: 'specialRules.holidayLeave', value: specialRules.holidayLeave, min: 0, max: 1 },
+        { field: 'businessRules.minAdvanceDays', value: businessRules.minAdvanceDays, min: 0, max: 30 },
+        { field: 'businessRules.maxConcurrentRequests', value: businessRules.maxConcurrentRequests, min: 1, max: 10 },
+        { field: 'carryOverRules.maxCarryOverDays', value: carryOverRules.maxCarryOverDays, min: 0, max: 30 }
+      ];
+
+      for (const validation of validations) {
+        if (typeof validation.value !== 'number' || validation.value < validation.min || validation.value > validation.max) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid value for ${validation.field}. Must be between ${validation.min} and ${validation.max}`
+          });
+        }
+      }
+
+      // Validate carryOverDeadline format (MM-DD)
+      const deadlinePattern = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+      if (!deadlinePattern.test(carryOverRules.carryOverDeadline)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid carryOverDeadline format. Use MM-DD format (e.g., 02-28)'
+        });
+      }
+
+      // Deactivate current policy
+      await db.collection('leavePolicy').updateMany(
+        { isActive: true },
+        { 
+          $set: { 
+            isActive: false,
+            deactivatedAt: new Date()
+          }
+        }
+      );
+
+      // Create new policy
+      const newPolicy = {
+        policyId: `policy_${Date.now()}`,
+        annualLeaveRules,
+        specialRules,
+        leaveTypes,
+        businessRules,
+        carryOverRules,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        updatedBy: req.session.user.username || req.session.user.name
+      };
+
+      const result = await db.collection('leavePolicy').insertOne(newPolicy);
+
+      // Log policy change
+      await db.collection('policyChangeLogs').insertOne({
+        policyId: newPolicy.policyId,
+        changeType: 'policy_update',
+        changedBy: req.session.user.username || req.session.user.name,
+        changedAt: new Date(),
+        changes: {
+          annualLeaveRules,
+          specialRules,
+          leaveTypes,
+          businessRules,
+          carryOverRules
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Leave policy updated successfully',
+        data: {
+          policyId: newPolicy.policyId,
+          updatedAt: newPolicy.updatedAt,
+          updatedBy: newPolicy.updatedBy
+        }
+      });
+    } catch (error) {
+      console.error('Error updating leave policy:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to update leave policy' 
+      });
+    }
+  }));
+
+  // Get policy change history
+  router.get('/policy/history', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+
+      const [history, total] = await Promise.all([
+        db.collection('policyChangeLogs')
+          .find({})
+          .sort({ changedAt: -1 })
+          .skip(skip)
+          .limit(parseInt(limit))
+          .toArray(),
+        db.collection('policyChangeLogs').countDocuments({})
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          history,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit),
+            totalRecords: total
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching policy history:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch policy history' 
+      });
+    }
+  }));
+
+  // Bulk Leave Management
+  // Get pending leave requests for bulk approval
+  router.get('/leave/bulk-pending', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      const { department, leaveType, startDate, endDate } = req.query;
+      
+      const filter = { status: 'pending' };
+      
+      if (department && department !== 'all') {
+        filter['user.department'] = department;
+      }
+      
+      if (leaveType && leaveType !== 'all') {
+        filter.leaveType = leaveType;
+      }
+      
+      if (startDate || endDate) {
+        filter.startDate = {};
+        if (startDate) filter.startDate.$gte = new Date(startDate);
+        if (endDate) filter.startDate.$lte = new Date(endDate);
+      }
+
+      const pendingRequests = await db.collection('leaveRequests').aggregate([
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $unwind: '$user'
+        },
+        {
+          $match: filter
+        },
+        {
+          $project: {
+            _id: 1,
+            leaveType: 1,
+            startDate: 1,
+            endDate: 1,
+            daysCount: 1,
+            reason: 1,
+            requestedAt: 1,
+            'user.name': 1,
+            'user.department': 1,
+            'user.position': 1
+          }
+        },
+        {
+          $sort: { requestedAt: 1 }
+        }
+      ]).toArray();
+
+      res.json({
+        success: true,
+        data: pendingRequests
+      });
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch pending requests' 
+      });
+    }
+  }));
+
+  // Bulk approve/reject leave requests
+  router.post('/leave/bulk-approve', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      const { requestIds, action, comment } = req.body;
+
+      if (!requestIds || !Array.isArray(requestIds) || requestIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Request IDs array is required'
+        });
+      }
+
+      if (!['approve', 'reject'].includes(action)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Action must be either "approve" or "reject"'
+        });
+      }
+
+      const results = {
+        successful: [],
+        failed: []
+      };
+
+      // Process each request
+      for (const requestId of requestIds) {
+        try {
+          const objectId = new ObjectId(requestId);
+          
+          // Get the leave request
+          const leaveRequest = await db.collection('leaveRequests').findOne({ _id: objectId });
+          
+          if (!leaveRequest) {
+            results.failed.push({
+              requestId,
+              error: 'Leave request not found'
+            });
+            continue;
+          }
+
+          if (leaveRequest.status !== 'pending') {
+            results.failed.push({
+              requestId,
+              error: 'Leave request is not pending'
+            });
+            continue;
+          }
+
+          // Update the leave request
+          const updateData = {
+            status: action === 'approve' ? 'approved' : 'rejected',
+            approvedBy: req.session.user._id,
+            approvedAt: new Date(),
+            approvalComment: comment || `Bulk ${action}d by admin`
+          };
+
+          await db.collection('leaveRequests').updateOne(
+            { _id: objectId },
+            { $set: updateData }
+          );
+
+          results.successful.push({
+            requestId,
+            employeeName: leaveRequest.user?.name || 'Unknown',
+            leaveType: leaveRequest.leaveType,
+            startDate: leaveRequest.startDate,
+            endDate: leaveRequest.endDate,
+            action
+          });
+
+        } catch (error) {
+          results.failed.push({
+            requestId,
+            error: error.message
+          });
+        }
+      }
+
+      // Log bulk action
+      await db.collection('bulkActionLogs').insertOne({
+        actionType: 'bulk_leave_approval',
+        performedBy: req.session.user._id,
+        performedAt: new Date(),
+        action,
+        comment,
+        requestCount: requestIds.length,
+        successCount: results.successful.length,
+        failureCount: results.failed.length,
+        results
+      });
+
+      res.json({
+        success: true,
+        message: `Bulk ${action} completed`,
+        data: {
+          totalRequests: requestIds.length,
+          successful: results.successful.length,
+          failed: results.failed.length,
+          results
+        }
+      });
+    } catch (error) {
+      console.error('Error in bulk approval:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to process bulk approval' 
+      });
+    }
+  }));
+
   return router;
 }
 

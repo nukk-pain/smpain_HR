@@ -15,6 +15,8 @@ export interface User {
   terminationDate?: string;
   baseSalary?: number;
   incentiveFormula?: string;
+  birthDate?: string;
+  phoneNumber?: string;
   createdAt?: string;
   updatedAt?: string;
   permissions?: string[];
@@ -212,6 +214,8 @@ export interface UserForm {
   contractType?: 'regular' | 'contract';
   baseSalary?: number;
   incentiveFormula?: string;
+  birthDate?: string;
+  phoneNumber?: string;
 }
 
 export interface LeaveForm {
