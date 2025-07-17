@@ -13,7 +13,7 @@ const getDb = (req) => req.app.locals.db;
  * Get personal calendar (shows all employees' leave)
  * GET /api/leave/calendar/:month
  */
-router.get('/calendar/:month', requireAuth, asyncHandler(async (req, res) => {
+router.get('/:month', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { month } = req.params;
   const userId = req.session.user.id;
@@ -24,7 +24,7 @@ router.get('/calendar/:month', requireAuth, asyncHandler(async (req, res) => {
   }
   
   // 모든 직원의 연차 표시 (승인된 것과 대기중인 것 구분)
-  const leaveRequests = await db.collection('leaveRequests').find({
+  let matchQuery = {
     status: { $in: ['pending', 'approved'] }, // rejected는 제외
     $or: [
       { startDate: { $regex: `^${month}` } },
@@ -36,7 +36,15 @@ router.get('/calendar/:month', requireAuth, asyncHandler(async (req, res) => {
         ]
       }
     ]
-  }).toArray();
+  };
+  
+  // Add department filter if specified
+  const { department } = req.query;
+  if (department && department !== 'all') {
+    matchQuery.userDepartment = department;
+  }
+  
+  const leaveRequests = await db.collection('leaveRequests').find(matchQuery).toArray();
   
   // 사용자 정보 한 번에 조회
   const userIds = [...new Set(leaveRequests.map(req => req.userId))];
@@ -68,188 +76,218 @@ router.get('/calendar/:month', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
-/**
- * Get team calendar
- * GET /api/leave/team-calendar/:month
- */
-router.get('/team-calendar/:month', requireAuth, asyncHandler(async (req, res) => {
-  const db = getDb(req);
-  const { month } = req.params;
-  const { department } = req.query;
-  const userRole = req.session.user.role;
-  
-  let matchQuery = {
-    $or: [
-      { startDate: { $regex: `^${month}` } },
-      { endDate: { $regex: `^${month}` } },
-      {
-        $and: [
-          { startDate: { $lt: `${month}-32` } },
-          { endDate: { $gt: `${month}-01` } }
-        ]
-      }
-    ]
-  };
-  
-  if (department && department !== 'all') {
-    matchQuery.userDepartment = department;
-  }
-  
-  // 모든 사용자가 pending과 approved 휴가를 볼 수 있도록 수정
-  // rejected 상태만 제외
-  matchQuery.status = { $in: ['pending', 'approved'] };
-  
-  const leaveRequests = await db.collection('leaveRequests').find(matchQuery).toArray();
-  
-  const userIds = [...new Set(leaveRequests.map(req => req.userId))];
-  const users = await db.collection('users').find({ _id: { $in: userIds } }).toArray();
-  const userMap = users.reduce((map, user) => {
-    map[user._id.toString()] = user;
-    return map;
-  }, {});
-  
-  const calendarEvents = leaveRequests.map(request => {
-    const user = userMap[request.userId?.toString()];
-    return {
-      id: request._id,
-      userId: request.userId,
-      userName: request.userName || user?.name || '알 수 없음',
-      userDepartment: request.userDepartment || user?.department || '부서 없음',
-      leaveType: request.leaveType,
-      startDate: request.startDate,
-      endDate: request.endDate,
-      daysCount: request.daysCount,
-      status: request.status,
-      reason: request.reason
-    };
-  });
-  
-  res.json({
-    success: true,
-    data: calendarEvents
-  });
-}));
 
 /**
  * Get team leave status
  * GET /api/leave/team-status
  */
-router.get('/team-status', requireAuth, asyncHandler(async (req, res) => {
+router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const { department, view = 'team' } = req.query;
-  const currentMonth = new Date().toISOString().substring(0, 7);
+  const { department, year = new Date().getFullYear() } = req.query;
   
-  let matchQuery = {
-    startDate: { $regex: `^${currentMonth}` },
-    status: { $in: ['pending', 'approved'] }
-  };
-  
+  // Get all users excluding admin
+  let userQuery = { role: { $ne: 'admin' } };
   if (department && department !== 'all') {
-    matchQuery.userDepartment = department;
+    userQuery.department = department;
   }
   
-  const leaveRequests = await db.collection('leaveRequests').find(matchQuery).toArray();
+  const users = await db.collection('users').find(userQuery).toArray();
   
-  // Get user information for all requests
-  const userIds = [...new Set(leaveRequests.map(req => req.userId))];
-  const users = await db.collection('users').find({ 
-    _id: { $in: userIds },
-    role: { $ne: 'admin' }
+  // Get all leave requests for the year
+  const leaveRequests = await db.collection('leaveRequests').find({
+    startDate: { 
+      $gte: `${year}-01-01`, 
+      $lte: `${year}-12-31` 
+    }
   }).toArray();
   
+  // Create user map for quick lookup
   const userMap = users.reduce((map, user) => {
     map[user._id.toString()] = user;
     return map;
   }, {});
   
-  // Calculate statistics
-  const totalRequests = leaveRequests.length;
-  const pendingRequests = leaveRequests.filter(req => req.status === 'pending').length;
-  const approvedRequests = leaveRequests.filter(req => req.status === 'approved').length;
+  // Calculate leave balance for each user
+  const members = await Promise.all(users.map(async (user) => {
+    const userLeaveRequests = leaveRequests.filter(req => 
+      req.userId && req.userId.toString() === user._id.toString()
+    );
+    
+    // Calculate annual leave entitlement
+    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+    const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+    const carryOverLeave = await getCarryOverLeave(db, user._id, year);
+    const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
+    
+    // Calculate used and pending leave
+    const usedAnnualLeave = userLeaveRequests
+      .filter(req => req.leaveType === 'annual' && req.status === 'approved')
+      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
+    
+    const pendingAnnualLeave = userLeaveRequests
+      .filter(req => req.leaveType === 'annual' && req.status === 'pending')
+      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
+    
+    const remainingAnnualLeave = totalAnnualLeave - usedAnnualLeave;
+    
+    // Get recent and upcoming leaves
+    const now = new Date();
+    const recentLeaves = userLeaveRequests
+      .filter(req => new Date(req.endDate) < now)
+      .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
+      .slice(0, 5)
+      .map(req => ({
+        id: req._id,
+        leaveType: req.leaveType,
+        startDate: req.startDate,
+        endDate: req.endDate,
+        daysCount: req.daysCount,
+        status: req.status,
+        reason: req.reason
+      }));
+    
+    const upcomingLeaves = userLeaveRequests
+      .filter(req => new Date(req.startDate) >= now)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+      .slice(0, 5)
+      .map(req => ({
+        id: req._id,
+        leaveType: req.leaveType,
+        startDate: req.startDate,
+        endDate: req.endDate,
+        daysCount: req.daysCount,
+        status: req.status,
+        reason: req.reason
+      }));
+    
+    return {
+      _id: user._id,
+      name: user.name,
+      employeeId: user.employeeId,
+      position: user.position,
+      department: user.department,
+      leaveBalance: {
+        totalAnnualLeave,
+        usedAnnualLeave,
+        remainingAnnualLeave,
+        pendingAnnualLeave
+      },
+      recentLeaves,
+      upcomingLeaves
+    };
+  }));
   
-  // Get unique users on leave
-  const usersOnLeave = [...new Set(leaveRequests.map(req => req.userId.toString()))];
-  
-  // Calculate total leave days
-  const totalLeaveDays = leaveRequests.reduce((sum, req) => sum + (req.daysCount || 0), 0);
-  
-  // Department breakdown
-  const departmentStats = {};
-  users.forEach(user => {
-    const dept = user.department || 'Unknown';
-    if (!departmentStats[dept]) {
-      departmentStats[dept] = { total: 0, onLeave: 0, requests: 0 };
-    }
-    departmentStats[dept].total++;
-  });
-  
-  leaveRequests.forEach(req => {
-    const user = userMap[req.userId.toString()];
-    if (user) {
-      const dept = user.department || 'Unknown';
-      if (departmentStats[dept]) {
-        departmentStats[dept].requests++;
-        if (req.status === 'approved') {
-          departmentStats[dept].onLeave++;
-        }
-      }
-    }
-  });
-  
-  // Top leave requests by user
-  const userLeaveCount = {};
-  leaveRequests.forEach(req => {
-    const userId = req.userId.toString();
-    if (!userLeaveCount[userId]) {
-      userLeaveCount[userId] = 0;
-    }
-    userLeaveCount[userId]++;
-  });
-  
-  const topUsers = Object.entries(userLeaveCount)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 5)
-    .map(([userId, count]) => {
-      const user = userMap[userId];
-      return {
-        userId,
-        userName: user?.name || 'Unknown',
-        department: user?.department || 'Unknown',
-        requestCount: count
-      };
-    });
+  // Get unique departments
+  const departments = [...new Set(users.map(user => user.department).filter(Boolean))];
   
   res.json({
     success: true,
     data: {
-      overview: {
-        totalRequests,
-        pendingRequests,
-        approvedRequests,
-        usersOnLeave: usersOnLeave.length,
-        totalLeaveDays,
-        currentMonth
-      },
-      departmentStats,
-      topUsers,
-      recentRequests: leaveRequests
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 10)
-        .map(req => {
-          const user = userMap[req.userId.toString()];
-          return {
-            id: req._id,
-            userName: user?.name || 'Unknown',
-            department: user?.department || 'Unknown',
-            leaveType: req.leaveType,
-            startDate: req.startDate,
-            endDate: req.endDate,
-            daysCount: req.daysCount,
-            status: req.status,
-            createdAt: req.createdAt
-          };
-        })
+      members,
+      departments
     }
+  });
+}));
+
+/**
+ * Get department leave statistics
+ * GET /api/leave/department-stats
+ */
+router.get('/department-stats', requireAuth, asyncHandler(async (req, res) => {
+  const db = getDb(req);
+  const { year = new Date().getFullYear() } = req.query;
+  
+  // Get all users excluding admin
+  const users = await db.collection('users').find({ role: { $ne: 'admin' } }).toArray();
+  
+  // Get all leave requests for the year
+  const leaveRequests = await db.collection('leaveRequests').find({
+    startDate: { 
+      $gte: `${year}-01-01`, 
+      $lte: `${year}-12-31` 
+    }
+  }).toArray();
+  
+  // Group by department
+  const departmentMap = users.reduce((map, user) => {
+    const dept = user.department || 'Unknown';
+    if (!map[dept]) {
+      map[dept] = {
+        users: [],
+        totalMembers: 0,
+        activeMembers: 0
+      };
+    }
+    map[dept].users.push(user);
+    map[dept].totalMembers++;
+    map[dept].activeMembers++; // Assuming all users are active
+    return map;
+  }, {});
+  
+  // Calculate statistics for each department
+  const departmentStats = await Promise.all(
+    Object.entries(departmentMap).map(async ([department, info]) => {
+      const deptUsers = info.users;
+      const deptLeaveRequests = leaveRequests.filter(req => 
+        deptUsers.some(user => user._id.toString() === req.userId?.toString())
+      );
+      
+      // Calculate leave usage for each user in department
+      const userStats = await Promise.all(deptUsers.map(async (user) => {
+        const userLeaveRequests = deptLeaveRequests.filter(req => 
+          req.userId && req.userId.toString() === user._id.toString()
+        );
+        
+        const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+        const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+        const carryOverLeave = await getCarryOverLeave(db, user._id, year);
+        const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
+        
+        const usedAnnualLeave = userLeaveRequests
+          .filter(req => req.leaveType === 'annual' && req.status === 'approved')
+          .reduce((sum, req) => sum + (req.daysCount || 0), 0);
+        
+        const pendingAnnualLeave = userLeaveRequests
+          .filter(req => req.leaveType === 'annual' && req.status === 'pending')
+          .reduce((sum, req) => sum + (req.daysCount || 0), 0);
+        
+        return {
+          totalAnnualLeave,
+          usedAnnualLeave,
+          pendingAnnualLeave,
+          usagePercentage: totalAnnualLeave > 0 ? (usedAnnualLeave / totalAnnualLeave) * 100 : 0
+        };
+      }));
+      
+      // Calculate department aggregates
+      const totalLeaveUsed = userStats.reduce((sum, stat) => sum + stat.usedAnnualLeave, 0);
+      const totalLeaveRemaining = userStats.reduce((sum, stat) => 
+        sum + (stat.totalAnnualLeave - stat.usedAnnualLeave), 0);
+      const avgLeaveUsage = userStats.length > 0 
+        ? userStats.reduce((sum, stat) => sum + stat.usagePercentage, 0) / userStats.length 
+        : 0;
+      
+      const pendingRequests = deptLeaveRequests.filter(req => req.status === 'pending').length;
+      const totalRequests = deptLeaveRequests.length;
+      const approvedRequests = deptLeaveRequests.filter(req => req.status === 'approved').length;
+      const approvalRate = totalRequests > 0 ? (approvedRequests / totalRequests) * 100 : 0;
+      
+      return {
+        department,
+        totalMembers: info.totalMembers,
+        activeMembers: info.activeMembers,
+        avgLeaveUsage,
+        totalLeaveUsed,
+        totalLeaveRemaining,
+        pendingRequests,
+        approvalRate
+      };
+    })
+  );
+  
+  res.json({
+    success: true,
+    data: departmentStats
   });
 }));
 
@@ -257,7 +295,7 @@ router.get('/team-status', requireAuth, asyncHandler(async (req, res) => {
  * Get detailed leave log for specific employee (for managers/admins)
  * GET /api/leave/employee/:employeeId/log
  */
-router.get('/employee/:employeeId/log', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+router.get('/:employeeId/log', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { employeeId } = req.params;
   const { year = new Date().getFullYear() } = req.query;
@@ -336,22 +374,35 @@ router.get('/employee/:employeeId/log', requireAuth, requirePermission('leave:ma
           department: user.department,
           hireDate: user.hireDate
         },
-        leaveBalance: {
+        balance: {
           year: parseInt(year),
           baseAnnualLeave,
           carryOverLeave,
           totalAnnualLeave,
-          usedLeave,
-          pendingLeave,
-          remainingLeave: totalAnnualLeave - usedLeave,
+          usedAnnualLeave: usedLeave,
+          pendingAnnualLeave: pendingLeave,
+          remainingAnnualLeave: totalAnnualLeave - usedLeave,
           cancelledLeave
         },
+        leaveHistory: leaveRequests.map(req => ({
+          id: req._id,
+          leaveType: req.leaveType,
+          startDate: req.startDate,
+          endDate: req.endDate,
+          daysCount: req.daysCount,
+          status: req.status,
+          reason: req.reason,
+          createdAt: req.createdAt,
+          requestedAt: req.requestedAt || req.createdAt,
+          cancellationRequested: req.cancellationRequested || false,
+          cancellationStatus: req.cancellationStatus,
+          cancellationReason: req.cancellationReason
+        })),
         summary: {
           statusSummary,
           leaveTypeSummary,
           totalCancellations: cancellationHistory.length
         },
-        requests: leaveRequests.map(addIdField),
         cancellationHistory: cancellationHistory.map(addIdField)
       }
     });

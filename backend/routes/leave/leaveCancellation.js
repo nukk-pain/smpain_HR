@@ -12,11 +12,12 @@ const getDb = (req) => req.app.locals.db;
  * Request cancellation for approved leave
  * POST /api/leave/:id/cancel
  */
-router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
+router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { reason } = req.body;
   const userId = req.session.user.id;
+  
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
@@ -82,7 +83,7 @@ router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
  * Approve/reject leave cancellation (for managers/admins)
  * POST /api/leave/:id/cancel/approve
  */
-router.post('/:id/cancel/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+router.post('/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { action, comment } = req.body;

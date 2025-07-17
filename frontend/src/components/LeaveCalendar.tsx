@@ -176,7 +176,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         {approvedEvents.slice(0, 2).map((event, index) => (
           <Chip
             key={index}
-            label={event.userName ? event.userName.substring(0, 2) : '??'}
+            label={event.userName ? event.userName.substring(0, 4) : '??'}
             size="small"
             sx={{
               fontSize: '0.7rem',
@@ -189,7 +189,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         {pendingEvents.slice(0, 1).map((event, index) => (
           <Chip
             key={`pending-${index}`}
-            label={`${event.userName ? event.userName.substring(0, 2) : '??'}?`}
+            label={`${event.userName ? event.userName.substring(0, 4) : '??'}?`}
             size="small"
             sx={{
               fontSize: '0.7rem',
@@ -413,11 +413,19 @@ const LeaveCalendar: React.FC = () => {
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   const getEventsForDate = (date: Date) => {
-    return calendarEvents.filter(event => {
-      const eventStart = new Date(event.startDate);
-      const eventEnd = new Date(event.endDate);
-      return date >= eventStart && date <= eventEnd;
+    const dateString = format(date, 'yyyy-MM-dd');
+    const filteredEvents = calendarEvents.filter(event => {
+      // Use date strings for comparison to avoid timezone issues
+      const eventStartDate = event.startDate;
+      const eventEndDate = event.endDate;
+      
+      // Check if the date falls within the event range
+      const isMatch = dateString >= eventStartDate && dateString <= eventEndDate;
+      
+      return isMatch;
     });
+    
+    return filteredEvents;
   };
 
   const getExceptionForDate = (date: Date) => {

@@ -95,10 +95,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiService.login(username, password)
       if (response.success && response.user) {
-        setAuthState({
-          isAuthenticated: true,
-          user: response.user as User,
-        })
+        // After successful login, get complete user info including calculated fields
+        const userResponse = await apiService.getCurrentUser()
+        if (userResponse.authenticated && userResponse.user) {
+          setAuthState({
+            isAuthenticated: true,
+            user: userResponse.user as User,
+          })
+        } else {
+          setAuthState({
+            isAuthenticated: true,
+            user: response.user as User,
+          })
+        }
         return true
       }
       return false

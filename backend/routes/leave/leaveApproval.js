@@ -12,7 +12,7 @@ const getDb = (req) => req.app.locals.db;
  * Approve or reject leave request
  * POST /api/leave/:id/approve
  */
-router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { action, comment } = req.body;
@@ -76,7 +76,7 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
  * Get pending leave requests (for managers/admins)
  * GET /api/leave/pending
  */
-router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
   const pendingRequests = await db.collection('leaveRequests').find({ status: 'pending' }).sort({ createdAt: -1 }).toArray();
   

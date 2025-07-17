@@ -380,16 +380,12 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                         <TableCell>총 연차</TableCell>
                         <TableCell>사용 연차</TableCell>
                         <TableCell>잔여 연차</TableCell>
-                        <TableCell>사용률</TableCell>
                         <TableCell>대기중</TableCell>
                         <TableCell>상세/로그</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {teamMembers.map((member) => {
-                        const usagePercentage = Math.round(
-                          (member.leaveBalance.usedAnnualLeave / member.leaveBalance.totalAnnualLeave) * 100
-                        );
                         return (
                           <TableRow key={member._id}>
                             <TableCell>
@@ -408,19 +404,6 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                             <TableCell>{member.leaveBalance.totalAnnualLeave}일</TableCell>
                             <TableCell>{member.leaveBalance.usedAnnualLeave}일</TableCell>
                             <TableCell>{member.leaveBalance.remainingAnnualLeave}일</TableCell>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={usagePercentage}
-                                  color={getLeaveUsageColor(usagePercentage)}
-                                  sx={{ width: 60, height: 8 }}
-                                />
-                                <Typography variant="body2">
-                                  {usagePercentage}%
-                                </Typography>
-                              </Box>
-                            </TableCell>
                             <TableCell>
                               {member.leaveBalance.pendingAnnualLeave > 0 ? (
                                 <Chip

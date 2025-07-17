@@ -95,7 +95,6 @@ const LeaveManagement: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
@@ -106,15 +105,11 @@ const LeaveManagement: React.FC = () => {
     reason: '',
     substituteEmployee: ''
   });
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
-  const [approvalComment, setApprovalComment] = useState('');
   
   // Cancellation states
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<LeaveRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [pendingCancellations, setPendingCancellations] = useState<LeaveRequest[]>([]);
   const [cancellationHistory, setCancellationHistory] = useState<LeaveRequest[]>([]);
 
   const apiService = new ApiService();
@@ -129,8 +124,6 @@ const LeaveManagement: React.FC = () => {
       await Promise.all([
         loadLeaveRequests(),
         loadLeaveBalance(),
-        loadPendingRequests(),
-        loadPendingCancellations(),
         loadCancellationHistory()
       ]);
     } catch (error) {
@@ -159,27 +152,6 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const loadPendingRequests = async () => {
-    try {
-      if (user?.role === 'admin') {
-        const response = await apiService.getPendingLeaveRequests();
-        setPendingRequests(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading pending requests:', error);
-    }
-  };
-
-  const loadPendingCancellations = async () => {
-    try {
-      if (user?.role === 'admin' || user?.role === 'manager') {
-        const response = await apiService.getPendingCancellations();
-        setPendingCancellations(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading pending cancellations:', error);
-    }
-  };
 
   const loadCancellationHistory = async () => {
     try {
@@ -254,34 +226,7 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const handleOpenApprovalDialog = (request: LeaveRequest) => {
-    setSelectedRequest(request);
-    setApprovalComment('');
-    setApprovalDialogOpen(true);
-  };
 
-  const handleCloseApprovalDialog = () => {
-    setApprovalDialogOpen(false);
-    setSelectedRequest(null);
-    setApprovalComment('');
-  };
-
-  const handleApproval = async (action: 'approve' | 'reject') => {
-    if (!selectedRequest) return;
-
-    try {
-      await apiService.approveLeaveRequest(selectedRequest._id, action, approvalComment);
-      showSuccess(
-        action === 'approve' ? '휴가가 승인되었습니다.' : '휴가가 거부되었습니다.'
-      );
-      handleCloseApprovalDialog();
-      await loadData();
-    } catch (error: any) {
-      console.error('Error approving leave request:', error);
-      const errorMessage = error.response?.data?.error || '승인 처리 중 오류가 발생했습니다.';
-      showError(errorMessage);
-    }
-  };
 
   // Cancellation handlers
   const handleCancelRequest = async (request: LeaveRequest) => {
@@ -329,20 +274,6 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const handleCancellationApproval = async (requestId: string, action: 'approve' | 'reject') => {
-    try {
-      await apiService.approveLeaveCancellation(requestId, action, approvalComment);
-      showSuccess(
-        action === 'approve' ? '휴가 취소가 승인되었습니다.' : '휴가 취소가 거부되었습니다.'
-      );
-      handleCloseApprovalDialog();
-      await loadData();
-    } catch (error: any) {
-      console.error('Error approving cancellation:', error);
-      const errorMessage = error.response?.data?.error || '취소 승인 처리 중 오류가 발생했습니다.';
-      showError(errorMessage);
-    }
-  };
 
   const getLeaveTypeIcon = (type: string) => {
     switch (type) {
@@ -502,30 +433,12 @@ const LeaveManagement: React.FC = () => {
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label={user?.role === 'admin' ? '휴가 내역' : '내 휴가 신청'} />
+              <Tab label='내 휴가 신청' />
               {user?.role !== 'admin' && (
                 <Tab
                   label={
                     <Badge badgeContent={cancellationHistory.length} color="info">
                       취소 내역
-                    </Badge>
-                  }
-                />
-              )}
-              {user?.role === 'admin' && (
-                <Tab
-                  label={
-                    <Badge badgeContent={pendingRequests.length} color="error">
-                      승인 관리
-                    </Badge>
-                  }
-                />
-              )}
-              {(user?.role === 'admin' || user?.role === 'manager') && (
-                <Tab
-                  label={
-                    <Badge badgeContent={pendingCancellations.length} color="warning">
-                      취소 승인
                     </Badge>
                   }
                 />
@@ -715,200 +628,6 @@ const LeaveManagement: React.FC = () => {
             </TabPanel>
           )}
 
-          {user?.role === 'admin' && (
-            <TabPanel value={tabValue} index={user?.role !== 'admin' ? 2 : 1}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>신청자</TableCell>
-                      <TableCell>부서</TableCell>
-                      <TableCell>휴가 종류</TableCell>
-                      <TableCell>기간</TableCell>
-                      <TableCell>일수</TableCell>
-                      <TableCell>사유</TableCell>
-                      <TableCell>신청일</TableCell>
-                      <TableCell>작업</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {pendingRequests?.map((request) => (
-                      <TableRow key={request?.id || request?._id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar sx={{ width: 24, height: 24 }}>
-                              {request?.userName?.[0] || '?'}
-                            </Avatar>
-                            {request?.userName || '사용자 정보 없음'}
-                          </Box>
-                        </TableCell>
-                        <TableCell>{request?.userDepartment || '부서 정보 없음'}</TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request?.leaveType)}
-                            {getLeaveTypeLabel(request?.leaveType)}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {safeFormatDate(request?.startDate)} ~{' '}
-                          {safeFormatDate(request?.endDate)}
-                        </TableCell>
-                        <TableCell>{request?.daysCount || 0}일</TableCell>
-                        <TableCell>{request?.reason || '-'}</TableCell>
-                        <TableCell>
-                          {safeFormatDate(request?.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={1}>
-                            <Tooltip title="승인">
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => {
-                                  if (request) {
-                                    setSelectedRequest(request);
-                                    handleApproval('approve');
-                                  }
-                                }}
-                              >
-                                <CheckIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="거부">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => request && handleOpenApprovalDialog(request)}
-                              >
-                                <CloseIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!pendingRequests || pendingRequests.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography color="text.secondary">
-                            승인 대기 중인 휴가 신청이 없습니다.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
-          )}
-
-          {/* 취소 승인 탭 */}
-          {(user?.role === 'admin' || user?.role === 'manager') && (
-            <TabPanel value={tabValue} index={2}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>직원명</TableCell>
-                      <TableCell>휴가 종류</TableCell>
-                      <TableCell>기간</TableCell>
-                      <TableCell>일수</TableCell>
-                      <TableCell>원래 사유</TableCell>
-                      <TableCell>취소 사유</TableCell>
-                      <TableCell>취소 신청일</TableCell>
-                      <TableCell>작업</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {pendingCancellations.map((request) => (
-                      <TableRow key={request._id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar sx={{ width: 32, height: 32 }}>
-                              {request.userName?.[0] || '?'}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="subtitle2">
-                                {request.userName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {request.userDepartment}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request.leaveType)}
-                            {getLeaveTypeLabel(request.leaveType)}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {request.startDate === request.endDate
-                            ? safeFormatDate(request.startDate)
-                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
-                          }
-                        </TableCell>
-                        <TableCell>{request.daysCount}일</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.reason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.cancellationReason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {safeFormatDate(request.cancellationRequestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={1}>
-                            <Tooltip title="취소 승인">
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setApprovalComment('');
-                                  setApprovalDialogOpen(true);
-                                }}
-                                color="success"
-                              >
-                                <CheckIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="취소 거부">
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setApprovalComment('');
-                                  setApprovalDialogOpen(true);
-                                }}
-                                color="error"
-                              >
-                                <CloseIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {pendingCancellations.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                            대기 중인 취소 신청이 없습니다.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
-          )}
         </Card>
 
         {/* 휴가 신청 다이얼로그 */}
@@ -1028,65 +747,6 @@ const LeaveManagement: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {/* 승인 다이얼로그 */}
-        <Dialog open={approvalDialogOpen} onClose={handleCloseApprovalDialog} maxWidth="sm" fullWidth>
-          <DialogTitle>휴가 승인 관리</DialogTitle>
-          <DialogContent>
-            {selectedRequest && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {selectedRequest.userName}님의 휴가 신청
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {getLeaveTypeLabel(selectedRequest.leaveType)} • {selectedRequest.daysCount}일 • {' '}
-                  {safeFormatDate(selectedRequest.startDate)} ~ {' '}
-                  {safeFormatDate(selectedRequest.endDate)}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  <strong>사유:</strong> {selectedRequest.reason}
-                </Typography>
-                <TextField
-                  fullWidth
-                  label="승인/거부 사유"
-                  multiline
-                  rows={3}
-                  value={approvalComment}
-                  onChange={(e) => setApprovalComment(e.target.value)}
-                  sx={{ mt: 2 }}
-                />
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseApprovalDialog}>취소</Button>
-            <Button
-              onClick={() => {
-                if (selectedRequest?.cancellationRequested) {
-                  handleCancellationApproval(selectedRequest._id, 'reject');
-                } else {
-                  handleApproval('reject');
-                }
-              }}
-              color="error"
-              variant="outlined"
-            >
-              거부
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedRequest?.cancellationRequested) {
-                  handleCancellationApproval(selectedRequest._id, 'approve');
-                } else {
-                  handleApproval('approve');
-                }
-              }}
-              color="success"
-              variant="contained"
-            >
-              승인
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         {/* 휴가 취소 신청 다이얼로그 */}
         <Dialog open={cancelDialogOpen} onClose={handleCloseCancelDialog} maxWidth="sm" fullWidth>

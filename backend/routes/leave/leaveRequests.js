@@ -381,4 +381,177 @@ router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
+/**
+ * Approve or reject leave request OR cancellation request
+ * POST /api/leave/:id/approve
+ */
+router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+  const db = getDb(req);
+  const { id } = req.params;
+  const { action, comment, type = 'leave' } = req.body; // type: 'leave' | 'cancellation'
+  const approverId = req.session.user.id;
+  
+  if (!['approve', 'reject'].includes(action)) {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+  
+  const approver = await db.collection('users').findOne({ _id: new ObjectId(approverId) });
+  
+  if (type === 'cancellation') {
+    // Handle cancellation approval/rejection
+    const leaveRequest = await db.collection('leaveRequests').findOne({
+      _id: toObjectId(id),
+      cancellationRequested: true,
+      cancellationStatus: 'pending'
+    });
+    
+    if (!leaveRequest) {
+      return res.status(404).json({ error: 'Leave cancellation request not found or already processed' });
+    }
+    
+    let updateData = {
+      cancellationStatus: action === 'approve' ? 'approved' : 'rejected',
+      cancellationApprovedBy: new ObjectId(approverId),
+      cancellationApprovedByName: approver.name,
+      cancellationApprovedAt: new Date(),
+      cancellationComment: comment || '',
+      updatedAt: new Date()
+    };
+    
+    // If cancellation is approved, change the leave status to cancelled
+    if (action === 'approve') {
+      updateData.status = 'cancelled';
+    }
+    
+    const result = await db.collection('leaveRequests').updateOne(
+      { _id: toObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Failed to update cancellation request' });
+    }
+    
+    // 연차 취소 승인 시 연차 잔여일수 복원
+    if (action === 'approve' && leaveRequest.leaveType === 'annual') {
+      const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
+      if (user) {
+        const currentBalance = user.leaveBalance || 0;
+        const restoredBalance = currentBalance + leaveRequest.daysCount;
+        
+        await db.collection('users').updateOne(
+          { _id: leaveRequest.userId },
+          { 
+            $set: { 
+              leaveBalance: restoredBalance,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        console.log(`연차 취소 승인: ${user.name} (${user.employeeId}) - 복원: ${leaveRequest.daysCount}일, 잔여: ${restoredBalance}일`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Leave cancellation ${action === 'approve' ? 'approved' : 'rejected'} successfully`
+    });
+  } else {
+    // Handle regular leave approval/rejection
+    const updateData = {
+      status: action === 'approve' ? 'approved' : 'rejected',
+      approvedBy: new ObjectId(approverId),
+      approvedByName: approver.name,
+      approvedAt: new Date(),
+      approvalComment: comment || '',
+      updatedAt: new Date()
+    };
+    
+    const result = await db.collection('leaveRequests').updateOne(
+      { _id: toObjectId(id), status: 'pending' },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Leave request not found or already processed' });
+    }
+    
+    res.json({
+      success: true,
+      message: `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully`
+    });
+  }
+}));
+
+/**
+ * Request cancellation for approved leave
+ * POST /api/leave/:id/cancel
+ */
+router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
+  const db = getDb(req);
+  const { id } = req.params;
+  const { reason } = req.body;
+  const userId = req.session.user.id;
+  
+  const userObjectId = await getUserObjectId(db, userId);
+  if (!userObjectId) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  // Find the leave request
+  const leaveRequest = await db.collection('leaveRequests').findOne({
+    _id: toObjectId(id),
+    userId: userObjectId
+  });
+  
+  if (!leaveRequest) {
+    return res.status(404).json({ error: 'Leave request not found' });
+  }
+  
+  // Check if leave is in approved status
+  if (leaveRequest.status !== 'approved') {
+    return res.status(400).json({ error: 'Only approved leave requests can be cancelled' });
+  }
+  
+  // Check if leave has already been cancelled or cancellation is pending
+  if (leaveRequest.cancellationRequested) {
+    return res.status(400).json({ error: 'Cancellation already requested for this leave' });
+  }
+  
+  // Check if leave start date is in the future
+  const today = new Date().toISOString().split('T')[0];
+  if (leaveRequest.startDate <= today) {
+    return res.status(400).json({ error: 'Cannot cancel leave that has already started' });
+  }
+  
+  // Validate reason
+  if (!reason || reason.trim().length < 5) {
+    return res.status(400).json({ error: '취소 사유를 5자 이상 입력해주세요.' });
+  }
+  
+  // Update leave request with cancellation information
+  const updateData = {
+    cancellationRequested: true,
+    cancellationRequestedAt: new Date(),
+    cancellationReason: reason.trim(),
+    cancellationStatus: 'pending',
+    updatedAt: new Date()
+  };
+  
+  const result = await db.collection('leaveRequests').updateOne(
+    { _id: toObjectId(id) },
+    { $set: updateData }
+  );
+  
+  if (result.matchedCount === 0) {
+    return res.status(404).json({ error: 'Failed to update leave request' });
+  }
+  
+  res.json({
+    success: true,
+    message: '휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.'
+  });
+}));
+
 module.exports = router;

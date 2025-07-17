@@ -40,9 +40,7 @@ router.use('/team-calendar', leaveCalendarRouter);
 router.use('/team-status', leaveCalendarRouter);
 router.use('/employee', leaveCalendarRouter);
 
-// Approval and cancellation routes with ID parameter
-router.use('/:id/approve', leaveApprovalRouter);
-router.use('/:id/cancel', leaveCancellationRouter);
+// Approval and cancellation routes with ID parameter need to be handled by specific endpoints
 
 // Main CRUD operations (must be last due to /:id conflict)
 router.use('/', leaveRequestsRouter);
