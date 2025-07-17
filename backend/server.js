@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 // Import route modules
 const createAuthRoutes = require('./routes/auth');
 const createUserRoutes = require('./routes/users');
-const createLeaveRoutes = require('./routes/leave');
+const leaveRoutes = require('./routes/leave');
 const createDepartmentRoutes = require('./routes/departments');
 const createPayrollRoutes = require('./routes/payroll');
 const createBonusRoutes = require('./routes/bonus');
@@ -432,9 +432,12 @@ async function initializeRoutes() {
     next();
   });
 
+  // Make database available to all routes through app.locals
+  app.locals.db = db;
+
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
-  app.use('/api/leave', createLeaveRoutes(db));
+  app.use('/api/leave', leaveRoutes);
   app.use('/api/departments', createDepartmentRoutes(db));
   app.use('/api/payroll', createPayrollRoutes(db));
   app.use('/api/bonus', createBonusRoutes(db));
