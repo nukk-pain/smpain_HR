@@ -168,6 +168,11 @@ class ApiService {
     return this.get('/leave/cancellations/history');
   }
 
+  async getEmployeeLeaveLog(employeeId: string, year?: number) {
+    const params = year ? { year } : {};
+    return this.get(`/leave/employee/${employeeId}/log`, params);
+  }
+
   // Admin leave management
   async getAdminLeaveOverview() {
     return this.get('/admin/leave/overview');

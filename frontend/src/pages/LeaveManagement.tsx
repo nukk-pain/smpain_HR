@@ -115,6 +115,7 @@ const LeaveManagement: React.FC = () => {
   const [cancelRequest, setCancelRequest] = useState<LeaveRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [pendingCancellations, setPendingCancellations] = useState<LeaveRequest[]>([]);
+  const [cancellationHistory, setCancellationHistory] = useState<LeaveRequest[]>([]);
 
   const apiService = new ApiService();
 
@@ -129,7 +130,8 @@ const LeaveManagement: React.FC = () => {
         loadLeaveRequests(),
         loadLeaveBalance(),
         loadPendingRequests(),
-        loadPendingCancellations()
+        loadPendingCancellations(),
+        loadCancellationHistory()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -176,6 +178,15 @@ const LeaveManagement: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading pending cancellations:', error);
+    }
+  };
+
+  const loadCancellationHistory = async () => {
+    try {
+      const response = await apiService.getCancellationHistory();
+      setCancellationHistory(response.data || []);
+    } catch (error) {
+      console.error('Error loading cancellation history:', error);
     }
   };
 
@@ -492,6 +503,15 @@ const LeaveManagement: React.FC = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab label={user?.role === 'admin' ? '휴가 내역' : '내 휴가 신청'} />
+              {user?.role !== 'admin' && (
+                <Tab
+                  label={
+                    <Badge badgeContent={cancellationHistory.length} color="info">
+                      취소 내역
+                    </Badge>
+                  }
+                />
+              )}
               {user?.role === 'admin' && (
                 <Tab
                   label={
@@ -613,8 +633,90 @@ const LeaveManagement: React.FC = () => {
             </TableContainer>
           </TabPanel>
 
-          {user?.role === 'admin' && (
+          {/* 취소 내역 탭 (일반 사용자용) */}
+          {user?.role !== 'admin' && (
             <TabPanel value={tabValue} index={1}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>휴가 종류</TableCell>
+                      <TableCell>기간</TableCell>
+                      <TableCell>일수</TableCell>
+                      <TableCell>신청 사유</TableCell>
+                      <TableCell>취소 사유</TableCell>
+                      <TableCell>취소 상태</TableCell>
+                      <TableCell>취소 신청일</TableCell>
+                      <TableCell>처리일</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {cancellationHistory.map((request) => (
+                      <TableRow key={request._id}>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            {getLeaveTypeIcon(request.leaveType)}
+                            {getLeaveTypeLabel(request.leaveType)}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {request.startDate === request.endDate
+                            ? safeFormatDate(request.startDate)
+                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
+                          }
+                        </TableCell>
+                        <TableCell>{request.daysCount}일</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>
+                            {request.reason}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>
+                            {request.cancellationReason}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={
+                              request.cancellationStatus === 'pending' ? '대기' :
+                              request.cancellationStatus === 'approved' ? '승인됨' : '거부됨'
+                            }
+                            size="small"
+                            color={
+                              request.cancellationStatus === 'pending' ? 'warning' :
+                              request.cancellationStatus === 'approved' ? 'success' : 'error'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {safeFormatDate(request.cancellationRequestedAt)}
+                        </TableCell>
+                        <TableCell>
+                          {request.cancellationApprovedAt 
+                            ? safeFormatDate(request.cancellationApprovedAt) 
+                            : '-'
+                          }
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {cancellationHistory.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography color="text.secondary" sx={{ py: 4 }}>
+                            취소 신청 내역이 없습니다.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </TabPanel>
+          )}
+
+          {user?.role === 'admin' && (
+            <TabPanel value={tabValue} index={user?.role !== 'admin' ? 2 : 1}>
               <TableContainer>
                 <Table>
                   <TableHead>

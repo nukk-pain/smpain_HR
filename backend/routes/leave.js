@@ -1608,6 +1608,94 @@ function createLeaveRoutes(db) {
     });
   }));
 
+  // Get detailed leave log for specific employee (for managers/admins)
+  router.get('/employee/:employeeId/log', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { employeeId } = req.params;
+    const { year = new Date().getFullYear() } = req.query;
+    
+    try {
+      // Find user by employeeId or MongoDB _id
+      let user;
+      if (ObjectId.isValid(employeeId)) {
+        user = await db.collection('users').findOne({ _id: new ObjectId(employeeId) });
+      } else {
+        user = await db.collection('users').findOne({ employeeId: employeeId });
+      }
+      
+      if (!user) {
+        return res.status(404).json({ error: 'Employee not found' });
+      }
+      
+      // Get all leave requests for this employee in the specified year
+      const leaveRequests = await db.collection('leaveRequests').find({
+        userId: user._id,
+        startDate: { 
+          $gte: `${year}-01-01`, 
+          $lte: `${year}-12-31` 
+        }
+      }).sort({ createdAt: -1 }).toArray();
+      
+      // Calculate leave balance
+      const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
+      const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+      const carryOverLeave = await getCarryOverLeave(db, user._id, year);
+      const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
+      
+      // Calculate used leave by status
+      const usedLeave = leaveRequests
+        .filter(req => req.leaveType === 'annual' && req.status === 'approved')
+        .reduce((sum, req) => sum + req.daysCount, 0);
+      
+      const pendingLeave = leaveRequests
+        .filter(req => req.leaveType === 'annual' && req.status === 'pending')
+        .reduce((sum, req) => sum + req.daysCount, 0);
+      
+      const cancelledLeave = leaveRequests
+        .filter(req => req.leaveType === 'annual' && req.status === 'cancelled')
+        .reduce((sum, req) => sum + req.daysCount, 0);
+      
+      // Group requests by status for summary
+      const statusSummary = {
+        total: leaveRequests.length,
+        pending: leaveRequests.filter(req => req.status === 'pending').length,
+        approved: leaveRequests.filter(req => req.status === 'approved').length,
+        rejected: leaveRequests.filter(req => req.status === 'rejected').length,
+        cancelled: leaveRequests.filter(req => req.status === 'cancelled').length,
+        cancellationRequested: leaveRequests.filter(req => req.cancellationRequested).length
+      };
+      
+      res.json({
+        success: true,
+        data: {
+          employee: {
+            _id: user._id,
+            name: user.name,
+            employeeId: user.employeeId,
+            department: user.department,
+            position: user.position,
+            hireDate: user.hireDate
+          },
+          year: parseInt(year),
+          leaveBalance: {
+            baseAnnualLeave,
+            carryOverLeave,
+            totalAnnualLeave,
+            usedLeave,
+            pendingLeave,
+            cancelledLeave,
+            remainingLeave: totalAnnualLeave - usedLeave
+          },
+          statusSummary,
+          leaveRequests: leaveRequests.map(addIdField)
+        }
+      });
+      
+    } catch (error) {
+      console.error('Get employee leave log error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
   return router;
 }
 

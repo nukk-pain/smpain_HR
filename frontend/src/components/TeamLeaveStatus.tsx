@@ -44,7 +44,8 @@ import {
   CheckCircle,
   Schedule,
   Info,
-  Assessment
+  Assessment,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -110,6 +111,9 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
+  const [employeeLeaveLog, setEmployeeLeaveLog] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     loadTeamData();
@@ -147,6 +151,22 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
   const handleMemberClick = (member: TeamMember) => {
     setSelectedMember(member);
     setDetailDialogOpen(true);
+  };
+
+  const handleViewDetail = async (member: TeamMember) => {
+    try {
+      setLoadingDetail(true);
+      setSelectedMember(member);
+      
+      const response = await apiService.getEmployeeLeaveLog(member._id, selectedYear);
+      setEmployeeLeaveLog(response.data);
+      setEmployeeDetailOpen(true);
+    } catch (error) {
+      console.error('Error loading employee leave log:', error);
+      showError('직원 휴가 내역을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingDetail(false);
+    }
   };
 
   const handleCloseDetail = () => {
@@ -362,7 +382,7 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                         <TableCell>잔여 연차</TableCell>
                         <TableCell>사용률</TableCell>
                         <TableCell>대기중</TableCell>
-                        <TableCell>상세</TableCell>
+                        <TableCell>상세/로그</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -413,14 +433,25 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                               )}
                             </TableCell>
                             <TableCell>
-                              <Tooltip title="상세 보기">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleMemberClick(member)}
-                                >
-                                  <Info />
-                                </IconButton>
-                              </Tooltip>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Tooltip title="상세 보기">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleMemberClick(member)}
+                                  >
+                                    <Info />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="휴가 로그 보기">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleViewDetail(member)}
+                                    disabled={loadingDetail}
+                                  >
+                                    <VisibilityIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
@@ -613,6 +644,130 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDetail}>닫기</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Employee Leave Log Dialog */}
+      <Dialog
+        open={employeeDetailOpen}
+        onClose={() => setEmployeeDetailOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedMember?.name} 휴가 로그 ({selectedYear}년)
+        </DialogTitle>
+        <DialogContent>
+          {loadingDetail ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+              <CircularProgress />
+            </Box>
+          ) : employeeLeaveLog ? (
+            <Box>
+              {/* Leave Balance Summary */}
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    휴가 잔여 현황
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={3}>
+                      <Typography variant="body2" color="text.secondary">총 연차</Typography>
+                      <Typography variant="h6">{employeeLeaveLog.balance?.totalAnnualLeave || 0}일</Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Typography variant="body2" color="text.secondary">사용 연차</Typography>
+                      <Typography variant="h6">{employeeLeaveLog.balance?.usedAnnualLeave || 0}일</Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Typography variant="body2" color="text.secondary">잔여 연차</Typography>
+                      <Typography variant="h6">{employeeLeaveLog.balance?.remainingAnnualLeave || 0}일</Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Typography variant="body2" color="text.secondary">대기중</Typography>
+                      <Typography variant="h6">{employeeLeaveLog.balance?.pendingAnnualLeave || 0}일</Typography>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* Leave History Table */}
+              <Typography variant="h6" gutterBottom>
+                휴가 내역
+              </Typography>
+              {employeeLeaveLog.leaveHistory && employeeLeaveLog.leaveHistory.length > 0 ? (
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>휴가 유형</TableCell>
+                        <TableCell>시작일</TableCell>
+                        <TableCell>종료일</TableCell>
+                        <TableCell>일수</TableCell>
+                        <TableCell>상태</TableCell>
+                        <TableCell>취소 상태</TableCell>
+                        <TableCell>사유</TableCell>
+                        <TableCell>신청일</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {employeeLeaveLog.leaveHistory.map((leave: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell>{getLeaveTypeLabel(leave.leaveType)}</TableCell>
+                          <TableCell>{format(new Date(leave.startDate), 'yyyy.MM.dd')}</TableCell>
+                          <TableCell>{format(new Date(leave.endDate), 'yyyy.MM.dd')}</TableCell>
+                          <TableCell>{leave.daysCount}일</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={getStatusLabel(leave.status)}
+                              size="small"
+                              color={getStatusColor(leave.status) as any}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {leave.cancellationRequested ? (
+                              <Chip
+                                label={
+                                  leave.cancellationStatus === 'pending' ? '취소 대기중' :
+                                  leave.cancellationStatus === 'approved' ? '취소 승인' :
+                                  leave.cancellationStatus === 'rejected' ? '취소 거부' : '취소 신청'
+                                }
+                                size="small"
+                                color={
+                                  leave.cancellationStatus === 'pending' ? 'warning' :
+                                  leave.cancellationStatus === 'approved' ? 'success' :
+                                  leave.cancellationStatus === 'rejected' ? 'error' : 'info'
+                                }
+                              />
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title={leave.reason || ''}>
+                              <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                                {leave.reason || '-'}
+                              </Typography>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>{format(new Date(leave.createdAt || leave.requestedAt), 'yyyy.MM.dd')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Alert severity="info">
+                  해당 연도에 휴가 내역이 없습니다.
+                </Alert>
+              )}
+            </Box>
+          ) : (
+            <Alert severity="error">
+              휴가 로그를 불러올 수 없습니다.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEmployeeDetailOpen(false)}>닫기</Button>
         </DialogActions>
       </Dialog>
     </Box>
