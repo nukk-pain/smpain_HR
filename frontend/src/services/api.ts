@@ -151,6 +151,23 @@ class ApiService {
     return this.post(`/leave/${id}/approve`, { action, comment });
   }
 
+  // Leave cancellation methods
+  async cancelLeaveRequest(id: string, reason: string) {
+    return this.post(`/leave/${id}/cancel`, { reason });
+  }
+
+  async approveLeaveCancellation(id: string, action: 'approve' | 'reject', comment?: string) {
+    return this.post(`/leave/${id}/cancel/approve`, { action, comment });
+  }
+
+  async getPendingCancellations() {
+    return this.get('/leave/cancellations/pending');
+  }
+
+  async getCancellationHistory() {
+    return this.get('/leave/cancellations/history');
+  }
+
   // Admin leave management
   async getAdminLeaveOverview() {
     return this.get('/admin/leave/overview');

@@ -71,13 +71,23 @@ export interface LeaveRequest {
   daysCount: number;
   reason: string;
   substituteEmployee?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   approvedBy?: string;
   approvedByName?: string;
   approvedAt?: string;
   approvalComment?: string;
   createdAt: string;
   updatedAt: string;
+  
+  // Cancellation fields
+  cancellationRequested?: boolean;
+  cancellationRequestedAt?: string;
+  cancellationReason?: string;
+  cancellationStatus?: 'pending' | 'approved' | 'rejected';
+  cancellationApprovedBy?: string;
+  cancellationApprovedByName?: string;
+  cancellationApprovedAt?: string;
+  cancellationComment?: string;
 }
 
 export interface LeaveBalance {

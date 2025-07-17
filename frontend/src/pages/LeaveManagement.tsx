@@ -46,7 +46,8 @@ import {
   BeachAccess as BeachAccessIcon,
   LocalHospital as SickIcon,
   Event as EventIcon,
-  Work as WorkIcon
+  Work as WorkIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -108,6 +109,12 @@ const LeaveManagement: React.FC = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
+  
+  // Cancellation states
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelRequest, setCancelRequest] = useState<LeaveRequest | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [pendingCancellations, setPendingCancellations] = useState<LeaveRequest[]>([]);
 
   const apiService = new ApiService();
 
@@ -121,7 +128,8 @@ const LeaveManagement: React.FC = () => {
       await Promise.all([
         loadLeaveRequests(),
         loadLeaveBalance(),
-        loadPendingRequests()
+        loadPendingRequests(),
+        loadPendingCancellations()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -157,6 +165,17 @@ const LeaveManagement: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading pending requests:', error);
+    }
+  };
+
+  const loadPendingCancellations = async () => {
+    try {
+      if (user?.role === 'admin' || user?.role === 'manager') {
+        const response = await apiService.getPendingCancellations();
+        setPendingCancellations(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading pending cancellations:', error);
     }
   };
 
@@ -240,7 +259,7 @@ const LeaveManagement: React.FC = () => {
     if (!selectedRequest) return;
 
     try {
-      await apiService.approveLeaveRequest(selectedRequest.id, action, approvalComment);
+      await apiService.approveLeaveRequest(selectedRequest._id, action, approvalComment);
       showSuccess(
         action === 'approve' ? '휴가가 승인되었습니다.' : '휴가가 거부되었습니다.'
       );
@@ -249,6 +268,67 @@ const LeaveManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error approving leave request:', error);
       const errorMessage = error.response?.data?.error || '승인 처리 중 오류가 발생했습니다.';
+      showError(errorMessage);
+    }
+  };
+
+  // Cancellation handlers
+  const handleCancelRequest = async (request: LeaveRequest) => {
+    // Check if cancellation is already requested
+    if (request.cancellationRequested) {
+      showError('이미 취소 신청이 진행 중입니다.');
+      return;
+    }
+    
+    // Check if leave start date is in the future
+    const today = new Date().toISOString().split('T')[0];
+    if (request.startDate <= today) {
+      showError('이미 시작된 휴가는 취소할 수 없습니다.');
+      return;
+    }
+    
+    setCancelRequest(request);
+    setCancelReason('');
+    setCancelDialogOpen(true);
+  };
+
+  const handleCloseCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setCancelRequest(null);
+    setCancelReason('');
+  };
+
+  const handleConfirmCancellation = async () => {
+    if (!cancelRequest) return;
+    
+    if (!cancelReason.trim() || cancelReason.trim().length < 5) {
+      showError('취소 사유를 5자 이상 입력해주세요.');
+      return;
+    }
+
+    try {
+      await apiService.cancelLeaveRequest(cancelRequest._id, cancelReason.trim());
+      showSuccess('휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
+      handleCloseCancelDialog();
+      await loadData();
+    } catch (error: any) {
+      console.error('Error canceling leave request:', error);
+      const errorMessage = error.response?.data?.error || '취소 신청 중 오류가 발생했습니다.';
+      showError(errorMessage);
+    }
+  };
+
+  const handleCancellationApproval = async (requestId: string, action: 'approve' | 'reject') => {
+    try {
+      await apiService.approveLeaveCancellation(requestId, action, approvalComment);
+      showSuccess(
+        action === 'approve' ? '휴가 취소가 승인되었습니다.' : '휴가 취소가 거부되었습니다.'
+      );
+      handleCloseApprovalDialog();
+      await loadData();
+    } catch (error: any) {
+      console.error('Error approving cancellation:', error);
+      const errorMessage = error.response?.data?.error || '취소 승인 처리 중 오류가 발생했습니다.';
       showError(errorMessage);
     }
   };
@@ -278,6 +358,8 @@ const LeaveManagement: React.FC = () => {
         return 'success';
       case leave.status.REJECTED:
         return 'error';
+      case 'cancelled':
+        return 'default';
       default:
         return 'default';
     }
@@ -419,6 +501,15 @@ const LeaveManagement: React.FC = () => {
                   }
                 />
               )}
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <Tab
+                  label={
+                    <Badge badgeContent={pendingCancellations.length} color="warning">
+                      취소 승인
+                    </Badge>
+                  }
+                />
+              )}
             </Tabs>
           </Box>
 
@@ -476,12 +567,33 @@ const LeaveManagement: React.FC = () => {
                               <Tooltip title="취소">
                                 <IconButton
                                   size="small"
-                                  onClick={() => handleDelete(request.id)}
+                                  onClick={() => handleDelete(request._id)}
                                 >
                                   <DeleteIcon />
                                 </IconButton>
                               </Tooltip>
                             </>
+                          )}
+                          {request.status === leave.status.APPROVED && !request.cancellationRequested && (
+                            <Tooltip title="휴가 취소 신청">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCancelRequest(request)}
+                                color="warning"
+                              >
+                                <CancelIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {request.cancellationRequested && (
+                            <Chip
+                              label={`취소 ${request.cancellationStatus === 'pending' ? '대기' : request.cancellationStatus === 'approved' ? '승인' : '거부'}`}
+                              size="small"
+                              color={
+                                request.cancellationStatus === 'pending' ? 'warning' :
+                                request.cancellationStatus === 'approved' ? 'success' : 'error'
+                              }
+                            />
                           )}
                         </Stack>
                       </TableCell>
@@ -578,6 +690,114 @@ const LeaveManagement: React.FC = () => {
                         <TableCell colSpan={8} align="center">
                           <Typography color="text.secondary">
                             승인 대기 중인 휴가 신청이 없습니다.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </TabPanel>
+          )}
+
+          {/* 취소 승인 탭 */}
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <TabPanel value={tabValue} index={2}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>직원명</TableCell>
+                      <TableCell>휴가 종류</TableCell>
+                      <TableCell>기간</TableCell>
+                      <TableCell>일수</TableCell>
+                      <TableCell>원래 사유</TableCell>
+                      <TableCell>취소 사유</TableCell>
+                      <TableCell>취소 신청일</TableCell>
+                      <TableCell>작업</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pendingCancellations.map((request) => (
+                      <TableRow key={request._id}>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Avatar sx={{ width: 32, height: 32 }}>
+                              {request.userName?.[0] || '?'}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle2">
+                                {request.userName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {request.userDepartment}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            {getLeaveTypeIcon(request.leaveType)}
+                            {getLeaveTypeLabel(request.leaveType)}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {request.startDate === request.endDate
+                            ? safeFormatDate(request.startDate)
+                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
+                          }
+                        </TableCell>
+                        <TableCell>{request.daysCount}일</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>
+                            {request.reason}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>
+                            {request.cancellationReason}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {safeFormatDate(request.cancellationRequestedAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={1}>
+                            <Tooltip title="취소 승인">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setApprovalComment('');
+                                  setApprovalDialogOpen(true);
+                                }}
+                                color="success"
+                              >
+                                <CheckIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="취소 거부">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setApprovalComment('');
+                                  setApprovalDialogOpen(true);
+                                }}
+                                color="error"
+                              >
+                                <CloseIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {pendingCancellations.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                            대기 중인 취소 신청이 없습니다.
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -738,18 +958,79 @@ const LeaveManagement: React.FC = () => {
           <DialogActions>
             <Button onClick={handleCloseApprovalDialog}>취소</Button>
             <Button
-              onClick={() => handleApproval('reject')}
+              onClick={() => {
+                if (selectedRequest?.cancellationRequested) {
+                  handleCancellationApproval(selectedRequest._id, 'reject');
+                } else {
+                  handleApproval('reject');
+                }
+              }}
               color="error"
               variant="outlined"
             >
               거부
             </Button>
             <Button
-              onClick={() => handleApproval('approve')}
+              onClick={() => {
+                if (selectedRequest?.cancellationRequested) {
+                  handleCancellationApproval(selectedRequest._id, 'approve');
+                } else {
+                  handleApproval('approve');
+                }
+              }}
               color="success"
               variant="contained"
             >
               승인
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 휴가 취소 신청 다이얼로그 */}
+        <Dialog open={cancelDialogOpen} onClose={handleCloseCancelDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>휴가 취소 신청</DialogTitle>
+          <DialogContent>
+            {cancelRequest && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  취소하려는 휴가 정보
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  휴가 종류: {getLeaveTypeLabel(cancelRequest.leaveType)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  기간: {cancelRequest.startDate === cancelRequest.endDate
+                    ? safeFormatDate(cancelRequest.startDate)
+                    : `${safeFormatDate(cancelRequest.startDate)} ~ ${safeFormatDate(cancelRequest.endDate)}`
+                  } ({cancelRequest.daysCount}일)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  원래 사유: {cancelRequest.reason}
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="취소 사유"
+                  placeholder="휴가를 취소하는 이유를 5자 이상 입력해주세요."
+                  multiline
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  sx={{ mt: 2 }}
+                  helperText={`${cancelReason.length}/5자 이상`}
+                  error={cancelReason.length > 0 && cancelReason.length < 5}
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseCancelDialog}>취소</Button>
+            <Button 
+              onClick={handleConfirmCancellation} 
+              color="warning" 
+              variant="contained"
+              disabled={!cancelReason.trim() || cancelReason.trim().length < 5}
+            >
+              취소 신청
             </Button>
           </DialogActions>
         </Dialog>

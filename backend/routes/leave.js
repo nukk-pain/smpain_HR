@@ -96,6 +96,12 @@ const toObjectId = (id) => {
   }
 };
 
+// Helper function to add id field mapping for frontend consistency
+const addIdField = (request) => ({
+  ...request,
+  id: request._id ? request._id.toString() : request.id
+});
+
 // Leave management routes
 function createLeaveRoutes(db) {
   // Make requirePermission available to this module
@@ -401,7 +407,7 @@ function createLeaveRoutes(db) {
     
     res.json({
       success: true,
-      data: leaveRequests
+      data: leaveRequests.map(addIdField)
     });
   }));
 
@@ -411,7 +417,7 @@ function createLeaveRoutes(db) {
     
     res.json({
       success: true,
-      data: pendingRequests
+      data: pendingRequests.map(addIdField)
     });
   }));
 
@@ -940,7 +946,7 @@ function createLeaveRoutes(db) {
     
     res.json({
       success: true,
-      data: pendingRequests
+      data: pendingRequests.map(addIdField)
     });
   }));
 
@@ -1377,6 +1383,229 @@ function createLeaveRoutes(db) {
       console.error('Carry-over processing error:', error);
       res.status(500).json({ error: 'Failed to process carry-over' });
     }
+  }));
+
+  // Leave cancellation routes
+  
+  // Request cancellation for approved leave
+  router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.session.user.id;
+    
+    const userObjectId = await getUserObjectId(db, userId);
+    if (!userObjectId) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Find the leave request
+    const leaveRequest = await db.collection('leaveRequests').findOne({
+      _id: toObjectId(id),
+      userId: userObjectId
+    });
+    
+    if (!leaveRequest) {
+      return res.status(404).json({ error: 'Leave request not found' });
+    }
+    
+    // Check if leave is in approved status
+    if (leaveRequest.status !== 'approved') {
+      return res.status(400).json({ error: 'Only approved leave requests can be cancelled' });
+    }
+    
+    // Check if leave has already been cancelled or cancellation is pending
+    if (leaveRequest.cancellationRequested) {
+      return res.status(400).json({ error: 'Cancellation already requested for this leave' });
+    }
+    
+    // Check if leave start date is in the future
+    const today = new Date().toISOString().split('T')[0];
+    if (leaveRequest.startDate <= today) {
+      return res.status(400).json({ error: 'Cannot cancel leave that has already started' });
+    }
+    
+    // Validate reason
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({ error: '취소 사유를 5자 이상 입력해주세요.' });
+    }
+    
+    // Update leave request with cancellation information
+    const updateData = {
+      cancellationRequested: true,
+      cancellationRequestedAt: new Date(),
+      cancellationReason: reason.trim(),
+      cancellationStatus: 'pending',
+      updatedAt: new Date()
+    };
+    
+    const result = await db.collection('leaveRequests').updateOne(
+      { _id: toObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Failed to update leave request' });
+    }
+    
+    res.json({
+      success: true,
+      message: '휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.'
+    });
+  }));
+  
+  // Approve/reject leave cancellation (for managers/admins)
+  router.post('/:id/cancel/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { action, comment } = req.body;
+    const approverId = req.session.user.id;
+    
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+    
+    const approverObjectId = await getUserObjectId(db, approverId);
+    if (!approverObjectId) {
+      return res.status(404).json({ error: 'Approver not found' });
+    }
+    
+    const approver = await db.collection('users').findOne({ _id: approverObjectId });
+    
+    // Find the leave request
+    const leaveRequest = await db.collection('leaveRequests').findOne({
+      _id: toObjectId(id),
+      cancellationRequested: true,
+      cancellationStatus: 'pending'
+    });
+    
+    if (!leaveRequest) {
+      return res.status(404).json({ error: 'Leave cancellation request not found or already processed' });
+    }
+    
+    let updateData = {
+      cancellationStatus: action === 'approve' ? 'approved' : 'rejected',
+      cancellationApprovedBy: approverObjectId,
+      cancellationApprovedByName: approver.name,
+      cancellationApprovedAt: new Date(),
+      cancellationComment: comment || '',
+      updatedAt: new Date()
+    };
+    
+    // If cancellation is approved, change the leave status to cancelled
+    if (action === 'approve') {
+      updateData.status = 'cancelled';
+    }
+    
+    const result = await db.collection('leaveRequests').updateOne(
+      { _id: toObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Failed to update cancellation request' });
+    }
+    
+    res.json({
+      success: true,
+      message: `Leave cancellation ${action === 'approve' ? 'approved' : 'rejected'} successfully`
+    });
+  }));
+  
+  // Get pending cancellation requests (for managers/admins)
+  router.get('/cancellations/pending', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+    try {
+      const userRole = req.session.user.role;
+      const userDepartment = req.session.user.department;
+      
+      let matchCondition = {
+        cancellationRequested: true,
+        cancellationStatus: 'pending'
+      };
+      
+      // Managers can only see their department
+      if (userRole === 'manager') {
+        const departmentUserIds = await db.collection('users').find({
+          department: userDepartment
+        }).project({ _id: 1 }).toArray();
+        
+        const userIds = departmentUserIds.map(user => user._id);
+        matchCondition.userId = { $in: userIds };
+      }
+      
+      const pendingCancellations = await db.collection('leaveRequests').aggregate([
+        { $match: matchCondition },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            id: '$_id',
+            userId: '$userId',
+            userName: { $arrayElemAt: ['$user.name', 0] },
+            userDepartment: { $arrayElemAt: ['$user.department', 0] },
+            leaveType: '$leaveType',
+            startDate: '$startDate',
+            endDate: '$endDate',
+            daysCount: '$daysCount',
+            reason: '$reason',
+            status: '$status',
+            cancellationRequestedAt: '$cancellationRequestedAt',
+            cancellationReason: '$cancellationReason',
+            cancellationStatus: '$cancellationStatus'
+          }
+        },
+        { $sort: { cancellationRequestedAt: 1 } }
+      ]).toArray();
+      
+      res.json({
+        success: true,
+        data: pendingCancellations.map(addIdField)
+      });
+      
+    } catch (error) {
+      console.error('Get pending cancellations error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+  
+  // Get user's cancellation history
+  router.get('/cancellations/history', requireAuth, asyncHandler(async (req, res) => {
+    const userId = req.session.user.id;
+    
+    const userObjectId = await getUserObjectId(db, userId);
+    if (!userObjectId) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const cancellationHistory = await db.collection('leaveRequests').find({
+      userId: userObjectId,
+      cancellationRequested: true
+    }).sort({ cancellationRequestedAt: -1 }).toArray();
+    
+    const historyData = cancellationHistory.map(request => addIdField({
+      _id: request._id,
+      leaveType: request.leaveType,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      daysCount: request.daysCount,
+      reason: request.reason,
+      status: request.status,
+      cancellationRequestedAt: request.cancellationRequestedAt,
+      cancellationReason: request.cancellationReason,
+      cancellationStatus: request.cancellationStatus,
+      cancellationApprovedByName: request.cancellationApprovedByName,
+      cancellationApprovedAt: request.cancellationApprovedAt,
+      cancellationComment: request.cancellationComment
+    }));
+    
+    res.json({
+      success: true,
+      data: historyData
+    });
   }));
 
   return router;

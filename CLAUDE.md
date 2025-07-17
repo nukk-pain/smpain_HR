@@ -205,8 +205,11 @@ PUT /api/users/:id/permissions      # Update user permissions
 - Backend: `http://localhost:5455`
 - Frontend: `http://localhost:3727`
 
-### Production
-- MongoDB: `mongodb://192.168.0.30:27017`
+### Production (Synology Docker)
+- MongoDB: `mongodb://localhost:27018` (Docker container: `mongo-hr`)
+- MongoDB User: `hr_app_user`
+- MongoDB Password: `Hr2025Secure`
+- Connection String: `mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu`
 
 ## Default Credentials
 - Username: `admin`
@@ -295,3 +298,75 @@ cd frontend && npm run build-check
 - **Size Limit**: 10MB
 - **Processing Library**: ExcelJS for payroll data import
 - **Upload Endpoint**: `/api/upload` route handles file processing
+
+## MongoDB Deployment Troubleshooting
+
+### Common Connection Issues
+
+#### Authentication Failed Error
+If you encounter "Authentication failed" errors during deployment:
+
+1. **Check MongoDB Container Status**:
+   ```bash
+   docker ps | grep mongo-hr
+   ```
+
+2. **Verify/Recreate MongoDB User**:
+   ```bash
+   docker exec -it mongo-hr mongosh SM_nomu
+   ```
+   ```javascript
+   // In MongoDB shell
+   db.dropUser("hr_app_user")
+   db.createUser({
+     user: "hr_app_user",
+     pwd: "Hr2025Secure",
+     roles: [{ role: "readWrite", db: "SM_nomu" }]
+   })
+   ```
+
+3. **Test Connection Manually**:
+   ```bash
+   docker run -it --rm --network host mongo:latest mongosh --host localhost --port 27018 -u hr_app_user -p 'Hr2025Secure' --authenticationDatabase SM_nomu
+   ```
+
+4. **Verify ecosystem.config.js Configuration**:
+   - Ensure connection string includes database name and authSource
+   - Format: `mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu`
+
+5. **Restart PM2 Process**:
+   ```bash
+   pm2 delete hr-backend
+   pm2 start ecosystem.config.js --only hr-backend
+   ```
+
+### Production MongoDB Setup (Synology Docker)
+
+#### Docker Container Configuration
+- **Container Name**: `mongo-hr`
+- **Port Mapping**: `27018:27017`
+- **Database**: `SM_nomu`
+
+#### Required Environment Variables in ecosystem.config.js
+```javascript
+env: {
+  NODE_ENV: 'production',
+  MONGODB_URL: 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu',
+  MONGODB_USER: 'hr_app_user',
+  MONGODB_PASSWORD: 'Hr2025Secure',
+  DB_NAME: 'SM_nomu'
+}
+```
+
+#### User Creation Script
+```javascript
+// Execute in MongoDB container
+use SM_nomu
+db.createUser({
+  user: "hr_app_user",
+  pwd: "Hr2025Secure",
+  roles: [
+    { role: "readWrite", db: "SM_nomu" }
+  ]
+})
+```
