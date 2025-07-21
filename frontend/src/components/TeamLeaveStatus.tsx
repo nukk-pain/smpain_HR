@@ -1,52 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  LinearProgress,
-  Chip,
-  Avatar,
-  Alert,
-  CircularProgress,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  IconButton,
-  Tooltip,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
-} from '@mui/material';
+} from '@/components/ui/table';
 import {
-  Person,
-  BeachAccess,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  User,
+  Umbrella,
   TrendingUp,
-  Group,
-  CalendarToday,
-  Warning,
+  Users,
+  Calendar,
+  AlertTriangle,
   CheckCircle,
-  Schedule,
+  Clock,
   Info,
-  Assessment,
-  Visibility as VisibilityIcon
-} from '@mui/icons-material';
+  BarChart3,
+  Eye,
+  Loader2,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useAuth } from './AuthProvider';
@@ -175,9 +175,9 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
   };
 
   const getLeaveUsageColor = (usagePercentage: number) => {
-    if (usagePercentage < 30) return 'success';
-    if (usagePercentage < 70) return 'warning';
-    return 'error';
+    if (usagePercentage < 30) return 'bg-green-500';
+    if (usagePercentage < 70) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   const getLeaveTypeLabel = (type: string) => {
@@ -211,13 +211,13 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'warning';
+        return 'bg-yellow-100 text-yellow-800';
       case 'approved':
-        return 'success';
+        return 'bg-green-100 text-green-800';
       case 'rejected':
-        return 'error';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -225,180 +225,176 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div className="space-y-6">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
           {viewMode === 'team' ? '팀 휴가 현황' : '부서별 휴가 통계'}
-        </Typography>
+        </h1>
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>연도</InputLabel>
-            <Select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              label="연도"
-            >
-              {years.map((year) => (
-                <MenuItem key={year} value={year}>{year}년</MenuItem>
-              ))}
+        <div className="flex items-center gap-4">
+          <div className="min-w-32">
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+              <SelectTrigger>
+                <SelectValue placeholder="연도" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
+          </div>
           
           {viewMode === 'team' && (
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>부서</InputLabel>
-              <Select
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                label="부서"
-              >
-                <MenuItem value="all">전체</MenuItem>
-                {departments.map((dept) => (
-                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                ))}
+            <div className="min-w-32">
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="부서" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {viewMode === 'team' ? (
         <>
           {/* Team Overview Cards */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      <Group />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4">
-                        {teamMembers.length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        팀원 수
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
+                    <Users className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers.length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      팀원 수
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
-            <Grid item xs={12} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'success.main' }}>
-                      <BeachAccess />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4">
-                        {teamMembers.reduce((sum, member) => sum + member.leaveBalance.usedAnnualLeave, 0)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        총 사용 연차
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-green-500 rounded-full flex items-center justify-center">
+                    <Umbrella className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers.reduce((sum, member) => sum + member.leaveBalance.usedAnnualLeave, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      총 사용 연차
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
-            <Grid item xs={12} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'warning.main' }}>
-                      <Schedule />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4">
-                        {teamMembers.reduce((sum, member) => sum + member.leaveBalance.pendingAnnualLeave, 0)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        대기중인 신청
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers.reduce((sum, member) => sum + member.leaveBalance.pendingAnnualLeave, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      대기중인 신청
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
-            <Grid item xs={12} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'info.main' }}>
-                      <TrendingUp />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4">
-                        {teamMembers.length > 0 
-                          ? Math.round(teamMembers.reduce((sum, member) => 
-                              sum + (member.leaveBalance.usedAnnualLeave / member.leaveBalance.totalAnnualLeave * 100), 0) / teamMembers.length)
-                          : 0}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        평균 사용률
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers.length > 0 
+                        ? Math.round(teamMembers.reduce((sum, member) => 
+                            sum + (member.leaveBalance.usedAnnualLeave / member.leaveBalance.totalAnnualLeave * 100), 0) / teamMembers.length)
+                        : 0}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      평균 사용률
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Team Members Table */}
           <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
                 팀원 휴가 현황
-              </Typography>
+              </h3>
               
               {teamMembers.length === 0 ? (
-                <Alert severity="info">
-                  선택한 조건에 해당하는 팀원이 없습니다.
+                <Alert>
+                  <AlertDescription>
+                    선택한 조건에 해당하는 팀원이 없습니다.
+                  </AlertDescription>
                 </Alert>
               ) : (
-                <TableContainer>
+                <div className="overflow-x-auto">
                   <Table>
-                    <TableHead>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell>팀원</TableCell>
-                        <TableCell>직급</TableCell>
-                        <TableCell>총 연차</TableCell>
-                        <TableCell>사용 연차</TableCell>
-                        <TableCell>잔여 연차</TableCell>
-                        <TableCell>대기중</TableCell>
-                        <TableCell>상세/로그</TableCell>
+                        <TableHead>팀원</TableHead>
+                        <TableHead>직급</TableHead>
+                        <TableHead>총 연차</TableHead>
+                        <TableHead>사용 연차</TableHead>
+                        <TableHead>잔여 연차</TableHead>
+                        <TableHead>대기중</TableHead>
+                        <TableHead>상세/로그</TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {teamMembers.map((member) => {
                         return (
                           <TableRow key={member._id}>
                             <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Avatar sx={{ width: 32, height: 32 }}>
-                                  {member.name?.[0] || '?'}
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>
+                                    {member.name?.[0] || '?'}
+                                  </AvatarFallback>
                                 </Avatar>
-                                <Box>
-                                  <Typography variant="subtitle2">
+                                <div>
+                                  <div className="font-medium">
                                     {member.name}
-                                  </Typography>
-                                </Box>
-                              </Box>
+                                  </div>
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell>{member.position}</TableCell>
                             <TableCell>{member.leaveBalance.totalAnnualLeave}일</TableCell>
@@ -406,42 +402,56 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                             <TableCell>{member.leaveBalance.remainingAnnualLeave}일</TableCell>
                             <TableCell>
                               {member.leaveBalance.pendingAnnualLeave > 0 ? (
-                                <Chip
-                                  label={`${member.leaveBalance.pendingAnnualLeave}일`}
-                                  size="small"
-                                  color="warning"
-                                />
+                                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                                  {member.leaveBalance.pendingAnnualLeave}일
+                                </Badge>
                               ) : (
                                 '-'
                               )}
                             </TableCell>
                             <TableCell>
-                              <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Tooltip title="상세 보기">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleMemberClick(member)}
-                                  >
-                                    <Info />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="휴가 로그 보기">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleViewDetail(member)}
-                                    disabled={loadingDetail}
-                                  >
-                                    <VisibilityIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
+                              <div className="flex gap-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleMemberClick(member)}
+                                      >
+                                        <Info className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>상세 보기</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleViewDetail(member)}
+                                        disabled={loadingDetail}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>휴가 로그 보기</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -449,311 +459,304 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
       ) : (
         <>
           {/* Department Statistics */}
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {departmentStats.map((dept) => (
-              <Grid item xs={12} md={6} lg={4} key={dept.department}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {dept.department}
-                    </Typography>
-                    
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        총 인원: {dept.totalMembers}명 (활성: {dept.activeMembers}명)
-                      </Typography>
-                    </Box>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Box sx={{ mb: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2">평균 휴가 사용률</Typography>
-                        <Typography variant="body2" fontWeight="bold">
+              <Card key={dept.department}>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {dept.department}
+                  </h3>
+                  
+                  <div className="mb-4">
+                    <p className="text-sm text-muted-foreground">
+                      총 인원: {dept.totalMembers}명 (활성: {dept.activeMembers}명)
+                    </p>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="mb-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">평균 휴가 사용률</span>
+                        <span className="text-sm font-semibold">
                           {dept.avgLeaveUsage.toFixed(1)}%
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={dept.avgLeaveUsage}
-                        color={getLeaveUsageColor(dept.avgLeaveUsage)}
-                        sx={{ mt: 1 }}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={dept.avgLeaveUsage} 
+                        className="mt-2" 
                       />
-                    </Box>
+                    </div>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                      <Typography variant="body2">
+                    <div className="flex justify-between mt-4">
+                      <span className="text-sm">
                         사용: {dept.totalLeaveUsed}일
-                      </Typography>
-                      <Typography variant="body2">
+                      </span>
+                      <span className="text-sm">
                         잔여: {dept.totalLeaveRemaining}일
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                      <Typography variant="body2">
+                    <div className="flex justify-between mt-2">
+                      <span className="text-sm">
                         대기: {dept.pendingRequests}건
-                      </Typography>
-                      <Typography variant="body2">
+                      </span>
+                      <span className="text-sm">
                         승인률: {dept.approvalRate.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
+          </div>
         </>
       )}
 
       {/* Member Detail Dialog */}
-      <Dialog
-        open={detailDialogOpen}
-        onClose={handleCloseDetail}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedMember?.name} 휴가 상세 현황
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedMember?.name} 휴가 상세 현황
+            </DialogTitle>
+          </DialogHeader>
           {selectedMember && (
-            <Box>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">
                     기본 정보
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2">
+                  </h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">
                       <strong>부서:</strong> {selectedMember.department}
-                    </Typography>
-                    <Typography variant="body2">
+                    </p>
+                    <p className="text-sm">
                       <strong>직급:</strong> {selectedMember.position}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   
-                  <Typography variant="h6" gutterBottom>
+                  <h4 className="text-lg font-semibold mb-4 mt-6">
                     휴가 잔여 현황
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2">
+                  </h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">
                       <strong>총 연차:</strong> {selectedMember.leaveBalance.totalAnnualLeave}일
-                    </Typography>
-                    <Typography variant="body2">
+                    </p>
+                    <p className="text-sm">
                       <strong>사용 연차:</strong> {selectedMember.leaveBalance.usedAnnualLeave}일
-                    </Typography>
-                    <Typography variant="body2">
+                    </p>
+                    <p className="text-sm">
                       <strong>잔여 연차:</strong> {selectedMember.leaveBalance.remainingAnnualLeave}일
-                    </Typography>
-                    <Typography variant="body2">
+                    </p>
+                    <p className="text-sm">
                       <strong>대기중인 신청:</strong> {selectedMember.leaveBalance.pendingAnnualLeave}일
-                    </Typography>
-                  </Box>
-                </Grid>
+                    </p>
+                  </div>
+                </div>
                 
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">
                     최근 휴가 내역
-                  </Typography>
-                  <List dense>
+                  </h4>
+                  <div className="space-y-3">
                     {selectedMember.recentLeaves.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary">
+                      <p className="text-sm text-muted-foreground">
                         최근 휴가 내역이 없습니다.
-                      </Typography>
+                      </p>
                     ) : (
                       selectedMember.recentLeaves.slice(0, 5).map((leave, index) => (
-                        <ListItem key={index}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography variant="body2">
-                                  {getLeaveTypeLabel(leave.leaveType)} ({leave.daysCount}일)
-                                </Typography>
-                                <Chip
-                                  label={getStatusLabel(leave.status)}
-                                  size="small"
-                                  color={getStatusColor(leave.status) as any}
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <Typography variant="caption">
-                                {format(new Date(leave.startDate), 'yyyy.MM.dd')} - {format(new Date(leave.endDate), 'yyyy.MM.dd')}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
+                        <div key={index} className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm">
+                              {getLeaveTypeLabel(leave.leaveType)} ({leave.daysCount}일)
+                            </span>
+                            <Badge
+                              className={`${getStatusColor(leave.status)} hover:${getStatusColor(leave.status)}`}
+                            >
+                              {getStatusLabel(leave.status)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(leave.startDate), 'yyyy.MM.dd')} - {format(new Date(leave.endDate), 'yyyy.MM.dd')}
+                          </p>
+                        </div>
                       ))
                     )}
-                  </List>
+                  </div>
                   
                   {selectedMember.upcomingLeaves.length > 0 && (
                     <>
-                      <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                      <h4 className="text-lg font-semibold mb-4 mt-6">
                         예정된 휴가
-                      </Typography>
-                      <List dense>
+                      </h4>
+                      <div className="space-y-3">
                         {selectedMember.upcomingLeaves.map((leave, index) => (
-                          <ListItem key={index}>
-                            <ListItemText
-                              primary={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="body2">
-                                    {getLeaveTypeLabel(leave.leaveType)} ({leave.daysCount}일)
-                                  </Typography>
-                                  <Chip
-                                    label={getStatusLabel(leave.status)}
-                                    size="small"
-                                    color={getStatusColor(leave.status) as any}
-                                  />
-                                </Box>
-                              }
-                              secondary={
-                                <Typography variant="caption">
-                                  {format(new Date(leave.startDate), 'yyyy.MM.dd')} - {format(new Date(leave.endDate), 'yyyy.MM.dd')}
-                                </Typography>
-                              }
-                            />
-                          </ListItem>
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm">
+                                {getLeaveTypeLabel(leave.leaveType)} ({leave.daysCount}일)
+                              </span>
+                              <Badge
+                                className={`${getStatusColor(leave.status)} hover:${getStatusColor(leave.status)}`}
+                              >
+                                {getStatusLabel(leave.status)}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(leave.startDate), 'yyyy.MM.dd')} - {format(new Date(leave.endDate), 'yyyy.MM.dd')}
+                            </p>
+                          </div>
                         ))}
-                      </List>
+                      </div>
                     </>
                   )}
-                </Grid>
-              </Grid>
-            </Box>
+                </div>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button onClick={handleCloseDetail}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetail}>닫기</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Employee Leave Log Dialog */}
-      <Dialog
-        open={employeeDetailOpen}
-        onClose={() => setEmployeeDetailOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedMember?.name} 휴가 로그 ({selectedYear}년)
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={employeeDetailOpen} onOpenChange={setEmployeeDetailOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedMember?.name} 휴가 로그 ({selectedYear}년)
+            </DialogTitle>
+          </DialogHeader>
           {loadingDetail ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center items-center min-h-48">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
           ) : employeeLeaveLog ? (
-            <Box>
+            <div className="space-y-6">
               {/* Leave Balance Summary */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
+              <Card>
+                <CardContent className="p-6">
+                  <h4 className="text-lg font-semibold mb-4">
                     휴가 잔여 현황
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">총 연차</Typography>
-                      <Typography variant="h6">{employeeLeaveLog.balance?.totalAnnualLeave || 0}일</Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">사용 연차</Typography>
-                      <Typography variant="h6">{employeeLeaveLog.balance?.usedAnnualLeave || 0}일</Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">잔여 연차</Typography>
-                      <Typography variant="h6">{employeeLeaveLog.balance?.remainingAnnualLeave || 0}일</Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">대기중</Typography>
-                      <Typography variant="h6">{employeeLeaveLog.balance?.pendingAnnualLeave || 0}일</Typography>
-                    </Grid>
-                  </Grid>
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">총 연차</p>
+                      <p className="text-xl font-semibold">{employeeLeaveLog.balance?.totalAnnualLeave || 0}일</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">사용 연차</p>
+                      <p className="text-xl font-semibold">{employeeLeaveLog.balance?.usedAnnualLeave || 0}일</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">잔여 연차</p>
+                      <p className="text-xl font-semibold">{employeeLeaveLog.balance?.remainingAnnualLeave || 0}일</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">대기중</p>
+                      <p className="text-xl font-semibold">{employeeLeaveLog.balance?.pendingAnnualLeave || 0}일</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Leave History Table */}
-              <Typography variant="h6" gutterBottom>
-                휴가 내역
-              </Typography>
-              {employeeLeaveLog.leaveHistory && employeeLeaveLog.leaveHistory.length > 0 ? (
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>휴가 유형</TableCell>
-                        <TableCell>시작일</TableCell>
-                        <TableCell>종료일</TableCell>
-                        <TableCell>일수</TableCell>
-                        <TableCell>상태</TableCell>
-                        <TableCell>취소 상태</TableCell>
-                        <TableCell>사유</TableCell>
-                        <TableCell>신청일</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {employeeLeaveLog.leaveHistory.map((leave: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{getLeaveTypeLabel(leave.leaveType)}</TableCell>
-                          <TableCell>{format(new Date(leave.startDate), 'yyyy.MM.dd')}</TableCell>
-                          <TableCell>{format(new Date(leave.endDate), 'yyyy.MM.dd')}</TableCell>
-                          <TableCell>{leave.daysCount}일</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={getStatusLabel(leave.status)}
-                              size="small"
-                              color={getStatusColor(leave.status) as any}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {leave.cancellationRequested ? (
-                              <Chip
-                                label={
-                                  leave.cancellationStatus === 'pending' ? '취소 대기중' :
-                                  leave.cancellationStatus === 'approved' ? '취소 승인' :
-                                  leave.cancellationStatus === 'rejected' ? '취소 거부' : '취소 신청'
-                                }
-                                size="small"
-                                color={
-                                  leave.cancellationStatus === 'pending' ? 'warning' :
-                                  leave.cancellationStatus === 'approved' ? 'success' :
-                                  leave.cancellationStatus === 'rejected' ? 'error' : 'info'
-                                }
-                              />
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Tooltip title={leave.reason || ''}>
-                              <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
-                                {leave.reason || '-'}
-                              </Typography>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>{format(new Date(leave.createdAt || leave.requestedAt), 'yyyy.MM.dd')}</TableCell>
+              <div>
+                <h4 className="text-lg font-semibold mb-4">
+                  휴가 내역
+                </h4>
+                {employeeLeaveLog.leaveHistory && employeeLeaveLog.leaveHistory.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>휴가 유형</TableHead>
+                          <TableHead>시작일</TableHead>
+                          <TableHead>종료일</TableHead>
+                          <TableHead>일수</TableHead>
+                          <TableHead>상태</TableHead>
+                          <TableHead>취소 상태</TableHead>
+                          <TableHead>사유</TableHead>
+                          <TableHead>신청일</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Alert severity="info">
-                  해당 연도에 휴가 내역이 없습니다.
-                </Alert>
-              )}
-            </Box>
+                      </TableHeader>
+                      <TableBody>
+                        {employeeLeaveLog.leaveHistory.map((leave: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{getLeaveTypeLabel(leave.leaveType)}</TableCell>
+                            <TableCell>{format(new Date(leave.startDate), 'yyyy.MM.dd')}</TableCell>
+                            <TableCell>{format(new Date(leave.endDate), 'yyyy.MM.dd')}</TableCell>
+                            <TableCell>{leave.daysCount}일</TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`${getStatusColor(leave.status)} hover:${getStatusColor(leave.status)}`}
+                              >
+                                {getStatusLabel(leave.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {leave.cancellationRequested ? (
+                                <Badge
+                                  className={`
+                                    ${leave.cancellationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      leave.cancellationStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                                      leave.cancellationStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                                    } hover:${leave.cancellationStatus === 'pending' ? 'bg-yellow-100' :
+                                      leave.cancellationStatus === 'approved' ? 'bg-green-100' :
+                                      leave.cancellationStatus === 'rejected' ? 'bg-red-100' : 'bg-blue-100'
+                                    }
+                                  `}
+                                >
+                                  {leave.cancellationStatus === 'pending' ? '취소 대기중' :
+                                   leave.cancellationStatus === 'approved' ? '취소 승인' :
+                                   leave.cancellationStatus === 'rejected' ? '취소 거부' : '취소 신청'}
+                                </Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate max-w-48 block">
+                                      {leave.reason || '-'}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{leave.reason || ''}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell>{format(new Date(leave.createdAt || leave.requestedAt), 'yyyy.MM.dd')}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertDescription>
+                      해당 연도에 휴가 내역이 없습니다.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </div>
           ) : (
-            <Alert severity="error">
-              휴가 로그를 불러올 수 없습니다.
+            <Alert variant="destructive">
+              <AlertDescription>
+                휴가 로그를 불러올 수 없습니다.
+              </AlertDescription>
             </Alert>
           )}
+          <DialogFooter>
+            <Button onClick={() => setEmployeeDetailOpen(false)}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEmployeeDetailOpen(false)}>닫기</Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

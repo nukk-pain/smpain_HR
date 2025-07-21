@@ -1,19 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Container,
-  Alert,
-  CircularProgress,
-  InputAdornment,
-  IconButton,
-} from '@mui/material'
-import { Visibility, VisibilityOff, Login as LoginIcon } from '@mui/icons-material'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { useNotification } from '@/components/NotificationProvider'
 
@@ -71,101 +63,97 @@ const Login: React.FC = () => {
   }
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          py: 4,
-        }}
-      >
-        <Card sx={{ width: '100%', maxWidth: 400 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <LoginIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h4" component="h1" gutterBottom fontWeight={600}>
-                로그인
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                HR 관리 시스템
-              </Typography>
-            </Box>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center pb-8">
+          <div className="flex justify-center mb-4">
+            <LogIn className="h-12 w-12 text-primary" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            로그인
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            HR 관리 시스템
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <Box component="form" onSubmit={handleSubmit}>
-              <TextField
-                fullWidth
-                label="사용자명"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="username">사용자명</Label>
+              <Input
+                id="username"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                margin="normal"
                 required
                 autoComplete="username"
                 autoFocus
                 disabled={loading}
               />
+            </div>
 
-              <TextField
-                fullWidth
-                label="비밀번호"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleChange}
-                margin="normal"
-                required
-                autoComplete="current-password"
-                disabled={loading}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleTogglePasswordVisibility}
-                        edge="end"
-                        disabled={loading}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="password">비밀번호</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  autoComplete="current-password"
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={handleTogglePasswordVisibility}
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-label="Hide password" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-label="Show password" />
+                  )}
+                </Button>
+              </div>
+            </div>
 
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
-              >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  '로그인'
-                )}
-              </Button>
-            </Box>
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                </div>
+              ) : (
+                '로그인'
+              )}
+            </Button>
+          </form>
 
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="caption" color="text.secondary" display="block">
-                시스템 관리자에게 계정 정보를 문의하세요.
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-    </Container>
+          <div className="mt-4 p-3 bg-muted rounded-md">
+            <p className="text-xs text-muted-foreground text-center">
+              시스템 관리자에게 계정 정보를 문의하세요.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

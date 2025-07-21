@@ -1,49 +1,54 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  IconButton,
-  Chip,
-  Paper,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Tooltip,
-  Stack,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+} from '@/components/ui/table';
 import {
-  Add,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Plus,
   Edit,
-  Delete,
-  Calculate,
+  Trash2,
+  Calculator,
   TrendingUp,
-  AttachMoney,
-  Person,
-  Refresh,
+  DollarSign,
+  User,
+  RefreshCw,
   Download,
-  Assessment,
-} from '@mui/icons-material';
+  BarChart3,
+  Loader2,
+} from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { useAuth } from './AuthProvider';
@@ -275,326 +280,339 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
       return `${val.toLocaleString()}원`;
     };
 
+    const iconColorClass = color === 'primary' ? 'text-blue-500' : 
+                          color === 'secondary' ? 'text-purple-500' : 
+                          color === 'success' ? 'text-green-500' : 
+                          color === 'warning' ? 'text-yellow-500' : 'text-gray-500';
+
     return (
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography color="textSecondary" variant="body2" gutterBottom>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">
                 {title}
-              </Typography>
-              <Typography variant="h5" component="div">
+              </p>
+              <div className="text-2xl font-semibold">
                 {formatValue(value)}
-              </Typography>
-            </Box>
-            <Box sx={{ color: `${color}.main`, fontSize: '2rem' }}>
+              </div>
+            </div>
+            <div className={`${iconColorClass} text-3xl`}>
               {icon}
-            </Box>
-          </Box>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-6">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">
-          {format(new Date(yearMonth + '-01'), 'yyyy년 MM월', { locale: ko })} 매출 관리
-        </Typography>
-        <Stack direction="row" spacing={2}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          {format(new Date(yearMonth + '-01'), 'yyyy년 MM월')} 매출 관리
+        </h1>
+        <div className="flex gap-2">
           <Button
-            variant="outlined"
-            startIcon={<Refresh />}
+            variant="outline"
             onClick={loadSalesData}
           >
+            <RefreshCw className="h-4 w-4 mr-2" />
             새로고침
           </Button>
           <Button
-            variant="outlined"
-            startIcon={<Calculate />}
+            variant="outline"
             onClick={handleBatchCalculateIncentives}
             disabled={calculatingIncentive || salesData.length === 0}
           >
-            {calculatingIncentive ? <CircularProgress size={20} /> : '전체 인센티브 계산'}
+            {calculatingIncentive ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Calculator className="h-4 w-4 mr-2" />
+            )}
+            전체 인센티브 계산
           </Button>
           <Button
-            variant="contained"
-            startIcon={<Add />}
             onClick={() => {
               setEditingSales(null);
               resetForm();
               setDialogOpen(true);
             }}
           >
+            <Plus className="h-4 w-4 mr-2" />
             매출 추가
           </Button>
-        </Stack>
-      </Box>
+        </div>
+      </div>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 매출"
-            value={totals.totalSales}
-            icon={<AttachMoney />}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 목표"
-            value={totals.totalTarget}
-            icon={<Assessment />}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 인센티브"
-            value={totals.totalIncentive}
-            icon={<TrendingUp />}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="평균 달성률"
-            value={totals.avgAchievementRate}
-            icon={<TrendingUp />}
-            color="warning"
-            format="percent"
-          />
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          title="총 매출"
+          value={totals.totalSales}
+          icon={<DollarSign />}
+          color="primary"
+        />
+        <StatCard
+          title="총 목표"
+          value={totals.totalTarget}
+          icon={<BarChart3 />}
+          color="info"
+        />
+        <StatCard
+          title="총 인센티브"
+          value={totals.totalIncentive}
+          icon={<DollarSign />}
+          color="success"
+        />
+        <StatCard
+          title="평균 달성률"
+          value={totals.avgAchievementRate}
+          icon={<TrendingUp />}
+          color="warning"
+          format="percent"
+        />
+      </div>
 
       {/* Sales Data Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>직원명</TableCell>
-              <TableCell>부서</TableCell>
-              <TableCell align="right">매출</TableCell>
-              <TableCell align="right">목표</TableCell>
-              <TableCell align="right">달성률</TableCell>
-              <TableCell align="right">인센티브율</TableCell>
-              <TableCell align="right">계산된 인센티브</TableCell>
-              <TableCell>비고</TableCell>
-              <TableCell align="center">작업</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {salesData.map((sales) => (
-              <TableRow key={sales._id}>
-                <TableCell>{sales.employee_name}</TableCell>
-                <TableCell>{sales.department}</TableCell>
-                <TableCell align="right">{sales.sales_amount.toLocaleString()}원</TableCell>
-                <TableCell align="right">{sales.target_amount.toLocaleString()}원</TableCell>
-                <TableCell align="right">
-                  <Chip
-                    label={`${sales.achievement_rate.toFixed(1)}%`}
-                    color={
-                      sales.achievement_rate >= 100 ? 'success' :
-                      sales.achievement_rate >= 80 ? 'warning' : 'error'
-                    }
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">{sales.incentive_rate.toFixed(2)}%</TableCell>
-                <TableCell align="right">
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 'bold',
-                      color: sales.calculated_incentive > 0 ? 'success.main' : 'text.secondary'
-                    }}
-                  >
-                    {sales.calculated_incentive.toLocaleString()}원
-                  </Typography>
-                </TableCell>
-                <TableCell>{sales.notes}</TableCell>
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="수정">
-                      <IconButton size="small" onClick={() => handleEdit(sales)}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="인센티브 계산">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCalculateIncentive(sales)}
-                        disabled={calculatingIncentive}
-                        color="primary"
-                      >
-                        <Calculate fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="삭제">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleDelete(sales._id)}
-                        color="error"
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-            {salesData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} align="center">
-                  <Alert severity="info">
-                    매출 데이터가 없습니다. 새로운 매출 데이터를 추가해보세요.
-                  </Alert>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Card>
+        <CardContent>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>직원명</TableHead>
+                  <TableHead>부서</TableHead>
+                  <TableHead className="text-right">매출</TableHead>
+                  <TableHead className="text-right">목표</TableHead>
+                  <TableHead className="text-right">달성률</TableHead>
+                  <TableHead className="text-right">인센티브율</TableHead>
+                  <TableHead className="text-right">계산된 인센티브</TableHead>
+                  <TableHead>비고</TableHead>
+                  <TableHead className="text-center">작업</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {salesData.map((sales) => (
+                  <TableRow key={sales._id}>
+                    <TableCell>{sales.employee_name}</TableCell>
+                    <TableCell>{sales.department}</TableCell>
+                    <TableCell className="text-right">{sales.sales_amount.toLocaleString()}원</TableCell>
+                    <TableCell className="text-right">{sales.target_amount.toLocaleString()}원</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={
+                        sales.achievement_rate >= 100 ? 'default' :
+                        sales.achievement_rate >= 80 ? 'secondary' : 'destructive'
+                      }>
+                        {sales.achievement_rate.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{sales.incentive_rate.toFixed(2)}%</TableCell>
+                    <TableCell className="text-right">
+                      <span className={`font-semibold ${
+                        sales.calculated_incentive > 0 ? 'text-green-600' : 'text-gray-500'
+                      }`}>
+                        {sales.calculated_incentive.toLocaleString()}원
+                      </span>
+                    </TableCell>
+                    <TableCell>{sales.notes}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex gap-1 justify-center">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(sales)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>수정</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleCalculateIncentive(sales)}
+                                disabled={calculatingIncentive}
+                              >
+                                <Calculator className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>인센티브 계산</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDelete(sales._id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>삭제</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {salesData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center">
+                      <Alert>
+                        <AlertDescription>
+                          매출 데이터가 없습니다. 새로운 매출 데이터를 추가해보세요.
+                        </AlertDescription>
+                      </Alert>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingSales ? '매출 데이터 수정' : '매출 데이터 추가'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>직원 선택</InputLabel>
-                <Select
-                  value={formData.user_id}
-                  onChange={(e) => handleFormChange('user_id', e.target.value)}
-                  label="직원 선택"
-                >
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSales ? '매출 데이터 수정' : '매출 데이터 추가'}
+            </DialogTitle>
+            <DialogDescription>
+              매출 데이터를 {editingSales ? '수정' : '추가'}하세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="employee">직원 선택</Label>
+              <Select value={formData.user_id} onValueChange={(value) => handleFormChange('user_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="직원을 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
                   {employees.map((employee) => (
-                    <MenuItem key={employee._id} value={employee._id}>
+                    <SelectItem key={employee._id} value={employee._id}>
                       {employee.name} ({employee.department})
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="매출 금액"
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sales_amount">매출 금액</Label>
+              <Input
+                id="sales_amount"
                 type="number"
                 value={formData.sales_amount}
                 onChange={(e) => handleFormChange('sales_amount', Number(e.target.value))}
-                InputProps={{ inputProps: { min: 0 } }}
+                min={0}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="목표 금액"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="target_amount">목표 금액</Label>
+              <Input
+                id="target_amount"
                 type="number"
                 value={formData.target_amount}
                 onChange={(e) => handleFormChange('target_amount', Number(e.target.value))}
-                InputProps={{ inputProps: { min: 0 } }}
+                min={0}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="달성률"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="achievement_rate">달성률</Label>
+              <Input
+                id="achievement_rate"
                 type="text"
                 value={formData.target_amount > 0 ? 
                   ((formData.sales_amount / formData.target_amount) * 100).toFixed(1) + '%' : '0%'
                 }
-                InputProps={{ readOnly: true }}
-                helperText="매출 금액과 목표 금액을 기준으로 자동 계산됩니다"
+                readOnly
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="비고"
-                multiline
-                rows={3}
+              <p className="text-sm text-gray-600">매출 금액과 목표 금액을 기준으로 자동 계산됩니다</p>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="notes">비고</Label>
+              <Textarea
+                id="notes"
                 value={formData.notes}
                 onChange={(e) => handleFormChange('notes', e.target.value)}
                 placeholder="추가 정보나 특이사항을 입력하세요"
+                rows={3}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>취소</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDialogOpen(false)}>취소</Button>
+          <Button onClick={handleSubmit}>
             {editingSales ? '수정' : '추가'}
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
 
       {/* Incentive Simulation Dialog */}
-      <Dialog open={simulationOpen} onClose={() => setSimulationOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>인센티브 계산 결과</DialogTitle>
-        <DialogContent>
+      <Dialog open={simulationOpen} onOpenChange={setSimulationOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>인센티브 계산 결과</DialogTitle>
+          </DialogHeader>
           {simulation && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <Alert severity="success" sx={{ mb: 2 }}>
+            <div className="space-y-4">
+              <Alert>
+                <AlertDescription>
                   인센티브가 성공적으로 계산되었습니다!
-                </Alert>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  매출 금액
-                </Typography>
-                <Typography variant="h6">
-                  {simulation.sales_amount.toLocaleString()}원
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  달성률
-                </Typography>
-                <Typography variant="h6">
-                  {simulation.achievement_rate.toFixed(1)}%
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  인센티브 금액
-                </Typography>
-                <Typography variant="h6" color="success.main">
-                  {simulation.incentive_amount.toLocaleString()}원
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">
-                  보너스 등급
-                </Typography>
-                <Typography variant="h6">
-                  {simulation.bonus_tier}
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="body2" color="text.secondary">
-                  총 커미션
-                </Typography>
-                <Typography variant="h5" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">매출 금액</p>
+                  <p className="text-lg font-semibold">
+                    {simulation.sales_amount.toLocaleString()}원
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">달성률</p>
+                  <p className="text-lg font-semibold">
+                    {simulation.achievement_rate.toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">인센티브 금액</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {simulation.incentive_amount.toLocaleString()}원
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">보너스 등급</p>
+                  <p className="text-lg font-semibold">
+                    {simulation.bonus_tier}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-600">총 커미션</p>
+                <p className="text-xl font-bold text-blue-600">
                   {simulation.total_commission.toLocaleString()}원
-                </Typography>
-              </Grid>
-            </Grid>
+                </p>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button onClick={() => setSimulationOpen(false)}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSimulationOpen(false)}>닫기</Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

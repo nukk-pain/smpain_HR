@@ -1,57 +1,58 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Box,
-  Typography,
-  Button,
-  Tab,
-  Tabs,
-  Card,
-  CardContent,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Grid,
-  Chip,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  LinearProgress,
-  Alert,
-  IconButton,
-  Tooltip,
-  Badge,
-  Avatar,
-  Divider,
-  CircularProgress,
-  Stack
-} from '@mui/material';
+} from '@/components/ui/table';
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  CalendarToday as CalendarIcon,
-  Person as PersonIcon,
-  Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  BeachAccess as BeachAccessIcon,
-  LocalHospital as SickIcon,
-  Event as EventIcon,
-  Work as WorkIcon,
-  Cancel as CancelIcon
-} from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Check,
+  X,
+  Calendar,
+  User,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  Umbrella,
+  Stethoscope,
+  CalendarDays,
+  Briefcase,
+  Loader2,
+} from 'lucide-react';
 import { ko } from 'date-fns/locale';
 import { format, parseISO, differenceInBusinessDays } from 'date-fns';
 import { useAuth } from '@/components/AuthProvider';
@@ -61,45 +62,19 @@ import { LeaveRequest, LeaveBalance, LeaveForm, LeaveApprovalForm } from '@/type
 import { useConfig, useConfigProps } from '@/hooks/useConfig';
 import { LeaveType, LeaveStatus } from '@/types/config';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`leave-tabpanel-${index}`}
-      aria-labelledby={`leave-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
 const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
   const { leave, date, message } = useConfig();
   const { getLeaveSelectProps, getStatusChipProps } = useConfigProps();
-  const [tabValue, setTabValue] = useState(0);
+  const [activeTab, setActiveTab] = useState('requests');
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
   const [formData, setFormData] = useState<LeaveForm>({
-    leaveType: leave.types.ANNUAL as any,
+    leaveType: 'annual',
     startDate: '',
     endDate: '',
     reason: '',
@@ -152,7 +127,6 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-
   const loadCancellationHistory = async () => {
     try {
       const response = await apiService.getCancellationHistory();
@@ -160,10 +134,6 @@ const LeaveManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading cancellation history:', error);
     }
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
   };
 
   const handleOpenDialog = (request?: LeaveRequest) => {
@@ -179,7 +149,7 @@ const LeaveManagement: React.FC = () => {
     } else {
       setEditingRequest(null);
       setFormData({
-        leaveType: leave.types.ANNUAL as any,
+        leaveType: 'annual',
         startDate: '',
         endDate: '',
         reason: '',
@@ -192,612 +162,399 @@ const LeaveManagement: React.FC = () => {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingRequest(null);
+    setFormData({
+      leaveType: 'annual',
+      startDate: '',
+      endDate: '',
+      reason: '',
+      substituteEmployee: ''
+    });
   };
 
   const handleSubmit = async () => {
     try {
       if (editingRequest) {
         await apiService.updateLeaveRequest(editingRequest.id, formData);
-        showSuccess(message.getSuccessMessage('UPDATE_SUCCESS'));
+        showSuccess('휴가 신청이 수정되었습니다.');
       } else {
         await apiService.createLeaveRequest(formData);
-        showSuccess(message.getSuccessMessage('SAVE_SUCCESS'));
+        showSuccess('휴가 신청이 완료되었습니다.');
       }
       handleCloseDialog();
       await loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting leave request:', error);
-      const errorMessage = error.response?.data?.error || '휴가 신청 중 오류가 발생했습니다.';
-      showError(errorMessage);
+      showError('휴가 신청 처리 중 오류가 발생했습니다.');
     }
   };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('정말로 이 휴가 신청을 취소하시겠습니까?')) {
-      try {
-        await apiService.deleteLeaveRequest(id);
-        showSuccess(message.getSuccessMessage('DELETE_SUCCESS'));
-        await loadData();
-      } catch (error: any) {
-        console.error('Error deleting leave request:', error);
-        const errorMessage = error.response?.data?.error || '휴가 신청 취소 중 오류가 발생했습니다.';
-        showError(errorMessage);
-      }
-    }
-  };
-
-
-
-  // Cancellation handlers
-  const handleCancelRequest = async (request: LeaveRequest) => {
-    // Check if cancellation is already requested
-    if (request.cancellationRequested) {
-      showError('이미 취소 신청이 진행 중입니다.');
-      return;
-    }
-    
-    // Check if leave start date is in the future
-    const today = new Date().toISOString().split('T')[0];
-    if (request.startDate <= today) {
-      showError('이미 시작된 휴가는 취소할 수 없습니다.');
-      return;
-    }
-    
-    setCancelRequest(request);
-    setCancelReason('');
-    setCancelDialogOpen(true);
-  };
-
-  const handleCloseCancelDialog = () => {
-    setCancelDialogOpen(false);
-    setCancelRequest(null);
-    setCancelReason('');
-  };
-
-  const handleConfirmCancellation = async () => {
-    if (!cancelRequest) return;
-    
-    if (!cancelReason.trim() || cancelReason.trim().length < 5) {
-      showError('취소 사유를 5자 이상 입력해주세요.');
-      return;
-    }
-
-    try {
-      await apiService.cancelLeaveRequest(cancelRequest._id, cancelReason.trim());
-      showSuccess('휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
-      handleCloseCancelDialog();
-      await loadData();
-    } catch (error: any) {
-      console.error('Error canceling leave request:', error);
-      const errorMessage = error.response?.data?.error || '취소 신청 중 오류가 발생했습니다.';
-      showError(errorMessage);
-    }
-  };
-
 
   const getLeaveTypeIcon = (type: string) => {
     switch (type) {
-      case leave.types.ANNUAL:
-        return <BeachAccessIcon />;
-      case leave.types.FAMILY:
-        return <EventIcon />;
-      case leave.types.PERSONAL:
-        return <PersonIcon />;
+      case 'annual':
+        return <Umbrella className="h-4 w-4 text-blue-500" />;
+      case 'sick':
+        return <Stethoscope className="h-4 w-4 text-red-500" />;
+      case 'personal':
+        return <User className="h-4 w-4 text-green-500" />;
+      case 'special':
+        return <CalendarDays className="h-4 w-4 text-purple-500" />;
+      case 'substitute':
+        return <Briefcase className="h-4 w-4 text-orange-500" />;
       default:
-        return <WorkIcon />;
+        return <Calendar className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  // Hook에서 제공하는 함수 사용
-  const getLeaveTypeLabel = leave.getTypeLabel;
-  const getStatusLabel = leave.getStatusLabel;
+  const getLeaveTypeLabel = (type: string) => {
+    const typeMap: { [key: string]: string } = {
+      annual: '연차',
+      sick: '병가',
+      personal: '개인휴가',
+      special: '특별휴가'
+    };
+    return typeMap[type] || type;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      pending: '대기중',
+      approved: '승인됨',
+      rejected: '거부됨',
+      cancelled: '취소됨'
+    };
+    return statusMap[status] || status;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case leave.status.PENDING:
-        return 'warning';
-      case leave.status.APPROVED:
-        return 'success';
-      case leave.status.REJECTED:
-        return 'error';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
       case 'cancelled':
-        return 'default';
+        return 'bg-gray-100 text-gray-800';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const safeFormatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-';
     try {
-      return format(parseISO(dateString), date.formats.DISPLAY);
+      return format(parseISO(dateString), 'yyyy-MM-dd');
     } catch (error) {
-      console.error('Date formatting error:', error, dateString);
-      return dateString;
-    }
-  };
-
-  const calculateDays = (startDate: string, endDate: string): number => {
-    if (!startDate || !endDate) return 0;
-    try {
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
-      
-      let daysCount = 0;
-      let currentDate = new Date(start);
-      
-      while (currentDate <= end) {
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek === 0) { 
-          // 일요일 - 0일
-        } else if (dayOfWeek === 6) { 
-          // 토요일 - 0.5일
-          daysCount += 0.5;
-        } else { 
-          // 월~금 - 1일
-          daysCount++;
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      return daysCount;
-    } catch {
-      return 0;
+      return '-';
     }
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ko}>
-      <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" fontWeight={600}>
-            휴가 관리
-          </Typography>
-          {user?.role !== 'admin' && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              휴가 신청
-            </Button>
-          )}
-        </Box>
-
-        {/* 휴가 잔여일수 카드 - admin은 휴가가 없으므로 표시하지 않음 */}
-        {leaveBalance && user?.role !== 'admin' && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                📊 내 휴가 현황 ({leaveBalance.year}년)
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid xs={12} md={6}>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Box flex={1}>
-                      <Typography variant="body2" color="text.secondary">
-                        연차 사용률
-                      </Typography>
-                      <Typography variant="h4">
-                        {leaveBalance.usedAnnualLeave}/{leaveBalance.totalAnnualLeave}일
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(leaveBalance.usedAnnualLeave / leaveBalance.totalAnnualLeave) * 100}
-                        sx={{ mt: 1, height: 8, borderRadius: 4 }}
-                      />
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid xs={12} md={6}>
-                  <Grid container spacing={2}>
-                    <Grid xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        잔여 연차
-                      </Typography>
-                      <Typography 
-                        variant="h5" 
-                        color={leaveBalance.remainingAnnualLeave < 0 ? "error" : "primary"}
-                      >
-                        {leaveBalance.remainingAnnualLeave}일
-                      </Typography>
-                      {leaveBalance.remainingAnnualLeave < 0 && (
-                        <Typography variant="caption" color="error">
-                          (최대 -3일까지 가능)
-                        </Typography>
-                      )}
-                    </Grid>
-                    <Grid xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        대기중
-                      </Typography>
-                      <Typography variant="h5" color="warning.main">
-                        {leaveBalance.pendingAnnualLeave}일
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
+          휴가 관리
+        </h1>
+        {user?.role !== 'admin' && (
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            휴가 신청
+          </Button>
         )}
+      </div>
 
+      {/* 휴가 잔여일수 카드 - admin은 휴가가 없으므로 표시하지 않음 */}
+      {leaveBalance && user?.role !== 'admin' && (
         <Card>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label='내 휴가 신청' />
-              {user?.role !== 'admin' && (
-                <Tab
-                  label={
-                    <Badge badgeContent={cancellationHistory.length} color="info">
-                      취소 내역
-                    </Badge>
-                  }
-                />
-              )}
-            </Tabs>
-          </Box>
-
-          <TabPanel value={tabValue} index={0}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>휴가 종류</TableCell>
-                    <TableCell>기간</TableCell>
-                    <TableCell>일수</TableCell>
-                    <TableCell>사유</TableCell>
-                    <TableCell>상태</TableCell>
-                    <TableCell>신청일</TableCell>
-                    <TableCell>작업</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {leaveRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {getLeaveTypeIcon(request.leaveType)}
-                          {getLeaveTypeLabel(request.leaveType)}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {safeFormatDate(request.startDate)} ~{' '}
-                        {safeFormatDate(request.endDate)}
-                      </TableCell>
-                      <TableCell>{request.daysCount}일</TableCell>
-                      <TableCell>{request.reason}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getStatusLabel(request.status)}
-                          color={getStatusColor(request.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {safeFormatDate(request.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          {request.status === leave.status.PENDING && (
-                            <>
-                              <Tooltip title="수정">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleOpenDialog(request)}
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="취소">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleDelete(request._id)}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          )}
-                          {request.status === leave.status.APPROVED && !request.cancellationRequested && (
-                            <Tooltip title="휴가 취소 신청">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleCancelRequest(request)}
-                                color="warning"
-                              >
-                                <CancelIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          {request.cancellationRequested && (
-                            <Chip
-                              label={`취소 ${request.cancellationStatus === 'pending' ? '대기' : request.cancellationStatus === 'approved' ? '승인' : '거부'}`}
-                              size="small"
-                              color={
-                                request.cancellationStatus === 'pending' ? 'warning' :
-                                request.cancellationStatus === 'approved' ? 'success' : 'error'
-                              }
-                            />
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {leaveRequests.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        <Typography color="text.secondary">
-                          휴가 신청 내역이 없습니다.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </TabPanel>
-
-          {/* 취소 내역 탭 (일반 사용자용) */}
-          {user?.role !== 'admin' && (
-            <TabPanel value={tabValue} index={1}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>휴가 종류</TableCell>
-                      <TableCell>기간</TableCell>
-                      <TableCell>일수</TableCell>
-                      <TableCell>신청 사유</TableCell>
-                      <TableCell>취소 사유</TableCell>
-                      <TableCell>취소 상태</TableCell>
-                      <TableCell>취소 신청일</TableCell>
-                      <TableCell>처리일</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cancellationHistory.map((request) => (
-                      <TableRow key={request._id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request.leaveType)}
-                            {getLeaveTypeLabel(request.leaveType)}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {request.startDate === request.endDate
-                            ? safeFormatDate(request.startDate)
-                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
-                          }
-                        </TableCell>
-                        <TableCell>{request.daysCount}일</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.reason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.cancellationReason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              request.cancellationStatus === 'pending' ? '대기' :
-                              request.cancellationStatus === 'approved' ? '승인됨' : '거부됨'
-                            }
-                            size="small"
-                            color={
-                              request.cancellationStatus === 'pending' ? 'warning' :
-                              request.cancellationStatus === 'approved' ? 'success' : 'error'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {safeFormatDate(request.cancellationRequestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          {request.cancellationApprovedAt 
-                            ? safeFormatDate(request.cancellationApprovedAt) 
-                            : '-'
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {cancellationHistory.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography color="text.secondary" sx={{ py: 4 }}>
-                            취소 신청 내역이 없습니다.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
-          )}
-
+          <CardContent className="p-6">
+            <h2 className="text-xl font-semibold mb-4">
+              📊 내 휴가 현황 ({leaveBalance.year}년)
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">연차 사용률</p>
+                  <p className="text-2xl font-bold">
+                    {leaveBalance.usedAnnualLeave}/{leaveBalance.totalAnnualLeave}일
+                  </p>
+                  <Progress 
+                    value={(leaveBalance.usedAnnualLeave / leaveBalance.totalAnnualLeave) * 100}
+                    className="mt-2 h-2"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">총 연차</p>
+                  <p className="text-lg font-semibold">
+                    {leaveBalance.totalAnnualLeave}일
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">사용 연차</p>
+                  <p className="text-lg font-semibold">
+                    {leaveBalance.usedAnnualLeave}일
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">잔여 연차</p>
+                  <p className="text-lg font-semibold">
+                    {leaveBalance.remainingAnnualLeave}일
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">대기중 신청</p>
+                  <p className="text-lg font-semibold">
+                    {leaveBalance.pendingAnnualLeave || 0}일
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
         </Card>
+      )}
 
-        {/* 휴가 신청 다이얼로그 */}
-        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-          <DialogTitle>
-            {editingRequest ? '휴가 신청 수정' : '휴가 신청'}
-          </DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="휴가 종류"
-                  select
-                  value={formData.leaveType}
-                  onChange={(e) => setFormData({ ...formData, leaveType: e.target.value as any })}
-                >
-                  <MenuItem value={leave.types.ANNUAL}>연차</MenuItem>
-                  <MenuItem value={leave.types.FAMILY}>경조사</MenuItem>
-                  <MenuItem value={leave.types.PERSONAL}>개인휴가 (무급)</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="대체 인력 (선택사항)"
-                  value={formData.substituteEmployee}
-                  onChange={(e) => setFormData({ ...formData, substituteEmployee: e.target.value })}
-                  helperText="필요시 대체 인력을 입력하세요"
-                />
-              </Grid>
-              <Grid xs={12} md={6}>
-                <DatePicker
-                  label="시작일"
-                  value={formData.startDate ? parseISO(formData.startDate) : null}
-                  onChange={(date) => {
-                    const dateString = date ? format(date, 'yyyy-MM-dd') : '';
-                    setFormData({ ...formData, startDate: dateString });
-                  }}
-                  slotProps={{ 
-                    textField: { 
-                      fullWidth: true,
-                      required: true
-                    } 
-                  }}
-                  format="yyyy-MM-dd"
-                />
-              </Grid>
-              <Grid xs={12} md={6}>
-                <DatePicker
-                  label="종료일"
-                  value={formData.endDate ? parseISO(formData.endDate) : null}
-                  onChange={(date) => {
-                    const dateString = date ? format(date, 'yyyy-MM-dd') : '';
-                    setFormData({ ...formData, endDate: dateString });
-                  }}
-                  slotProps={{ 
-                    textField: { 
-                      fullWidth: true,
-                      required: true
-                    } 
-                  }}
-                  format="yyyy-MM-dd"
-                  minDate={formData.startDate ? parseISO(formData.startDate) : undefined}
-                />
-              </Grid>
-              <Grid xs={12}>
-                <TextField
-                  fullWidth
-                  label="신청 사유"
-                  multiline
-                  rows={3}
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                />
-              </Grid>
-              {formData.startDate && formData.endDate && (
-                <Grid xs={12}>
-                  <Alert severity="info">
-                    총 휴가 일수: {calculateDays(formData.startDate, formData.endDate)}일
-                    (일요일 제외, 토요일 0.5일 계산)
-                  </Alert>
-                  {formData.leaveType === 'annual' && leaveBalance && (
-                    (() => {
-                      const requestedDays = calculateDays(formData.startDate, formData.endDate);
-                      const remainingAfterRequest = leaveBalance.remainingAnnualLeave - requestedDays;
-                      
-                      if (remainingAfterRequest < 0 && remainingAfterRequest >= -3) {
-                        return (
-                          <Alert severity="warning" sx={{ mt: 1 }}>
-                            이 요청 후 잔여 연차: {remainingAfterRequest}일 (미리 사용 중)
-                          </Alert>
-                        );
-                      } else if (remainingAfterRequest < -3) {
-                        return (
-                          <Alert severity="error" sx={{ mt: 1 }}>
-                            연차 한도를 초과합니다. 최대 3일까지만 미리 사용할 수 있습니다.
-                          </Alert>
-                        );
-                      }
-                      return null;
-                    })()
-                  )}
-                </Grid>
-              )}
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>취소</Button>
-            <Button
-              onClick={handleSubmit}
-              variant="contained"
-              disabled={!formData.startDate || !formData.endDate || !formData.reason}
-            >
-              {editingRequest ? '수정' : '신청'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      {/* 탭 네비게이션 */}
+      <Card>
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="requests">내 휴가 신청</TabsTrigger>
+              <TabsTrigger value="statistics">휴가 통계</TabsTrigger>
+              <TabsTrigger value="history">취소 내역</TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="requests" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">내 휴가 신청 현황</h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>휴가 종류</TableHead>
+                        <TableHead>시작일</TableHead>
+                        <TableHead>종료일</TableHead>
+                        <TableHead>일수</TableHead>
+                        <TableHead>사유</TableHead>
+                        <TableHead>상태</TableHead>
+                        <TableHead>작업</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaveRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getLeaveTypeIcon(request.leaveType)}
+                              {getLeaveTypeLabel(request.leaveType)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {safeFormatDate(request.startDate)} ~{' '}
+                            {safeFormatDate(request.endDate)}
+                          </TableCell>
+                          <TableCell>{request.daysCount}일</TableCell>
+                          <TableCell>{request.reason}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(request.status)}>
+                              {getStatusLabel(request.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {request.status === 'pending' && (
+                                <>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleOpenDialog(request)}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>수정</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </TabsContent>
 
-        {/* 휴가 취소 신청 다이얼로그 */}
-        <Dialog open={cancelDialogOpen} onClose={handleCloseCancelDialog} maxWidth="sm" fullWidth>
-          <DialogTitle>휴가 취소 신청</DialogTitle>
-          <DialogContent>
-            {cancelRequest && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  취소하려는 휴가 정보
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  휴가 종류: {getLeaveTypeLabel(cancelRequest.leaveType)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  기간: {cancelRequest.startDate === cancelRequest.endDate
-                    ? safeFormatDate(cancelRequest.startDate)
-                    : `${safeFormatDate(cancelRequest.startDate)} ~ ${safeFormatDate(cancelRequest.endDate)}`
-                  } ({cancelRequest.daysCount}일)
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  원래 사유: {cancelRequest.reason}
-                </Typography>
-                <TextField
-                  fullWidth
-                  label="취소 사유"
-                  placeholder="휴가를 취소하는 이유를 5자 이상 입력해주세요."
-                  multiline
-                  rows={3}
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  sx={{ mt: 2 }}
-                  helperText={`${cancelReason.length}/5자 이상`}
-                  error={cancelReason.length > 0 && cancelReason.length < 5}
-                />
-              </Box>
+            <TabsContent value="statistics" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">휴가 통계</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold">총 신청</div>
+                      <div className="text-sm text-muted-foreground">
+                        {leaveRequests.length}건
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold">승인됨</div>
+                      <div className="text-sm text-muted-foreground">
+                        {leaveRequests.filter(r => r.status === 'approved').length}건
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold">대기중</div>
+                      <div className="text-sm text-muted-foreground">
+                        {leaveRequests.filter(r => r.status === 'pending').length}건
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold">거부됨</div>
+                      <div className="text-sm text-muted-foreground">
+                        {leaveRequests.filter(r => r.status === 'rejected').length}건
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">취소 내역</h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>휴가 종류</TableHead>
+                        <TableHead>기간</TableHead>
+                        <TableHead>일수</TableHead>
+                        <TableHead>취소 사유</TableHead>
+                        <TableHead>취소일</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cancellationHistory.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getLeaveTypeIcon(request.leaveType)}
+                              {getLeaveTypeLabel(request.leaveType)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {request.startDate === request.endDate
+                              ? safeFormatDate(request.startDate)
+                              : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
+                            }
+                          </TableCell>
+                          <TableCell>{request.daysCount}일</TableCell>
+                          <TableCell>{request.cancellationReason || '-'}</TableCell>
+                          <TableCell>{safeFormatDate(request.cancelledAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* 휴가 신청 다이얼로그 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRequest ? '휴가 신청 수정' : '새 휴가 신청'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="leaveType">휴가 종류</Label>
+              <Select value={formData.leaveType} onValueChange={(value) => setFormData({...formData, leaveType: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="휴가 종류 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="annual">연차</SelectItem>
+                  <SelectItem value="sick">병가</SelectItem>
+                  <SelectItem value="personal">개인휴가</SelectItem>
+                  <SelectItem value="special">특별휴가</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="startDate">시작일</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="endDate">종료일</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="reason">사유</Label>
+              <Input
+                id="reason"
+                value={formData.reason}
+                onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                placeholder="휴가 사유를 입력하세요"
+              />
+            </div>
+            {!formData.startDate && (
+              <Alert>
+                <AlertDescription>
+                  시작일을 선택해주세요.
+                </AlertDescription>
+              </Alert>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseCancelDialog}>취소</Button>
-            <Button 
-              onClick={handleConfirmCancellation} 
-              color="warning" 
-              variant="contained"
-              disabled={!cancelReason.trim() || cancelReason.trim().length < 5}
-            >
-              취소 신청
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseDialog}>
+              취소
             </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </LocalizationProvider>
+            <Button onClick={handleSubmit}>
+              {editingRequest ? '수정하기' : '신청하기'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

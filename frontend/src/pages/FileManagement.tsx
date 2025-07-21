@@ -1,20 +1,20 @@
 import React from 'react';
-import { Box, Typography, Container, Paper } from '@mui/material';
+import { Card, CardContent } from '@/components/ui/card';
 import FileUpload from '../components/FileUpload';
 
 const FileManagement: React.FC = () => {
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ py: 3 }}>
-        <Typography variant="h4" sx={{ mb: 3 }}>
-          File Management
-        </Typography>
-        
-        <Paper elevation={1} sx={{ p: 3 }}>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        File Management
+      </h1>
+      
+      <Card>
+        <CardContent>
           <FileUpload />
-        </Paper>
-      </Box>
-    </Container>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

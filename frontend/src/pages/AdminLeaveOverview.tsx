@@ -1,38 +1,42 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  TextField,
-  MenuItem,
-  Button,
-  Chip,
-  LinearProgress,
-  Alert,
-  CircularProgress,
-  InputAdornment,
-  IconButton,
-  Tooltip,
-  Stack
-} from '@mui/material';
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Search as SearchIcon,
-  Download as DownloadIcon,
-  Settings as SettingsIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  People as PeopleIcon,
-  CalendarToday as CalendarIcon
-} from '@mui/icons-material';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Search,
+  Download,
+  Settings,
+  TrendingUp,
+  AlertTriangle,
+  Users,
+  Calendar,
+  Loader2,
+} from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { useNotification } from '../components/NotificationProvider';
 import { ApiService } from '../services/api';
@@ -95,13 +99,26 @@ const AdminLeaveOverview: React.FC = () => {
   const getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {
       case 'high':
-        return 'error';
+        return 'destructive';
       case 'medium':
-        return 'warning';
+        return 'secondary';
       case 'low':
-        return 'success';
-      default:
         return 'default';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getRiskTextColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'high':
+        return 'text-red-600';
+      case 'medium':
+        return 'text-yellow-600';
+      case 'low':
+        return 'text-green-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
@@ -180,254 +197,249 @@ const AdminLeaveOverview: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   if (!data) {
     return (
-      <Alert severity="error">
-        데이터를 불러올 수 없습니다.
+      <Alert>
+        <AlertDescription>
+          데이터를 불러올 수 없습니다.
+        </AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
-          👥 전체 직원 휴가 현황
-        </Typography>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          👥 휴가 현황 관리
+        </h1>
         <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
+          variant="outline"
           onClick={handleExportExcel}
+          className="flex items-center gap-2"
         >
-          엑셀 다운로드
+          <Download className="h-4 w-4" />
+          데이터 내보내기
         </Button>
-      </Box>
+      </div>
 
       {/* 통계 카드 */}
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <PeopleIcon color="primary" fontSize="large" />
-                <Box>
-                  <Typography variant="h4" fontWeight={600}>
-                    {data.statistics.totalEmployees}명
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    총 직원 수
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <TrendingUpIcon color="success" fontSize="large" />
-                <Box>
-                  <Typography variant="h4" fontWeight={600}>
-                    {data.statistics.averageUsageRate}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    평균 사용률
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <WarningIcon color="error" fontSize="large" />
-                <Box>
-                  <Typography variant="h4" fontWeight={600}>
-                    {data.statistics.highRiskCount}명
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    미사용 위험
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Users className="h-8 w-8 text-blue-500" />
+              <div>
+                <div className="text-2xl font-semibold">
+                  {data.statistics.totalEmployees}명
+                </div>
+                <p className="text-sm text-gray-600">
+                  전체 통계
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <TrendingUp className="h-8 w-8 text-green-500" />
+              <div>
+                <div className="text-2xl font-semibold">
+                  {data.statistics.averageUsageRate}%
+                </div>
+                <p className="text-sm text-gray-600">
+                  부서별 현황
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <div>
+                <div className="text-2xl font-semibold">
+                  {data.statistics.highRiskCount}명
+                </div>
+                <p className="text-sm text-gray-600">
+                  미사용 위험
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 필터 및 검색 */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+            <div className="md:col-span-2 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+              <Input
                 placeholder="이름 또는 부서 검색"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
+                className="pl-10"
               />
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                select
-                label="부서"
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-              >
-                <MenuItem value="all">전체 부서</MenuItem>
-                {departments.map((dept) => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                select
-                label="위험도"
-                value={riskFilter}
-                onChange={(e) => setRiskFilter(e.target.value)}
-              >
-                <MenuItem value="all">전체</MenuItem>
-                <MenuItem value="high">위험</MenuItem>
-                <MenuItem value="medium">주의</MenuItem>
-                <MenuItem value="low">정상</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                select
-                label="정렬"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <MenuItem value="name">이름순</MenuItem>
-                <MenuItem value="department">부서순</MenuItem>
-                <MenuItem value="usageRate">사용률순</MenuItem>
-                <MenuItem value="remainingDays">잔여일순</MenuItem>
-              </TextField>
-            </Grid>
-          </Grid>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department-filter">부서</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger id="department-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 부서</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="risk-filter">위험도</Label>
+              <Select value={riskFilter} onValueChange={setRiskFilter}>
+                <SelectTrigger id="risk-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="high">위험</SelectItem>
+                  <SelectItem value="medium">주의</SelectItem>
+                  <SelectItem value="low">정상</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sort-filter">정렬</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger id="sort-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">이름순</SelectItem>
+                  <SelectItem value="department">부서순</SelectItem>
+                  <SelectItem value="usageRate">사용률순</SelectItem>
+                  <SelectItem value="remainingDays">잔여일순</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* 직원 목록 테이블 */}
       <Card>
-        <CardContent>
-          <TableContainer>
+        <CardContent className="p-4">
+          <div className="border rounded-lg">
             <Table>
-              <TableHead>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>이름</TableCell>
-                  <TableCell>부서</TableCell>
-                  <TableCell>직급</TableCell>
-                  <TableCell align="center">총연차</TableCell>
-                  <TableCell align="center">사용</TableCell>
-                  <TableCell align="center">잔여</TableCell>
-                  <TableCell align="center">사용률</TableCell>
-                  <TableCell align="center">위험도</TableCell>
-                  <TableCell align="center">액션</TableCell>
+                  <TableHead>이름</TableHead>
+                  <TableHead>부서</TableHead>
+                  <TableHead>직급</TableHead>
+                  <TableHead className="text-center">총연차</TableHead>
+                  <TableHead className="text-center">사용</TableHead>
+                  <TableHead className="text-center">잔여</TableHead>
+                  <TableHead className="text-center">사용률</TableHead>
+                  <TableHead className="text-center">위험도</TableHead>
+                  <TableHead className="text-center">액션</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {getFilteredEmployees().map((employee) => (
                   <TableRow key={employee.employeeId}>
                     <TableCell>
-                      <Box>
-                        <Typography variant="body1" fontWeight={500}>
+                      <div>
+                        <div className="font-medium">
                           {employee.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </div>
+                        <div className="text-sm text-gray-500">
                           {employee.yearsOfService}년차
-                        </Typography>
-                      </Box>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>{employee.department}</TableCell>
                     <TableCell>{employee.position}</TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body1" fontWeight={500}>
+                    <TableCell className="text-center">
+                      <div className="font-medium">
                         {employee.totalAnnualLeave}일
-                      </Typography>
+                      </div>
                     </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body1">
+                    <TableCell className="text-center">
+                      <div>
                         {employee.usedAnnualLeave}일
-                      </Typography>
+                      </div>
                       {employee.pendingAnnualLeave > 0 && (
-                        <Typography variant="caption" color="warning.main">
+                        <div className="text-sm text-yellow-600">
                           (대기: {employee.pendingAnnualLeave}일)
-                        </Typography>
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body1" fontWeight={500}>
+                    <TableCell className="text-center">
+                      <div className="font-medium">
                         {employee.remainingAnnualLeave}일
-                      </Typography>
+                      </div>
                     </TableCell>
-                    <TableCell align="center">
-                      <Box>
-                        <Typography variant="body1" fontWeight={500}>
+                    <TableCell className="text-center">
+                      <div className="space-y-1">
+                        <div className="font-medium">
                           {employee.usageRate}%
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </div>
+                        <Progress
                           value={employee.usageRate}
-                          sx={{ width: 60, height: 6, borderRadius: 3 }}
-                          color={employee.usageRate < 30 ? 'error' : employee.usageRate < 60 ? 'warning' : 'success'}
+                          className="w-16 h-2"
                         />
-                      </Box>
+                      </div>
                     </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={`${getRiskIcon(employee.riskLevel)} ${getRiskLabel(employee.riskLevel)}`}
-                        color={getRiskColor(employee.riskLevel) as any}
-                        size="small"
-                      />
+                    <TableCell className="text-center">
+                      <Badge variant={getRiskColor(employee.riskLevel) as any}>
+                        {getRiskIcon(employee.riskLevel)} {getRiskLabel(employee.riskLevel)}
+                      </Badge>
                     </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="연차 조정">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleAdjustLeave(employee.employeeId, employee.name)}
-                        >
-                          <SettingsIcon />
-                        </IconButton>
-                      </Tooltip>
+                    <TableCell className="text-center">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAdjustLeave(employee.employeeId, employee.name)}
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>연차 조정</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))}
                 {getFilteredEmployees().length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      <Typography color="text.secondary">
+                    <TableCell colSpan={9} className="text-center">
+                      <div className="text-gray-500 py-8">
                         조건에 맞는 직원이 없습니다.
-                      </Typography>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </CardContent>
       </Card>
 
@@ -441,7 +453,7 @@ const AdminLeaveOverview: React.FC = () => {
           onAdjustmentComplete={handleAdjustmentComplete}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

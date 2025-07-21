@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import { ColDef, GridReadyEvent, CellValueChangedEvent } from 'ag-grid-community'
-import { Box, Paper, Button, IconButton, Tooltip } from '@mui/material'
-import { Edit, Save, Cancel, Download } from '@mui/icons-material'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Edit, Save, X, Download } from 'lucide-react'
 import { MonthlyPayment, User } from '@/types'
 import apiService from '@/services/api'
 import { useNotification } from './NotificationProvider'
@@ -102,28 +103,40 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     }
 
     return (
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <div className="flex gap-1">
         {!isEditing ? (
-          <Tooltip title="수정">
-            <IconButton size="small" onClick={handleEdit}>
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEdit}
+            className="h-8 w-8 p-0"
+            title="수정"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
         ) : (
           <>
-            <Tooltip title="저장">
-              <IconButton size="small" onClick={handleSave} color="primary">
-                <Save fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="취소">
-              <IconButton size="small" onClick={handleCancel} color="secondary">
-                <Cancel fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSave}
+              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+              title="저장"
+            >
+              <Save className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+              title="취소"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </>
         )}
-      </Box>
+      </div>
     )
   }
 
@@ -299,60 +312,58 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   }, [rowData])
 
   return (
-    <Paper sx={{ height: '600px', width: '100%' }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <strong>{yearMonth} 급여 현황</strong>
-          <Box sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}>
-            총 {rowData.length}명 | 총 지급액: {totals.input_total.toLocaleString()}원
-          </Box>
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Download />}
-          onClick={handleExportExcel}
-          disabled={rowData.length === 0}
-        >
-          Excel 내보내기
-        </Button>
-      </Box>
+    <Card className="h-[600px] w-full">
+      <CardHeader className="pb-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">{yearMonth} 급여 현황</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              총 {rowData.length}명 | 총 지급액: {totals.input_total.toLocaleString()}원
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={rowData.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Excel 내보내기
+          </Button>
+        </div>
+      </CardHeader>
       
-      <Box sx={{ height: 'calc(100% - 80px)' }} className="ag-theme-alpine">
-        {!loading && rowData.length === 0 ? (
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '100%',
-            color: 'text.secondary' 
-          }}>
-            <Box sx={{ fontSize: '3rem', mb: 2 }}>📊</Box>
-            <Box sx={{ fontSize: '1.2rem', fontWeight: 'medium', mb: 1 }}>
-              {yearMonth} 급여 데이터가 없습니다
-            </Box>
-            <Box sx={{ fontSize: '0.9rem' }}>
-              해당 월의 급여 정보를 추가하거나 다른 월을 선택해 주세요
-            </Box>
-          </Box>
-        ) : (
-          <AgGridReact
-            rowData={rowData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            onGridReady={onGridReady}
-            loading={loading}
-            pagination={true}
-            paginationPageSize={20}
-            domLayout="normal"
-            suppressRowClickSelection={true}
-            rowSelection="multiple"
-            animateRows={true}
-            suppressCellFocus={true}
-          />
-        )}
-      </Box>
-    </Paper>
+      <CardContent className="pt-0">
+        <div className="h-[calc(500px-80px)] ag-theme-alpine">
+          {!loading && rowData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <div className="text-5xl mb-4">📊</div>
+              <div className="text-xl font-medium mb-2">
+                {yearMonth} 급여 데이터가 없습니다
+              </div>
+              <div className="text-sm">
+                해당 월의 급여 정보를 추가하거나 다른 월을 선택해 주세요
+              </div>
+            </div>
+          ) : (
+            <AgGridReact
+              rowData={rowData}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              onGridReady={onGridReady}
+              loading={loading}
+              pagination={true}
+              paginationPageSize={20}
+              domLayout="normal"
+              suppressRowClickSelection={true}
+              rowSelection="multiple"
+              animateRows={true}
+              suppressCellFocus={true}
+            />
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

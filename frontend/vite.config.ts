@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
@@ -96,5 +97,12 @@ export default defineConfig({
   // CSS optimization
   css: {
     devSourcemap: false // Disable CSS source maps in development for better performance
+  },
+  
+  // Test configuration
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
   }
 })

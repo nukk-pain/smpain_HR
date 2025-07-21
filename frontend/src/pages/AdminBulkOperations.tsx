@@ -1,45 +1,45 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Button,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Checkbox,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Chip,
-  CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  LinearProgress
-} from '@mui/material';
+} from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  ExpandMore as ExpandMoreIcon,
-  Download as DownloadIcon,
-  Autorenew as ProcessIcon,
-  FilterList as FilterIcon,
-  Event as CarryOverIcon
-} from '@mui/icons-material';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  CheckCircle,
+  X,
+  Download,
+  RotateCcw,
+  Filter,
+  Calendar,
+  Loader2,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useNotification } from '../components/NotificationProvider';
 import { useAuth } from '../components/AuthProvider';
@@ -156,7 +156,7 @@ const AdminBulkOperations: React.FC = () => {
 
     try {
       setProcessing(true);
-      const response = await apiService.bulkApproveLeaveRequests(
+      const response = await apiService.bulkApproveRequests(
         selectedRequests,
         bulkAction,
         bulkComment || undefined
@@ -229,334 +229,346 @@ const AdminBulkOperations: React.FC = () => {
 
   if (!user || user.role !== 'admin') {
     return (
-      <Alert severity="error">
-        관리자 권한이 필요한 페이지입니다.
+      <Alert>
+        <AlertDescription>
+          관리자 권한이 필요한 페이지입니다.
+        </AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
           🔄 휴가 일괄 처리
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        </h1>
+        <div className="flex gap-2">
           <Button
-            variant="contained"
-            color="primary"
-            startIcon={<CarryOverIcon />}
             onClick={() => setCarryOverDialog(true)}
+            className="flex items-center gap-2"
           >
+            <Calendar className="h-4 w-4" />
             연차 이월 처리
           </Button>
           <Button
-            variant="outlined"
-            startIcon={<FilterIcon />}
+            variant="outline"
             onClick={resetFilters}
+            className="flex items-center gap-2"
           >
+            <Filter className="h-4 w-4" />
             필터 초기화
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <h3 className="text-lg font-semibold mb-4">
             필터 설정
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>부서</InputLabel>
-                <Select
-                  value={filters.department}
-                  onChange={(e) => handleFilterChange('department', e.target.value)}
-                  label="부서"
-                >
-                  <MenuItem value="all">전체</MenuItem>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="department-filter">부서</Label>
+              <Select value={filters.department} onValueChange={(value) => handleFilterChange('department', value)}>
+                <SelectTrigger id="department-filter">
+                  <SelectValue placeholder="부서 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
                   {departments.map((dept) => (
-                    <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>휴가 유형</InputLabel>
-                <Select
-                  value={filters.leaveType}
-                  onChange={(e) => handleFilterChange('leaveType', e.target.value)}
-                  label="휴가 유형"
-                >
-                  <MenuItem value="all">전체</MenuItem>
-                  <MenuItem value="annual">연차</MenuItem>
-                  <MenuItem value="sick">병가</MenuItem>
-                  <MenuItem value="personal">개인휴가</MenuItem>
-                  <MenuItem value="family">경조사</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="시작일 (이후)"
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-type-filter">휴가 유형</Label>
+              <Select value={filters.leaveType} onValueChange={(value) => handleFilterChange('leaveType', value)}>
+                <SelectTrigger id="leave-type-filter">
+                  <SelectValue placeholder="휴가 유형 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="annual">연차</SelectItem>
+                  <SelectItem value="sick">병가</SelectItem>
+                  <SelectItem value="personal">개인휴가</SelectItem>
+                  <SelectItem value="family">경조사</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="start-date-filter">시작일 (이후)</Label>
+              <Input
+                id="start-date-filter"
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="종료일 (이전)"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-date-filter">종료일 (이전)</Label>
+              <Input
+                id="end-date-filter"
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Action Buttons */}
       {selectedRequests.length > 0 && (
-        <Card sx={{ mb: 3, bgcolor: 'primary.50' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h6">
+        <Card className="mb-6 bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
                 {selectedRequests.length}건의 휴가 신청이 선택되었습니다.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              </h3>
+              <div className="flex gap-2">
                 <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<ApproveIcon />}
                   onClick={() => {
                     setBulkAction('approve');
                     setBulkActionDialog(true);
                   }}
+                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
                 >
+                  <CheckCircle className="h-4 w-4" />
                   일괄 승인
                 </Button>
                 <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<RejectIcon />}
                   onClick={() => {
                     setBulkAction('reject');
                     setBulkActionDialog(true);
                   }}
+                  className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
                 >
+                  <X className="h-4 w-4" />
                   일괄 거부
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Pending Requests Table */}
       <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">
               대기중인 휴가 신청 ({pendingRequests.length}건)
-            </Typography>
-            {loading && <CircularProgress size={24} />}
-          </Box>
+            </h3>
+            {loading && <Loader2 className="h-5 w-5 animate-spin" />}
+          </div>
 
           {pendingRequests.length === 0 ? (
-            <Alert severity="info">
-              현재 대기중인 휴가 신청이 없습니다.
+            <Alert>
+              <AlertDescription>
+                현재 대기중인 휴가 신청이 없습니다.
+              </AlertDescription>
             </Alert>
           ) : (
-            <TableContainer component={Paper}>
+            <div className="border rounded-lg">
               <Table>
-                <TableHead>
+                <TableHeader>
                   <TableRow>
-                    <TableCell padding="checkbox">
+                    <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedRequests.length === pendingRequests.length}
-                        indeterminate={selectedRequests.length > 0 && selectedRequests.length < pendingRequests.length}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        checked={selectedRequests.length === pendingRequests.length && pendingRequests.length > 0}
+                        onCheckedChange={handleSelectAll}
                       />
-                    </TableCell>
-                    <TableCell>직원명</TableCell>
-                    <TableCell>부서</TableCell>
-                    <TableCell>직급</TableCell>
-                    <TableCell>휴가 유형</TableCell>
-                    <TableCell>시작일</TableCell>
-                    <TableCell>종료일</TableCell>
-                    <TableCell>일수</TableCell>
-                    <TableCell>사유</TableCell>
-                    <TableCell>신청일</TableCell>
+                    </TableHead>
+                    <TableHead>직원명</TableHead>
+                    <TableHead>부서</TableHead>
+                    <TableHead>직급</TableHead>
+                    <TableHead>휴가 유형</TableHead>
+                    <TableHead>시작일</TableHead>
+                    <TableHead>종료일</TableHead>
+                    <TableHead>일수</TableHead>
+                    <TableHead>사유</TableHead>
+                    <TableHead>신청일</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {pendingRequests.map((request) => (
-                    <TableRow key={request._id} hover>
-                      <TableCell padding="checkbox">
+                    <TableRow key={request._id}>
+                      <TableCell>
                         <Checkbox
                           checked={selectedRequests.includes(request._id)}
-                          onChange={(e) => handleSelectRequest(request._id, e.target.checked)}
+                          onCheckedChange={(checked) => handleSelectRequest(request._id, checked as boolean)}
                         />
                       </TableCell>
                       <TableCell>{request.user.name}</TableCell>
                       <TableCell>{request.user.department}</TableCell>
                       <TableCell>{request.user.position}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={getLeaveTypeLabel(request.leaveType)}
-                          size="small"
-                          color="primary"
-                        />
+                        <Badge variant="secondary">
+                          {getLeaveTypeLabel(request.leaveType)}
+                        </Badge>
                       </TableCell>
                       <TableCell>{format(new Date(request.startDate), 'yyyy.MM.dd')}</TableCell>
                       <TableCell>{format(new Date(request.endDate), 'yyyy.MM.dd')}</TableCell>
                       <TableCell>{request.daysCount}일</TableCell>
-                      <TableCell sx={{ maxWidth: 200 }}>
-                        <Typography variant="body2" noWrap title={request.reason}>
+                      <TableCell className="max-w-48">
+                        <span className="text-sm truncate block" title={request.reason}>
                           {request.reason}
-                        </Typography>
+                        </span>
                       </TableCell>
                       <TableCell>{format(new Date(request.requestedAt), 'yyyy.MM.dd')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Last Result Summary */}
       {lastResult && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+        <Card className="mt-6">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-semibold mb-4">
               마지막 처리 결과
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="success.main">
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-green-600 mb-2">
                   성공: {lastResult.successful.length}건
-                </Typography>
+                </h4>
                 {lastResult.successful.slice(0, 3).map((item, index) => (
-                  <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                  <p key={index} className="text-sm ml-4">
                     • {item.employeeName} - {getLeaveTypeLabel(item.leaveType)}
-                  </Typography>
+                  </p>
                 ))}
                 {lastResult.successful.length > 3 && (
-                  <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
+                  <p className="text-sm ml-4 text-gray-500">
                     외 {lastResult.successful.length - 3}건...
-                  </Typography>
+                  </p>
                 )}
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="error.main">
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-red-600 mb-2">
                   실패: {lastResult.failed.length}건
-                </Typography>
+                </h4>
                 {lastResult.failed.slice(0, 3).map((item, index) => (
-                  <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                  <p key={index} className="text-sm ml-4">
                     • {item.error}
-                  </Typography>
+                  </p>
                 ))}
                 {lastResult.failed.length > 3 && (
-                  <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
+                  <p className="text-sm ml-4 text-gray-500">
                     외 {lastResult.failed.length - 3}건...
-                  </Typography>
+                  </p>
                 )}
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Bulk Action Dialog */}
-      <Dialog open={bulkActionDialog} onClose={() => setBulkActionDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          휴가 신청 일괄 {bulkAction === 'approve' ? '승인' : '거부'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            {selectedRequests.length}건의 휴가 신청을 일괄 {bulkAction === 'approve' ? '승인' : '거부'}하시겠습니까?
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="코멘트 (선택사항)"
-            value={bulkComment}
-            onChange={(e) => setBulkComment(e.target.value)}
-            placeholder={`일괄 ${bulkAction === 'approve' ? '승인' : '거부'} 사유를 입력하세요.`}
-          />
+      <Dialog open={bulkActionDialog} onOpenChange={setBulkActionDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              휴가 신청 일괄 {bulkAction === 'approve' ? '승인' : '거부'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRequests.length}건의 휴가 신청을 일괄 {bulkAction === 'approve' ? '승인' : '거부'}하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-comment">코멘트 (선택사항)</Label>
+              <Textarea
+                id="bulk-comment"
+                value={bulkComment}
+                onChange={(e) => setBulkComment(e.target.value)}
+                placeholder={`일괄 ${bulkAction === 'approve' ? '승인' : '거부'} 사유를 입력하세요.`}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkActionDialog(false)}>취소</Button>
+            <Button
+              onClick={handleBulkAction}
+              disabled={processing}
+              className={bulkAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {processing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              일괄 {bulkAction === 'approve' ? '승인' : '거부'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBulkActionDialog(false)}>취소</Button>
-          <Button
-            variant="contained"
-            color={bulkAction === 'approve' ? 'success' : 'error'}
-            onClick={handleBulkAction}
-            disabled={processing}
-          >
-            {processing ? <CircularProgress size={20} /> : `일괄 ${bulkAction === 'approve' ? '승인' : '거부'}`}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Carry-over Dialog */}
-      <Dialog open={carryOverDialog} onClose={() => setCarryOverDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          연차 이월 처리
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            선택한 연도의 미사용 연차를 다음 연도로 이월 처리합니다.
-          </Typography>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>이월 대상 연도</InputLabel>
-            <Select
-              value={carryOverYear}
-              onChange={(e) => setCarryOverYear(Number(e.target.value))}
-              label="이월 대상 연도"
+      <Dialog open={carryOverDialog} onOpenChange={setCarryOverDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              연차 이월 처리
+            </DialogTitle>
+            <DialogDescription>
+              선택한 연도의 미사용 연차를 다음 연도로 이월 처리합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="carry-over-year">이월 대상 연도</Label>
+              <Select value={carryOverYear.toString()} onValueChange={(value) => setCarryOverYear(Number(value))}>
+                <SelectTrigger id="carry-over-year">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - 1 - i;
+                    return (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}년
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Alert>
+              <AlertDescription>
+                이 작업은 모든 직원의 {carryOverYear}년도 미사용 연차를 {carryOverYear + 1}년도로 이월합니다. 
+                이미 이월 처리된 연차가 있는 경우 중복 처리되지 않습니다.
+              </AlertDescription>
+            </Alert>
+            
+            <Alert>
+              <AlertDescription>
+                이월 규칙은 현재 설정된 휴가 정책을 따릅니다. (최대 이월 가능 일수 등)
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCarryOverDialog(false)}>취소</Button>
+            <Button
+              onClick={handleCarryOverProcess}
+              disabled={carryOverProcessing}
             >
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - 1 - i;
-                return (
-                  <MenuItem key={year} value={year}>
-                    {year}년
-                  </MenuItem>
-                );
-              })}
-            </Select>
-          </FormControl>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            이 작업은 모든 직원의 {carryOverYear}년도 미사용 연차를 {carryOverYear + 1}년도로 이월합니다. 
-            이미 이월 처리된 연차가 있는 경우 중복 처리되지 않습니다.
-          </Alert>
-          <Alert severity="info">
-            이월 규칙은 현재 설정된 휴가 정책을 따릅니다. (최대 이월 가능 일수 등)
-          </Alert>
+              {carryOverProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              이월 처리 실행
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCarryOverDialog(false)}>취소</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCarryOverProcess}
-            disabled={carryOverProcessing}
-          >
-            {carryOverProcessing ? <CircularProgress size={20} /> : '이월 처리 실행'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

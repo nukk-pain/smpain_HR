@@ -1,48 +1,39 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  IconButton,
-  Chip,
-  Paper,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Divider,
-  FormControl,
-  InputLabel,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-  TextField,
-  Badge
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   ChevronLeft,
   ChevronRight,
-  Today,
-  Person,
-  BeachAccess,
-  Event,
-  Work,
+  CalendarDays,
+  User,
+  Umbrella,
+  Calendar,
+  Briefcase,
   Settings,
-  Add,
+  Plus,
   Edit,
-  Delete
-} from '@mui/icons-material';
+  Trash2,
+  Loader2,
+} from 'lucide-react';
 import { format, 
   startOfMonth, 
   endOfMonth, 
@@ -120,92 +111,80 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   };
 
   return (
-    <Paper
-      sx={{
-        height: 100,
-        width: '100%',
-        p: 1,
-        cursor: 'pointer',
-        position: 'relative',
-        backgroundColor: isCurrentMonth ? 'background.paper' : 'background.default',
-        border: isToday ? '2px solid primary.main' : 
-                exception ? '2px solid orange' : '1px solid divider',
-        '&:hover': {
-          backgroundColor: 'action.hover'
-        }
-      }}
+    <div
+      className={`
+        h-24 w-full p-2 cursor-pointer relative border rounded-lg
+        ${isCurrentMonth ? 'bg-background' : 'bg-muted/50'}
+        ${isToday ? 'border-primary border-2' : exception ? 'border-orange-500 border-2' : 'border-border'}
+        hover:bg-accent transition-colors
+      `}
       onClick={handleClick}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 1
-        }}
-      >
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: isToday ? 'bold' : 'normal',
-            color: isCurrentMonth
+      <div className="flex justify-between items-center mb-1">
+        <span
+          className={`
+            text-sm
+            ${isToday ? 'font-bold' : 'font-normal'}
+            ${isCurrentMonth
               ? isWeekendDay
-                ? 'error.main'
-                : 'text.primary'
-              : 'text.disabled'
-          }}
+                ? 'text-red-500'
+                : 'text-foreground'
+              : 'text-muted-foreground'
+            }
+          `}
         >
           {dayNumber}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        </span>
+        <div className="flex items-center gap-1">
           {isToday && (
-            <Today fontSize="small" color="primary" />
+            <CalendarDays className="h-4 w-4 text-primary" />
           )}
           {exception && (
-            <Badge badgeContent={exception.maxConcurrentLeaves} color="warning">
-              <Settings fontSize="small" color="warning" />
-            </Badge>
+            <div className="relative">
+              <Settings className="h-4 w-4 text-orange-500" />
+              <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs bg-orange-500 hover:bg-orange-500">
+                {exception.maxConcurrentLeaves}
+              </Badge>
+            </div>
           )}
           {isManagementMode && !exception && (
-            <Add fontSize="small" color="action" />
+            <Plus className="h-4 w-4 text-muted-foreground" />
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <div className="flex flex-col gap-1">
         {approvedEvents.slice(0, 2).map((event, index) => (
-          <Chip
+          <Badge
             key={index}
-            label={event.userName ? event.userName.substring(0, 4) : '??'}
-            size="small"
-            sx={{
-              fontSize: '0.7rem',
-              height: 20,
-              backgroundColor: event.leaveType === 'annual' ? 'success.light' : 'warning.light',
-              color: event.leaveType === 'annual' ? 'success.contrastText' : 'warning.contrastText'
-            }}
-          />
+            variant={event.leaveType === 'annual' ? 'default' : 'secondary'}
+            className={`
+              text-xs h-5 justify-center
+              ${event.leaveType === 'annual' 
+                ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
+              }
+            `}
+          >
+            {event.userName ? event.userName.substring(0, 4) : '??'}
+          </Badge>
         ))}
         {pendingEvents.slice(0, 1).map((event, index) => (
-          <Chip
+          <Badge
             key={`pending-${index}`}
-            label={`${event.userName ? event.userName.substring(0, 4) : '??'}?`}
-            size="small"
-            sx={{
-              fontSize: '0.7rem',
-              height: 20,
-              backgroundColor: 'grey.300',
-              color: 'text.primary'
-            }}
-          />
+            variant="outline"
+            className="text-xs h-5 justify-center bg-gray-100 text-gray-600 hover:bg-gray-100"
+          >
+            {event.userName ? event.userName.substring(0, 4) : '??'}?
+          </Badge>
         ))}
         {(approvedEvents.length + pendingEvents.length) > 3 && (
-          <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+          <span className="text-xs text-muted-foreground">
             +{(approvedEvents.length + pendingEvents.length) - 3}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Paper>
+      </div>
+    </div>
   );
 };
 
@@ -394,13 +373,13 @@ const LeaveCalendar: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'warning';
+        return 'bg-yellow-100 text-yellow-800';
       case 'approved':
-        return 'success';
+        return 'bg-green-100 text-green-800';
       case 'rejected':
-        return 'error';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -434,97 +413,103 @@ const LeaveCalendar: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div className="space-y-6">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
           전체 직원 휴가 달력
-        </Typography>
+        </h1>
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <div className="flex items-center gap-4">
           {/* Management Mode Toggle - Only for admin/manager */}
           {hasManagementPermission && (
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={isManagementMode}
-                  onChange={(e) => setIsManagementMode(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="관리 모드"
-            />
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="management-mode"
+                checked={isManagementMode}
+                onCheckedChange={setIsManagementMode}
+              />
+              <Label htmlFor="management-mode">관리 모드</Label>
+            </div>
           )}
           
           {/* Department Filter */}
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>부서</InputLabel>
-            <Select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              label="부서"
-            >
-              <MenuItem value="all">전체</MenuItem>
-              {departments.map((dept) => (
-                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-              ))}
+          <div className="min-w-32">
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="부서" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Calendar Navigation */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton onClick={handlePreviousMonth}>
-                <ChevronLeft />
-              </IconButton>
-              <Typography variant="h6" sx={{ minWidth: 200, textAlign: 'center' }}>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousMonth}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-xl font-semibold min-w-48 text-center">
                 {format(currentDate, 'yyyy년 MM월', { locale: ko })}
-              </Typography>
-              <IconButton onClick={handleNextMonth}>
-                <ChevronRight />
-              </IconButton>
-            </Box>
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextMonth}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
-              variant="outlined"
-              startIcon={<Today />}
+              variant="outline"
               onClick={handleToday}
+              className="flex items-center gap-2"
             >
+              <CalendarDays className="h-4 w-4" />
               오늘
             </Button>
-          </Box>
+          </div>
 
           {/* Calendar Grid */}
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
           ) : (
             <>
               {/* Week Header */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, mb: 1 }}>
+              <div className="grid grid-cols-7 gap-1 mb-2">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                  <Box key={index} sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 'bold',
-                        color: index === 0 ? 'error.main' : index === 6 ? 'primary.main' : 'text.primary'
-                      }}
+                  <div key={index} className="flex justify-center p-2">
+                    <span
+                      className={`
+                        text-sm font-bold
+                        ${index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-foreground'}
+                      `}
                     >
                       {day}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 ))}
-              </Box>
+              </div>
 
               {/* Calendar Days */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+              <div className="grid grid-cols-7 gap-1">
                 {calendarDays.map((date, index) => (
-                  <Box key={index} sx={{ minHeight: 100 }}>
+                  <div key={index} className="min-h-24">
                     <CalendarDay
                       date={date}
                       isCurrentMonth={isSameMonth(date, currentDate)}
@@ -535,9 +520,9 @@ const LeaveCalendar: React.FC = () => {
                       onClick={handleDateClick}
                       onManagementClick={handleManagementClick}
                     />
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </>
           )}
         </CardContent>
@@ -545,179 +530,180 @@ const LeaveCalendar: React.FC = () => {
 
       {/* Legend */}
       <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
             범례
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label="연차"
-                size="small"
-                sx={{ backgroundColor: 'success.light', color: 'success.contrastText' }}
-              />
-              <Typography variant="body2">연차 휴가</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label="기타"
-                size="small"
-                sx={{ backgroundColor: 'warning.light', color: 'warning.contrastText' }}
-              />
-              <Typography variant="body2">기타 휴가</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label="대기?"
-                size="small"
-                sx={{ backgroundColor: 'grey.300', color: 'text.primary' }}
-              />
-              <Typography variant="body2">승인 대기</Typography>
-            </Box>
+          </h3>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                연차
+              </Badge>
+              <span className="text-sm">연차 휴가</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                기타
+              </Badge>
+              <span className="text-sm">기타 휴가</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-gray-100 text-gray-600 hover:bg-gray-100">
+                대기?
+              </Badge>
+              <span className="text-sm">승인 대기</span>
+            </div>
             {hasManagementPermission && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Badge badgeContent="2" color="warning">
-                  <Settings fontSize="small" color="warning" />
-                </Badge>
-                <Typography variant="body2">복수 휴가 허용 (숫자: 최대 인원)</Typography>
-              </Box>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Settings className="h-4 w-4 text-orange-500" />
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-orange-500 hover:bg-orange-500">
+                    2
+                  </Badge>
+                </div>
+                <span className="text-sm">복수 휴가 허용 (숫자: 최대 인원)</span>
+              </div>
             )}
             {isManagementMode && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Add fontSize="small" color="action" />
-                <Typography variant="body2">클릭하여 예외 설정 추가</Typography>
-              </Box>
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">클릭하여 예외 설정 추가</span>
+              </div>
             )}
-          </Box>
+          </div>
         </CardContent>
       </Card>
 
       {/* Day Detail Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedDate && format(selectedDate, 'yyyy년 MM월 dd일 (E)', { locale: ko })} 휴가 현황
-        </DialogTitle>
-        <DialogContent>
-          {selectedEvents.length === 0 ? (
-            <Alert severity="info">
-              이 날짜에는 휴가 신청이 없습니다.
-            </Alert>
-          ) : (
-            <List>
-              {selectedEvents.map((event, index) => (
-                <React.Fragment key={event.id}>
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar>
-                        <Person />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle1">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate && format(selectedDate, 'yyyy년 MM월 dd일 (E)', { locale: ko })} 휴가 현황
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            {selectedEvents.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  이 날짜에는 휴가 신청이 없습니다.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                {selectedEvents.map((event, index) => (
+                  <div key={event.id} className="border rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-10 w-10 bg-accent rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
                             {event.userName || '알 수 없음'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          </span>
+                          <span className="text-sm text-muted-foreground">
                             ({event.userDepartment || '부서 없음'})
-                          </Typography>
-                          <Chip
-                            label={getStatusLabel(event.status)}
-                            size="small"
-                            color={getStatusColor(event.status) as any}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="body2">
-                            {getLeaveTypeLabel(event.leaveType)} • {event.daysCount}일
-                          </Typography>
-                          <Typography variant="body2">
-                            {event.startDate && event.endDate ? 
-                              `${format(new Date(event.startDate), 'MM/dd')} ~ ${format(new Date(event.endDate), 'MM/dd')}` : 
-                              '날짜 정보 없음'
-                            }
-                          </Typography>
-                          <Typography variant="body2">
-                            사유: {event.reason || '사유 없음'}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  {index < selectedEvents.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          )}
+                          </span>
+                          <Badge
+                            className={`${getStatusColor(event.status)} hover:${getStatusColor(event.status)}`}
+                          >
+                            {getStatusLabel(event.status)}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {getLeaveTypeLabel(event.leaveType)} • {event.daysCount}일
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.startDate && event.endDate ? 
+                            `${format(new Date(event.startDate), 'MM/dd')} ~ ${format(new Date(event.endDate), 'MM/dd')}` : 
+                            '날짜 정보 없음'
+                          }
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          사유: {event.reason || '사유 없음'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCloseDialog}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>닫기</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Exception Management Dialog */}
-      <Dialog
-        open={exceptionDialogOpen}
-        onClose={() => setExceptionDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedExceptionDate && format(selectedExceptionDate, 'yyyy년 MM월 dd일 (E)', { locale: ko })} 예외 설정
-        </DialogTitle>
+      <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="최대 동시 휴가 허용 인원"
-              type="number"
-              value={exceptionForm.maxConcurrentLeaves}
-              onChange={(e) => setExceptionForm({
-                ...exceptionForm,
-                maxConcurrentLeaves: parseInt(e.target.value) || 2
-              })}
-              inputProps={{ min: 2, max: 10 }}
-              sx={{ mb: 2 }}
-              helperText="2명 이상의 직원이 동시에 휴가를 신청할 수 있습니다."
-            />
-            <TextField
-              fullWidth
-              label="설정 사유 (선택사항)"
-              multiline
-              rows={3}
-              value={exceptionForm.reason}
-              onChange={(e) => setExceptionForm({
-                ...exceptionForm,
-                reason: e.target.value
-              })}
-              placeholder="예: 연말연시, 회사 휴무일, 특별 행사일 등"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          {selectedExceptionDate && leaveExceptions.find(ex => 
-            ex.date === format(selectedExceptionDate, 'yyyy-MM-dd')
-          ) && (
-            <Button onClick={handleDeleteException} color="error" startIcon={<Delete />}>
-              삭제
+          <DialogHeader>
+            <DialogTitle>
+              {selectedExceptionDate && format(selectedExceptionDate, 'yyyy년 MM월 dd일 (E)', { locale: ko })} 예외 설정
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="max-leaves">최대 동시 휴가 허용 인원</Label>
+              <Input
+                id="max-leaves"
+                type="number"
+                value={exceptionForm.maxConcurrentLeaves}
+                onChange={(e) => setExceptionForm({
+                  ...exceptionForm,
+                  maxConcurrentLeaves: parseInt(e.target.value) || 2
+                })}
+                min={2}
+                max={10}
+                className="mt-1"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                2명 이상의 직원이 동시에 휴가를 신청할 수 있습니다.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="reason">설정 사유 (선택사항)</Label>
+              <textarea
+                id="reason"
+                rows={3}
+                value={exceptionForm.reason}
+                onChange={(e) => setExceptionForm({
+                  ...exceptionForm,
+                  reason: e.target.value
+                })}
+                placeholder="예: 연말연시, 회사 휴무일, 특별 행사일 등"
+                className="mt-1 w-full p-2 border border-input rounded-md bg-background"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            {selectedExceptionDate && leaveExceptions.find(ex => 
+              ex.date === format(selectedExceptionDate, 'yyyy-MM-dd')
+            ) && (
+              <Button 
+                onClick={handleDeleteException} 
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                삭제
+              </Button>
+            )}
+            <Button 
+              onClick={() => setExceptionDialogOpen(false)}
+              variant="outline"
+            >
+              취소
             </Button>
-          )}
-          <Button onClick={() => setExceptionDialogOpen(false)}>
-            취소
-          </Button>
-          <Button onClick={handleSaveException} variant="contained">
-            저장
-          </Button>
-        </DialogActions>
+            <Button onClick={handleSaveException}>
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

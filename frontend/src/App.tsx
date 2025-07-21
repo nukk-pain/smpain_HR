@@ -1,6 +1,6 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Box, CircularProgress } from '@mui/material'
+import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -28,9 +28,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: strin
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     )
   }
 
@@ -51,9 +51,9 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress size={60} />
-      </Box>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-16 w-16 animate-spin" />
+      </div>
     )
   }
 

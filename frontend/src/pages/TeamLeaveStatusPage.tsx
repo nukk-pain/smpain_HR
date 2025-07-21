@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Box, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import { Group, Assessment } from '@mui/icons-material';
+import { Button } from '@/components/ui/button';
+import { Users, BarChart3 } from 'lucide-react';
 import TeamLeaveStatus from '../components/TeamLeaveStatus';
 
 const TeamLeaveStatusPage: React.FC = () => {
@@ -16,27 +16,30 @@ const TeamLeaveStatusPage: React.FC = () => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          aria-label="view mode"
-        >
-          <ToggleButton value="team" aria-label="team view">
-            <Group sx={{ mr: 1 }} />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex space-x-2" role="group" aria-label="view mode">
+          <Button
+            variant={viewMode === 'team' ? 'default' : 'outline'}
+            onClick={() => setViewMode('team')}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
             팀 현황
-          </ToggleButton>
-          <ToggleButton value="department" aria-label="department view">
-            <Assessment sx={{ mr: 1 }} />
+          </Button>
+          <Button
+            variant={viewMode === 'department' ? 'default' : 'outline'}
+            onClick={() => setViewMode('department')}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
             부서 통계
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          </Button>
+        </div>
+      </div>
       
       <TeamLeaveStatus viewMode={viewMode} />
-    </Box>
+    </div>
   );
 };
 

@@ -1,44 +1,44 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Chip,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  Tabs,
-  Tab,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Business as BusinessIcon,
-  People as PeopleIcon,
-  Person as PersonIcon,
-  SupervisorAccount as SupervisorIcon,
-  Add as AddIcon,
-  Visibility as ViewIcon,
-  WorkOutline as PositionIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Building2,
+  Users,
+  User as UserIcon,
+  UserCheck,
+  Plus,
+  Eye,
+  Briefcase,
+  Edit,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
 import { Department, DepartmentEmployees, User, OrganizationChart, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
@@ -251,543 +251,559 @@ const DepartmentManagement: React.FC = () => {
 
   const renderUserTree = (user: User, level: number = 0) => {
     return (
-      <Box key={`${user._id}-${level}`} sx={{ ml: level * 3 }}>
-        <Card sx={{ mb: 1, backgroundColor: level === 0 ? '#f5f5f5' : 'white' }}>
-          <CardContent sx={{ py: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color={user.role === 'admin' ? 'error' : user.role === 'manager' ? 'warning' : 'primary'} />
-              <Typography variant="subtitle2">{user.name}</Typography>
-              <Chip label={user.role} size="small" color={user.role === 'admin' ? 'error' : user.role === 'manager' ? 'warning' : 'primary'} />
-              <Typography variant="body2" color="text.secondary">
+      <div key={`${user._id}-${level}`} style={{ marginLeft: `${level * 12}px` }}>
+        <Card className={`mb-2 ${level === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+          <CardContent className="py-2">
+            <div className="flex items-center gap-2">
+              <UserIcon className={`h-4 w-4 ${
+                user.role === 'admin' ? 'text-red-500' : 
+                user.role === 'manager' ? 'text-yellow-500' : 
+                'text-blue-500'
+              }`} />
+              <span className="font-medium text-sm">{user.name}</span>
+              <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'manager' ? 'secondary' : 'default'}>
+                {user.role}
+              </Badge>
+              <span className="text-sm text-gray-600">
                 {user.department} - {user.position}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </CardContent>
         </Card>
         {user.subordinates && user.subordinates.length > 0 && (
-          <Box sx={{ ml: 2 }}>
+          <div className="ml-4">
             {user.subordinates.map((subordinate, index) => renderUserTree(subordinate, level + 1))}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
     );
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Department & Position Management</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Department & Position Management</h1>
+        <div className="flex gap-2">
           {activeTab === 0 && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsDeptDialogOpen(true)}
-            >
+            <Button onClick={() => setIsDeptDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
               Add Department
             </Button>
           )}
           {activeTab === 1 && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsPositionDialogOpen(true)}
-            >
+            <Button onClick={() => setIsPositionDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
               Add Position
             </Button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Card sx={{ mb: 3 }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab 
-            icon={<BusinessIcon />} 
-            label="Departments" 
-            iconPosition="start"
-            sx={{ minHeight: 60 }}
-          />
-          <Tab 
-            icon={<PositionIcon />} 
-            label="Positions" 
-            iconPosition="start"
-            sx={{ minHeight: 60 }}
-          />
-        </Tabs>
-      </Card>
+      <Tabs value={activeTab === 0 ? "departments" : "positions"} onValueChange={(value) => setActiveTab(value === "departments" ? 0 : 1)} className="w-full">
+        <Card className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="departments" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Departments
+            </TabsTrigger>
+            <TabsTrigger value="positions" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Positions
+            </TabsTrigger>
+          </TabsList>
+        </Card>
 
-      {activeTab === 0 && (
-        <Grid container spacing={3}>
-        {/* Departments Overview */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <BusinessIcon color="primary" />
-                <Typography variant="h6">Departments</Typography>
-              </Box>
-              {departments.length === 0 ? (
-                <Alert severity="info">No departments found</Alert>
-              ) : (
-                <List>
-                  {departments.map((dept, index) => (
-                    <React.Fragment key={dept._id || `dept-${index}`}>
-                      <ListItem
-                        secondaryAction={
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              size="small"
-                              startIcon={<ViewIcon />}
-                              onClick={() => handleViewDepartment(dept.name)}
-                            >
-                              View
-                            </Button>
-                            <Button
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditDepartment(dept)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteDepartment(dept)}
-                            >
-                              Delete
-                            </Button>
-                          </Box>
-                        }
-                      >
-                        <ListItemIcon>
-                          <PeopleIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={dept.name}
-                          secondary={
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
-                              <Chip
-                                label={`${dept.employeeCount} employees`}
-                                size="small"
-                                color="primary"
-                              />
-                              <Chip
-                                label={`${dept.managers.length} managers`}
-                                size="small"
-                                color="secondary"
-                              />
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {index < departments.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Organization Summary */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <SupervisorIcon color="primary" />
-                <Typography variant="h6">Organization Summary</Typography>
-              </Box>
-              {organizationChart && (
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="h4" color="primary">
-                        {organizationChart.summary.totalEmployees}
-                      </Typography>
-                      <Typography variant="body2">Total Employees</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="h4" color="primary">
-                        {organizationChart.summary.totalDepartments}
-                      </Typography>
-                      <Typography variant="body2">Departments</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="h4" color="warning.main">
-                        {organizationChart.summary.managersCount}
-                      </Typography>
-                      <Typography variant="body2">Managers</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="h4" color="error.main">
-                        {organizationChart.summary.adminCount}
-                      </Typography>
-                      <Typography variant="body2">Administrators</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Organization Chart */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>Organization Chart</Typography>
-              {organizationChart && organizationChart.organizationTree.length > 0 ? (
-                <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
-                  {organizationChart.organizationTree.map((user) => renderUserTree(user))}
-                </Box>
-              ) : (
-                <Alert severity="info">No organization structure found</Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-        </Grid>
-      )}
-
-      {activeTab === 1 && (
-        <Grid container spacing={3}>
-          {/* Positions Overview */}
-          <Grid item xs={12}>
+        <TabsContent value="departments">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Departments Overview */}
             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Departments
+                </CardTitle>
+              </CardHeader>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <PositionIcon color="primary" />
-                  <Typography variant="h6">Positions</Typography>
-                </Box>
-                {positions.length === 0 ? (
-                  <Alert severity="info">No positions found</Alert>
+                {departments.length === 0 ? (
+                  <Alert>
+                    <AlertDescription>No departments found</AlertDescription>
+                  </Alert>
                 ) : (
-                  <List>
-                    {positions.map((position, index) => (
-                      <React.Fragment key={position._id || `position-${index}`}>
-                        <ListItem
-                          secondaryAction={
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Tooltip title="Edit Position">
-                                <IconButton onClick={() => handleEditPosition(position)}>
-                                  <EditIcon />
-                                </IconButton>
+                  <div className="space-y-4">
+                    {departments.map((dept, index) => (
+                      <div key={dept._id || `dept-${index}`} className="border-b last:border-b-0 pb-4 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <Users className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <h3 className="font-semibold">{dept.name}</h3>
+                              <div className="flex gap-2 mt-2">
+                                <Badge variant="outline">
+                                  {dept.employeeCount} employees
+                                </Badge>
+                                <Badge variant="secondary">
+                                  {dept.managers.length} managers
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewDepartment(dept.name)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>View</TooltipContent>
                               </Tooltip>
-                              <Tooltip title="Delete Position">
-                                <IconButton onClick={() => handleDeletePosition(position)} color="error">
-                                  <DeleteIcon />
-                                </IconButton>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditDepartment(dept)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit</TooltipContent>
                               </Tooltip>
-                            </Box>
-                          }
-                        >
-                          <ListItemIcon>
-                            <PositionIcon />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={position.title}
-                            secondary={
-                              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
-                                {position.department && (
-                                  <Chip
-                                    label={position.department}
-                                    size="small"
-                                    color="primary"
-                                  />
-                                )}
-                                <Chip
-                                  label={`Level ${position.level}`}
-                                  size="small"
-                                  color="secondary"
-                                />
-                                <Chip
-                                  label={`${position.employeeCount} employees`}
-                                  size="small"
-                                  color="default"
-                                />
-                                {position.description && (
-                                  <Typography variant="body2" color="text.secondary">
-                                    {position.description}
-                                  </Typography>
-                                )}
-                              </Box>
-                            }
-                          />
-                        </ListItem>
-                        {index < positions.length - 1 && <Divider />}
-                      </React.Fragment>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteDepartment(dept)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </List>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
-      )}
+
+            {/* Organization Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" />
+                  Organization Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {organizationChart && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {organizationChart.summary.totalEmployees}
+                      </div>
+                      <div className="text-sm text-gray-600">Total Employees</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {organizationChart.summary.totalDepartments}
+                      </div>
+                      <div className="text-sm text-gray-600">Departments</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {organizationChart.summary.managersCount}
+                      </div>
+                      <div className="text-sm text-gray-600">Managers</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">
+                        {organizationChart.summary.adminCount}
+                      </div>
+                      <div className="text-sm text-gray-600">Administrators</div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Organization Chart */}
+            <div className="col-span-full">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Organization Chart</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {organizationChart && organizationChart.organizationTree.length > 0 ? (
+                    <div className="max-h-96 overflow-auto">
+                      {organizationChart.organizationTree.map((user) => renderUserTree(user))}
+                    </div>
+                  ) : (
+                    <Alert>
+                      <AlertDescription>No organization structure found</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="positions">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Positions Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Positions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {positions.length === 0 ? (
+                  <Alert>
+                    <AlertDescription>No positions found</AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-4">
+                    {positions.map((position, index) => (
+                      <div key={position._id || `position-${index}`} className="border-b last:border-b-0 pb-4 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <Briefcase className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <h3 className="font-semibold">{position.title}</h3>
+                              <div className="flex gap-2 mt-2 flex-wrap">
+                                {position.department && (
+                                  <Badge variant="outline">
+                                    {position.department}
+                                  </Badge>
+                                )}
+                                <Badge variant="secondary">
+                                  Level {position.level}
+                                </Badge>
+                                <Badge variant="default">
+                                  {position.employeeCount} employees
+                                </Badge>
+                              </div>
+                              {position.description && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {position.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditPosition(position)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit Position</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeletePosition(position)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete Position</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Add Department Dialog */}
-      <Dialog open={isDeptDialogOpen} onClose={() => {
-        setIsDeptDialogOpen(false);
-        setIsEditMode(false);
-        setEditingDepartment(null);
-        setNewDepartment({ name: '', description: '', managerId: '' });
-      }} maxWidth="sm" fullWidth>
-        <DialogTitle>{isEditMode ? 'Edit Department' : 'Add New Department'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Department Name"
+      <Dialog open={isDeptDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsDeptDialogOpen(false);
+          setIsEditMode(false);
+          setEditingDepartment(null);
+          setNewDepartment({ name: '', description: '', managerId: '' });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edit Department' : 'Add New Department'}</DialogTitle>
+            <DialogDescription>
+              {isEditMode ? 'Update department information' : 'Create a new department'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dept-name">Department Name</Label>
+              <Input
+                id="dept-name"
                 value={newDepartment.name}
                 onChange={(e) => setNewDepartment({ ...newDepartment, name: e.target.value })}
-                required
+                placeholder="Enter department name"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dept-description">Description</Label>
+              <Input
+                id="dept-description"
                 value={newDepartment.description}
                 onChange={(e) => setNewDepartment({ ...newDepartment, description: e.target.value })}
-                multiline
-                rows={3}
+                placeholder="Enter description"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Manager</InputLabel>
-                <Select
-                  value={newDepartment.managerId}
-                  label="Manager"
-                  onChange={(e) => setNewDepartment({ ...newDepartment, managerId: e.target.value })}
-                >
-                  <MenuItem value="">No Manager</MenuItem>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dept-manager">Manager</Label>
+              <Select value={newDepartment.managerId} onValueChange={(value) => setNewDepartment({ ...newDepartment, managerId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Manager</SelectItem>
                   {users.filter(u => u.role === 'manager' || u.role === 'admin').map((user) => (
-                    <MenuItem key={user._id} value={user._id}>
+                    <SelectItem key={user._id} value={user._id}>
                       {user.name} ({user.department})
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeptDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateDepartment}>
+              {isEditMode ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsDeptDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateDepartment} variant="contained">
-            Create
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Department Employees Dialog */}
-      <Dialog open={isEmployeeDialogOpen} onClose={() => setIsEmployeeDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedDepartment?.department} - Employees
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDepartment?.department} - Employees
+            </DialogTitle>
+          </DialogHeader>
           {selectedDepartment && (
-            <Box>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                    <Typography variant="h6" color="primary">
-                      {selectedDepartment.summary.totalEmployees}
-                    </Typography>
-                    <Typography variant="body2">Total</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                    <Typography variant="h6" color="warning.main">
-                      {selectedDepartment.summary.managers}
-                    </Typography>
-                    <Typography variant="body2">Managers</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                    <Typography variant="h6" color="success.main">
-                      {selectedDepartment.summary.regular}
-                    </Typography>
-                    <Typography variant="body2">Regular</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                    <Typography variant="h6" color="info.main">
-                      {selectedDepartment.summary.contract}
-                    </Typography>
-                    <Typography variant="body2">Contract</Typography>
-                  </Box>
-                </Grid>
-              </Grid>
+            <div>
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-semibold text-blue-600">
+                    {selectedDepartment.summary.totalEmployees}
+                  </div>
+                  <div className="text-sm text-gray-600">Total</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-semibold text-yellow-600">
+                    {selectedDepartment.summary.managers}
+                  </div>
+                  <div className="text-sm text-gray-600">Managers</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-semibold text-green-600">
+                    {selectedDepartment.summary.regular}
+                  </div>
+                  <div className="text-sm text-gray-600">Regular</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-semibold text-cyan-600">
+                    {selectedDepartment.summary.contract}
+                  </div>
+                  <div className="text-sm text-gray-600">Contract</div>
+                </div>
+              </div>
               
-              <List>
+              <div className="space-y-4">
                 {selectedDepartment.employees.map((employee, index) => (
-                  <React.Fragment key={employee._id || `employee-${index}`}>
-                    <ListItem>
-                      <ListItemIcon>
-                        <PersonIcon color={employee.role === 'manager' ? 'warning' : 'primary'} />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={employee.name}
-                        secondary={
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
-                            <Chip label={employee.position} size="small" />
-                            <Chip 
-                              label={employee.role} 
-                              size="small" 
-                              color={employee.role === 'manager' ? 'warning' : 'primary'} 
-                            />
-                            <Chip 
-                              label={employee.contractType} 
-                              size="small" 
-                              color={employee.contractType === 'regular' ? 'success' : 'info'} 
-                            />
-                            <Typography variant="body2" color="text.secondary">
-                              {employee.yearsOfService} years
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    {index < selectedDepartment.employees.length - 1 && <Divider />}
-                  </React.Fragment>
+                  <div key={employee._id || `employee-${index}`} className="border-b last:border-b-0 pb-4 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <UserIcon className={`h-5 w-5 ${employee.role === 'manager' ? 'text-yellow-500' : 'text-blue-500'}`} />
+                      <div>
+                        <h4 className="font-semibold">{employee.name}</h4>
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          <Badge variant="outline">{employee.position}</Badge>
+                          <Badge variant={employee.role === 'manager' ? 'secondary' : 'default'}>
+                            {employee.role}
+                          </Badge>
+                          <Badge variant={employee.contractType === 'regular' ? 'default' : 'secondary'}>
+                            {employee.contractType}
+                          </Badge>
+                          <span className="text-sm text-gray-600">
+                            {employee.yearsOfService} years
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </List>
-            </Box>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button onClick={() => setIsEmployeeDialogOpen(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsEmployeeDialogOpen(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete department "{departmentToDelete?.name}"?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete department "{departmentToDelete?.name}"?
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
             This action cannot be undone. Make sure all employees are reassigned to other departments first.
-          </Typography>
+          </p>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteDepartment}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeleteDepartment} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Add/Edit Position Dialog */}
-      <Dialog open={isPositionDialogOpen} onClose={() => {
-        setIsPositionDialogOpen(false);
-        setIsPositionEditMode(false);
-        setEditingPosition(null);
-        setNewPosition({ title: '', description: '', department: '', level: 1 });
-      }} maxWidth="sm" fullWidth>
-        <DialogTitle>{isPositionEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Position Name"
+      <Dialog open={isPositionDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsPositionDialogOpen(false);
+          setIsPositionEditMode(false);
+          setEditingPosition(null);
+          setNewPosition({ title: '', description: '', department: '', level: 1 });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isPositionEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
+            <DialogDescription>
+              {isPositionEditMode ? 'Update position information' : 'Create a new position'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="position-name">Position Name</Label>
+              <Input
+                id="position-name"
                 value={newPosition.title}
                 onChange={(e) => setNewPosition({ ...newPosition, title: e.target.value })}
-                required
+                placeholder="Enter position name"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="position-description">Description</Label>
+              <Input
+                id="position-description"
                 value={newPosition.description}
                 onChange={(e) => setNewPosition({ ...newPosition, description: e.target.value })}
-                multiline
-                rows={3}
+                placeholder="Enter description"
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Department</InputLabel>
-                <Select
-                  value={newPosition.department}
-                  label="Department"
-                  onChange={(e) => setNewPosition({ ...newPosition, department: e.target.value })}
-                >
-                  <MenuItem value="">All Departments</MenuItem>
-                  {departments.map((dept) => (
-                    <MenuItem key={dept._id} value={dept.name}>
-                      {dept.name}
-                    </MenuItem>
-                  ))}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position-department">Department</Label>
+                <Select value={newPosition.department} onValueChange={(value) => setNewPosition({ ...newPosition, department: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Departments</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept._id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Level (직급 레벨)"
-                type="number"
-                value={newPosition.level}
-                onChange={(e) => setNewPosition({ ...newPosition, level: parseInt(e.target.value) || 1 })}
-                inputProps={{ min: 1, max: 10 }}
-                helperText="1: 신입, 2: 주니어, 3: 시니어, 4: 팀장, 5: 부장"
-              />
-            </Grid>
-          </Grid>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position-level">Level</Label>
+                <Input
+                  id="position-level"
+                  type="number"
+                  value={newPosition.level}
+                  onChange={(e) => setNewPosition({ ...newPosition, level: parseInt(e.target.value) || 1 })}
+                  min={1}
+                  max={10}
+                  placeholder="1-10"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-600">
+              1: Entry Level, 2: Junior, 3: Senior, 4: Team Lead, 5: Manager
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPositionDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreatePosition}>
+              {isPositionEditMode ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsPositionDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreatePosition} variant="contained">
-            {isPositionEditMode ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Position Delete Confirmation Dialog */}
-      <Dialog open={positionDeleteConfirmOpen} onClose={() => setPositionDeleteConfirmOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+      <Dialog open={positionDeleteConfirmOpen} onOpenChange={setPositionDeleteConfirmOpen}>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete position "{positionToDelete?.name}"?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete position "{positionToDelete?.title}"?
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
             This action cannot be undone. Make sure all employees with this position are reassigned first.
-          </Typography>
+          </p>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setPositionDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeletePosition}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPositionDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeletePosition} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

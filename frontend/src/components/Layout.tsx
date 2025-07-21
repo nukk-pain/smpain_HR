@@ -1,46 +1,41 @@
 import React, { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  AppBar,
-  Box,
-  CssBaseline,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Button,
-  Avatar,
-  Menu,
-  MenuItem,
-  Divider,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-} from '@mui/material'
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Menu as MenuIcon,
-  Dashboard,
-  People,
-  AccountBalance,
-  BeachAccess,
-  Assessment,
-  Logout,
+  LayoutDashboard as Dashboard,
+  Users as People,
+  Building as AccountBalance,
+  Umbrella as BeachAccess,
+  BarChart3 as Assessment,
+  LogOut as Logout,
   Settings,
-  VpnKey,
-  Person,
-  Business,
-  CloudUpload,
-  Event,
-  Group,
+  Key as VpnKey,
+  User as Person,
+  Building as Business,
+  Upload as CloudUpload,
+  Calendar as Event,
+  Users as Group,
   Edit as EditProfileIcon,
-} from '@mui/icons-material'
+} from 'lucide-react'
 import { useAuth } from './AuthProvider'
 import { useNotification } from './NotificationProvider'
 import { apiService } from '../services/api'
@@ -228,208 +223,149 @@ const Layout: React.FC = () => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold truncate">
           통합 관리 시스템
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
+        </h2>
+      </div>
+      <nav className="p-2">
         {filteredNavigationItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.contrastText',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
+          <button
+            key={item.text}
+            onClick={() => handleNavigation(item.path)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${
+              location.pathname === item.path
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            }`}
+          >
+            <span className="h-5 w-5 flex items-center justify-center">
+              {item.icon}
+            </span>
+            <span className="truncate">{item.text}</span>
+          </button>
         ))}
-      </List>
+      </nav>
     </div>
   )
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navigationItems.find(item => item.path === location.pathname)?.text || '대시보드'}
-          </Typography>
+    <div className="flex h-screen bg-background">
+      {/* Desktop Sidebar */}
+      <aside className="hidden sm:flex flex-col w-60 border-r">
+        {drawer}
+      </aside>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* Mobile Sidebar */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-60 p-0">
+          {drawer}
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 py-3 border-b sm:px-6">
+          <div className="flex items-center gap-4">
             <Button
-              color="inherit"
-              startIcon={<Avatar sx={{ width: 24, height: 24 }}><Person /></Avatar>}
-              onClick={handleProfileMenuOpen}
+              variant="ghost"
+              size="sm"
+              className="sm:hidden"
+              onClick={handleDrawerToggle}
+              aria-label="menu"
             >
-              {user?.name || '사용자'}
+              <MenuIcon className="h-5 w-5" />
             </Button>
-          </Box>
+            <h1 className="text-xl font-semibold truncate">
+              {navigationItems.find(item => item.path === location.pathname)?.text || '대시보드'}
+            </h1>
+          </div>
 
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleProfileMenuClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-          >
-            <MenuItem onClick={handleProfileEdit}>
-              <ListItemIcon>
-                <EditProfileIcon fontSize="small" />
-              </ListItemIcon>
-              내 정보 수정
-            </MenuItem>
-            <MenuItem onClick={handlePasswordChangeOpen}>
-              <ListItemIcon>
-                <VpnKey fontSize="small" />
-              </ListItemIcon>
-              비밀번호 변경
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <Logout fontSize="small" />
-              </ListItemIcon>
-              로그아웃
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback>
+                    <Person className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:inline">{user?.name || '사용자'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleProfileEdit}>
+                <EditProfileIcon className="mr-2 h-4 w-4" />
+                내 정보 수정
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePasswordChangeOpen}>
+                <VpnKey className="mr-2 h-4 w-4" />
+                비밀번호 변경
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <Logout className="mr-2 h-4 w-4" />
+                로그아웃
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
 
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: 'background.default',
-          minHeight: '100vh',
-        }}
-      >
-        <Toolbar />
-        <Outlet />
-      </Box>
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Password Change Dialog */}
-      <Dialog 
-        open={passwordDialogOpen} 
-        onClose={handlePasswordChangeClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>비밀번호 변경</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            label="현재 비밀번호"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={passwordData.currentPassword}
-            onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="새 비밀번호"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={passwordData.newPassword}
-            onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="새 비밀번호 확인"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={passwordData.confirmPassword}
-            onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-          />
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => !open && handlePasswordChangeClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>비밀번호 변경</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">현재 비밀번호</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">새 비밀번호</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handlePasswordChangeClose}>
+              취소
+            </Button>
+            <Button 
+              onClick={handlePasswordChange}
+              disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+            >
+              변경
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handlePasswordChangeClose}>취소</Button>
-          <Button 
-            onClick={handlePasswordChange} 
-            variant="contained"
-            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-          >
-            변경
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }
 

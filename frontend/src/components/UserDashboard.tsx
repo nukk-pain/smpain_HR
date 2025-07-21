@@ -1,34 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  CircularProgress,
-  Alert,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
-  Divider,
-  Button,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-} from '@mui/material';
+} from '@/components/ui/table';
 import {
-  CalendarToday,
-  MonetizationOn,
-  BeachAccess,
+  CalendarDays as CalendarToday,
+  DollarSign as MonetizationOn,
+  Umbrella as BeachAccess,
   TrendingUp,
-  Person,
-  Schedule,
-} from '@mui/icons-material';
+  User as Person,
+  Clock as Schedule,
+  Loader2,
+} from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { apiService } from '../services/api';
 import { format } from 'date-fns';
@@ -104,16 +95,16 @@ const UserDashboard: React.FC = () => {
     }
   };
 
-  const getStatusChip = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Chip label="승인됨" color="success" size="small" />;
+        return <Badge variant="default" className="bg-green-100 text-green-800">승인됨</Badge>;
       case 'pending':
-        return <Chip label="대기중" color="warning" size="small" />;
+        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">대기중</Badge>;
       case 'rejected':
-        return <Chip label="거부됨" color="error" size="small" />;
+        return <Badge variant="destructive">거부됨</Badge>;
       default:
-        return <Chip label={status} size="small" />;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -132,186 +123,177 @@ const UserDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-4">
+        <AlertDescription>
+          {error}
+        </AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">
         👋 {user?.name}님의 대시보드
-      </Typography>
+      </h1>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* 개인 정보 카드 */}
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <Person sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">개인 정보</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                부서: {user?.department}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                직급: {user?.position}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <Person className="h-5 w-5 mr-2 text-primary" />
+              <h3 className="text-lg font-semibold">개인 정보</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">
+              부서: {user?.department}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              직급: {user?.position}
+            </p>
+          </CardContent>
+        </Card>
 
         {/* 휴가 현황 */}
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <BeachAccess sx={{ mr: 1, color: 'success.main' }} />
-                <Typography variant="h6">휴가 현황</Typography>
-              </Box>
-              <Typography variant="h4" color="success.main">
-                {stats?.leaveBalance.remainingAnnualLeave || 0}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                잔여 연차 / {stats?.leaveBalance.totalAnnualLeave || 0}일
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                사용: {stats?.leaveBalance.usedAnnualLeave || 0}일
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <BeachAccess className="h-5 w-5 mr-2 text-green-600" />
+              <h3 className="text-lg font-semibold">휴가 현황</h3>
+            </div>
+            <div className="text-3xl font-bold text-green-600 mb-2">
+              {stats?.leaveBalance.remainingAnnualLeave || 0}
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">
+              잔여 연차 / {stats?.leaveBalance.totalAnnualLeave || 0}일
+            </p>
+            <p className="text-sm text-muted-foreground">
+              사용: {stats?.leaveBalance.usedAnnualLeave || 0}일
+            </p>
+          </CardContent>
+        </Card>
 
         {/* 급여 정보 - Admin만 표시 */}
         {user?.role === 'admin' && (
-          <Grid item xs={12} md={6} lg={3}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <MonetizationOn sx={{ mr: 1, color: 'warning.main' }} />
-                  <Typography variant="h6">급여 정보</Typography>
-                </Box>
-                <Typography variant="h4" color="warning.main">
-                  {(stats?.payroll.baseSalary || 0).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  기본급 (원)
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stats?.payroll.currentMonth} 기준
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <MonetizationOn className="h-5 w-5 mr-2 text-amber-600" />
+                <h3 className="text-lg font-semibold">급여 정보</h3>
+              </div>
+              <div className="text-3xl font-bold text-amber-600 mb-2">
+                {(stats?.payroll.baseSalary || 0).toLocaleString()}
+              </div>
+              <p className="text-sm text-muted-foreground mb-1">
+                기본급 (원)
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {stats?.payroll.currentMonth} 기준
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {/* 대기중인 신청 */}
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <Schedule sx={{ mr: 1, color: 'info.main' }} />
-                <Typography variant="h6">대기중인 신청</Typography>
-              </Box>
-              <Typography variant="h4" color="info.main">
-                {stats?.recentLeaves.filter(leave => leave.status === 'pending').length || 0}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                승인 대기중
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <Schedule className="h-5 w-5 mr-2 text-blue-600" />
+              <h3 className="text-lg font-semibold">대기중인 신청</h3>
+            </div>
+            <div className="text-3xl font-bold text-blue-600 mb-2">
+              {stats?.recentLeaves.filter(leave => leave.status === 'pending').length || 0}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              승인 대기중
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* 최근 휴가 신청 내역 */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                📋 최근 휴가 신청 내역
-              </Typography>
-              {stats?.recentLeaves && stats.recentLeaves.length > 0 ? (
-                <TableContainer component={Paper} elevation={0}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>휴가 유형</TableCell>
-                        <TableCell>시작일</TableCell>
-                        <TableCell>종료일</TableCell>
-                        <TableCell>일수</TableCell>
-                        <TableCell>사유</TableCell>
-                        <TableCell>상태</TableCell>
-                        <TableCell>신청일</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {stats.recentLeaves.slice(0, 10).map((leave, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{getLeaveTypeLabel(leave.leaveType)}</TableCell>
-                          <TableCell>
-                            {format(new Date(leave.startDate), 'yyyy.MM.dd', { locale: ko })}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(leave.endDate), 'yyyy.MM.dd', { locale: ko })}
-                          </TableCell>
-                          <TableCell>{leave.daysCount}일</TableCell>
-                          <TableCell>{leave.reason}</TableCell>
-                          <TableCell>{getStatusChip(leave.status)}</TableCell>
-                          <TableCell>
-                            {format(new Date(leave.createdAt), 'yyyy.MM.dd', { locale: ko })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  아직 휴가 신청 내역이 없습니다.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* 최근 휴가 신청 내역 */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            📋 최근 휴가 신청 내역
+          </h3>
+          {stats?.recentLeaves && stats.recentLeaves.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>휴가 유형</TableHead>
+                    <TableHead>시작일</TableHead>
+                    <TableHead>종료일</TableHead>
+                    <TableHead>일수</TableHead>
+                    <TableHead>사유</TableHead>
+                    <TableHead>상태</TableHead>
+                    <TableHead>신청일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.recentLeaves.slice(0, 10).map((leave, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{getLeaveTypeLabel(leave.leaveType)}</TableCell>
+                      <TableCell>
+                        {format(new Date(leave.startDate), 'yyyy.MM.dd', { locale: ko })}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(leave.endDate), 'yyyy.MM.dd', { locale: ko })}
+                      </TableCell>
+                      <TableCell>{leave.daysCount}일</TableCell>
+                      <TableCell>{leave.reason}</TableCell>
+                      <TableCell>{getStatusBadge(leave.status)}</TableCell>
+                      <TableCell>
+                        {format(new Date(leave.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              아직 휴가 신청 내역이 없습니다.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* 빠른 액션 */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                🚀 빠른 액션
-              </Typography>
-              <Box display="flex" gap={2}>
-                <Button 
-                  variant="contained" 
-                  startIcon={<BeachAccess />}
-                  onClick={() => window.location.href = '/leave'}
-                >
-                  휴가 신청하기
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<CalendarToday />}
-                  onClick={() => window.location.href = '/leave'}
-                >
-                  휴가 내역 보기
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+      {/* 빠른 액션 */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            🚀 빠른 액션
+          </h3>
+          <div className="flex gap-4">
+            <Button 
+              onClick={() => window.location.href = '/leave'}
+              className="flex items-center gap-2"
+            >
+              <BeachAccess className="h-4 w-4" />
+              휴가 신청하기
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = '/leave'}
+              className="flex items-center gap-2"
+            >
+              <CalendarToday className="h-4 w-4" />
+              휴가 내역 보기
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

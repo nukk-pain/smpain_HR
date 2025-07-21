@@ -1,31 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Chip,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
-  Work as WorkIcon,
-  Add as AddIcon,
+  Briefcase,
+  Plus,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+  Trash2,
+  Loader2,
+} from 'lucide-react';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 
@@ -145,185 +139,191 @@ const PositionManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Position Management</Typography>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Position Management</h1>
         <Button
-          variant="contained"
-          startIcon={<AddIcon />}
           onClick={() => setIsDialogOpen(true)}
+          className="flex items-center gap-2"
         >
+          <Plus className="h-4 w-4" />
           Add Position
         </Button>
-      </Box>
+      </div>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <WorkIcon color="primary" />
-                <Typography variant="h6">Available Positions</Typography>
-                <Chip label={`${positions.length} positions`} size="small" color="primary" />
-              </Box>
-              
-              {positions.length === 0 ? (
-                <Alert severity="info">
-                  No positions found. Click "Add Position" to create the first position.
-                </Alert>
-              ) : (
-                <List>
-                  {positions.map((position, index) => (
-                    <React.Fragment key={position._id}>
-                      <ListItem
-                        secondaryAction={
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              size="small"
-                              color="primary"
-                              startIcon={<EditIcon />}
-                              onClick={() => handleEditPosition(position)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<DeleteIcon />}
-                              onClick={() => handleDeletePosition(position)}
-                            >
-                              Delete
-                            </Button>
-                          </Box>
-                        }
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase className="h-5 w-5 text-blue-600" />
+            <h2 className="text-lg font-semibold">Available Positions</h2>
+            <Badge className="ml-2" variant="secondary">
+              {positions.length} positions
+            </Badge>
+          </div>
+          
+          {positions.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                No positions found. Click "Add Position" to create the first position.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              {positions.map((position, index) => (
+                <React.Fragment key={position._id}>
+                  <div className="flex items-start justify-between p-4 border rounded-lg">
+                    <div className="flex items-start gap-3 flex-1">
+                      <Briefcase className="h-5 w-5 text-gray-500 mt-1" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{position.title}</h3>
+                          <Badge variant="secondary">Level {position.level}</Badge>
+                          {position.department && (
+                            <Badge variant="outline">{position.department}</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {position.description}
+                        </p>
+                        {position.responsibilities.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            <strong>Key Responsibilities:</strong> {position.responsibilities.slice(0, 2).join(', ')}
+                            {position.responsibilities.length > 2 && '...'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditPosition(position)}
+                        className="flex items-center gap-1"
                       >
-                        <ListItemIcon>
-                          <WorkIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="subtitle1" fontWeight={600}>
-                                {position.title}
-                              </Typography>
-                              <Chip label={`Level ${position.level}`} size="small" color="secondary" />
-                              {position.department && (
-                                <Chip label={position.department} size="small" variant="outlined" />
-                              )}
-                            </Box>
-                          }
-                          secondary={
-                            <Box sx={{ mt: 1 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                {position.description}
-                              </Typography>
-                              {position.responsibilities.length > 0 && (
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                  <strong>Key Responsibilities:</strong> {position.responsibilities.slice(0, 2).join(', ')}
-                                  {position.responsibilities.length > 2 && '...'}
-                                </Typography>
-                              )}
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {index < positions.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                        <EditIcon className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeletePosition(position)}
+                        className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                  {index < positions.length - 1 && <div className="border-b my-4" />}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Add/Edit Position Dialog */}
-      <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={8}>
-              <TextField
-                fullWidth
-                label="Position Title"
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="title">Position Title *</Label>
+              <Input
+                id="title"
                 value={newPosition.title}
                 onChange={(e) => setNewPosition({ ...newPosition, title: e.target.value })}
+                placeholder="e.g., Senior Software Engineer"
                 required
               />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Level"
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="level">Level *</Label>
+              <Input
+                id="level"
                 type="number"
                 value={newPosition.level}
                 onChange={(e) => setNewPosition({ ...newPosition, level: parseInt(e.target.value) || 1 })}
-                inputProps={{ min: 1, max: 10 }}
+                min="1"
+                max="10"
                 required
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Department (Optional)"
+            </div>
+            
+            <div className="space-y-2 sm:col-span-3">
+              <Label htmlFor="department">Department (Optional)</Label>
+              <Input
+                id="department"
                 value={newPosition.department}
                 onChange={(e) => setNewPosition({ ...newPosition, department: e.target.value })}
+                placeholder="e.g., Engineering, Marketing"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
+            </div>
+            
+            <div className="space-y-2 sm:col-span-3">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
                 value={newPosition.description}
                 onChange={(e) => setNewPosition({ ...newPosition, description: e.target.value })}
+                placeholder="Brief description of the position..."
+                rows={3}
                 required
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Key Responsibilities (one per line)"
-                multiline
-                rows={4}
+            </div>
+            
+            <div className="space-y-2 sm:col-span-3 lg:col-span-1">
+              <Label htmlFor="responsibilities">Key Responsibilities (one per line)</Label>
+              <Textarea
+                id="responsibilities"
                 value={newPosition.responsibilities}
                 onChange={(e) => setNewPosition({ ...newPosition, responsibilities: e.target.value })}
-                placeholder="Manage team members&#10;Oversee project deliverables&#10;Report to upper management"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Requirements (one per line)"
-                multiline
+                placeholder="Manage team members
+Oversee project deliverables
+Report to upper management"
                 rows={4}
+              />
+            </div>
+            
+            <div className="space-y-2 sm:col-span-3 lg:col-span-2">
+              <Label htmlFor="requirements">Requirements (one per line)</Label>
+              <Textarea
+                id="requirements"
                 value={newPosition.requirements}
                 onChange={(e) => setNewPosition({ ...newPosition, requirements: e.target.value })}
-                placeholder="Bachelor's degree required&#10;3+ years experience&#10;Strong communication skills"
+                placeholder="Bachelor's degree required
+3+ years experience
+Strong communication skills"
+                rows={4}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={handleCloseDialog}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreatePosition}
+              disabled={!newPosition.title || !newPosition.description}
+            >
+              {isEditMode ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button 
-            onClick={handleCreatePosition} 
-            variant="contained"
-            disabled={!newPosition.title || !newPosition.description}
-          >
-            {isEditMode ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

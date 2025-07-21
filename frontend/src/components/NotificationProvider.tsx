@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { Snackbar, Alert, AlertColor } from '@mui/material'
+import React, { createContext, useContext, ReactNode } from 'react'
+import { toast } from '@/components/ui/use-toast'
+import { Toaster } from '@/components/ui/toaster'
 import { Notification } from '../types'
 
 interface NotificationContextType {
   showNotification: (
-    type: AlertColor,
+    type: 'success' | 'error' | 'warning' | 'info',
     title: string,
     message?: string,
     duration?: number
@@ -30,35 +31,20 @@ interface NotificationProviderProps {
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-
   const showNotification = (
-    type: AlertColor,
+    type: 'success' | 'error' | 'warning' | 'info',
     title: string,
     message: string = '',
-    duration: number = 5000
+    duration?: number
   ) => {
-    const id = Date.now().toString()
-    const notification: Notification = {
-      id,
-      type,
+    const variant = type === 'error' ? 'destructive' : 'default'
+    
+    toast({
       title,
-      message,
-      duration,
-    }
-
-    setNotifications(prev => [...prev, notification])
-
-    // Auto-remove notification after duration
-    if (duration > 0) {
-      setTimeout(() => {
-        removeNotification(id)
-      }, duration)
-    }
-  }
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id))
+      description: message || undefined,
+      variant,
+      duration: duration || 5000,
+    })
   }
 
   const showSuccess = (message: string, duration?: number) => {
@@ -88,33 +74,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      
-      {/* Render notifications */}
-      {notifications.map((notification, index) => (
-        <Snackbar
-          key={notification.id}
-          open={true}
-          autoHideDuration={notification.duration}
-          onClose={() => removeNotification(notification.id)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          style={{ marginTop: index * 60 }} // Stack notifications
-        >
-          <Alert
-            onClose={() => removeNotification(notification.id)}
-            severity={notification.type}
-            variant="filled"
-            sx={{ width: '100%' }}
-          >
-            <strong>{notification.title}</strong>
-            {notification.message && (
-              <>
-                <br />
-                {notification.message}
-              </>
-            )}
-          </Alert>
-        </Snackbar>
-      ))}
+      <Toaster />
     </NotificationContext.Provider>
   )
 }

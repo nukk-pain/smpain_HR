@@ -1,33 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Grid,
-  Typography,
-  Box,
-  Alert,
-  Divider,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Chip,
-  CircularProgress
-} from '@mui/material';
+} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  SwapHoriz as SwapHorizIcon,
-  Cancel as CancelIcon
-} from '@mui/icons-material';
+  ArrowLeftRight as SwapHorizIcon,
+  X as CancelIcon,
+  Loader2
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useNotification } from './NotificationProvider';
@@ -172,13 +179,13 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
   const getAdjustmentTypeIcon = (type: string) => {
     switch (type) {
       case 'add':
-        return <TrendingUpIcon color="success" />;
+        return <TrendingUpIcon className="h-4 w-4 text-green-600" />;
       case 'subtract':
-        return <TrendingDownIcon color="error" />;
+        return <TrendingDownIcon className="h-4 w-4 text-red-600" />;
       case 'carry_over':
-        return <SwapHorizIcon color="info" />;
+        return <SwapHorizIcon className="h-4 w-4 text-blue-600" />;
       case 'cancel_usage':
-        return <CancelIcon color="warning" />;
+        return <CancelIcon className="h-4 w-4 text-orange-600" />;
       default:
         return null;
     }
@@ -207,167 +214,155 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
 
   if (detailsLoading) {
     return (
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogContent>
-          <Box display="flex" justifyContent="center" alignItems="center" py={4}>
-            <CircularProgress />
-          </Box>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl">
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         </DialogContent>
       </Dialog>
     );
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        ⚙️ {employeeName}님 연차 조정
-      </DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            ⚙️ {employeeName}님 연차 조정
+          </DialogTitle>
+        </DialogHeader>
         {employeeDetails && employeeDetails.leaveInfo ? (
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+          <div className="space-y-6 mt-4">
             {/* 현재 연차 현황 */}
-            <Grid xs={12}>
-              <Typography variant="h6" gutterBottom>
+            <div>
+              <h3 className="text-lg font-semibold mb-3">
                 현재 연차 현황
-              </Typography>
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Grid container spacing={2}>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      기본 연차
-                    </Typography>
-                    <Typography variant="h6">
-                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      ({employeeDetails?.employee?.yearsOfService || 0}년차)
-                    </Typography>
-                  </Grid>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      이월 연차
-                    </Typography>
-                    <Typography variant="h6">
-                      0일
-                    </Typography>
-                  </Grid>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      조정 연차
-                    </Typography>
-                    <Typography variant="h6" color="info.main">
-                      {employeeDetails?.adjustments?.length || 0}건
-                    </Typography>
-                  </Grid>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      총 연차
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
-                    </Typography>
-                  </Grid>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      사용 연차
-                    </Typography>
-                    <Typography variant="h6">
-                      {employeeDetails?.leaveInfo?.totalUsedThisYear || 0}일
-                    </Typography>
-                  </Grid>
-                  <Grid xs={6} md={3}>
-                    <Typography variant="body2" color="text.secondary">
-                      잔여 연차
-                    </Typography>
-                    <Typography variant="h6" color="success.main">
-                      {employeeDetails?.leaveInfo?.currentBalance || 0}일
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
+              </h3>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">기본 연차</p>
+                      <p className="text-xl font-semibold">
+                        {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ({employeeDetails?.employee?.yearsOfService || 0}년차)
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">이월 연차</p>
+                      <p className="text-xl font-semibold">0일</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">조정 연차</p>
+                      <p className="text-xl font-semibold text-blue-600">
+                        {employeeDetails?.adjustments?.length || 0}건
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">총 연차</p>
+                      <p className="text-xl font-semibold text-blue-600">
+                        {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">사용 연차</p>
+                      <p className="text-xl font-semibold">
+                        {employeeDetails?.leaveInfo?.totalUsedThisYear || 0}일
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">잔여 연차</p>
+                      <p className="text-xl font-semibold text-green-600">
+                        {employeeDetails?.leaveInfo?.currentBalance || 0}일
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Grid xs={12}>
-              <Divider />
-            </Grid>
+            <div className="border-b"></div>
 
             {/* 조정 옵션 */}
-            <Grid xs={12}>
-              <Typography variant="h6" gutterBottom>
+            <div>
+              <h3 className="text-lg font-semibold mb-3">
                 🔧 조정 옵션
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="조정 유형"
-                    value={adjustmentType}
-                    onChange={(e) => setAdjustmentType(e.target.value as any)}
-                  >
-                    <MenuItem value="add">추가 지급</MenuItem>
-                    <MenuItem value="subtract">차감</MenuItem>
-                    <MenuItem value="carry_over">이월 조정</MenuItem>
-                    <MenuItem value="cancel_usage">사용 취소</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="adjustmentType">조정 유형</Label>
+                  <Select value={adjustmentType} onValueChange={(value) => setAdjustmentType(value as any)}>
+                    <SelectTrigger id="adjustmentType">
+                      <SelectValue placeholder="조정 유형을 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="add">추가 지급</SelectItem>
+                      <SelectItem value="subtract">차감</SelectItem>
+                      <SelectItem value="carry_over">이월 조정</SelectItem>
+                      <SelectItem value="cancel_usage">사용 취소</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">조정 일수</Label>
+                  <Input
+                    id="amount"
                     type="number"
-                    label="조정 일수"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    inputProps={{ min: 0, max: 50 }}
+                    min={0}
+                    max={50}
                   />
-                </Grid>
-                <Grid xs={12}>
-                  <TextField
-                    fullWidth
-                    label="조정 사유"
-                    multiline
-                    rows={3}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="reason">조정 사유</Label>
+                  <Textarea
+                    id="reason"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="연차 조정 사유를 입력하세요..."
+                    rows={3}
                   />
-                </Grid>
-              </Grid>
-            </Grid>
+                </div>
+              </div>
+            </div>
 
             {/* 미리보기 */}
             {amount > 0 && (
-              <Grid xs={12}>
-                <Alert severity="info">
-                  <Typography variant="body2">
+              <div>
+                <Alert>
+                  <AlertDescription>
                     <strong>조정 미리보기:</strong><br />
                     현재 잔여 연차: {employeeDetails?.leaveInfo?.currentBalance || 0}일<br />
                     조정 후 잔여 연차: {calculatePreviewBalance()}일<br />
                     변경량: {adjustmentType === 'add' ? '+' : '-'}{amount}일
-                  </Typography>
+                  </AlertDescription>
                 </Alert>
-              </Grid>
+              </div>
             )}
 
             {/* 조정 히스토리 */}
             {(employeeDetails?.adjustments?.length || 0) > 0 && (
-              <Grid xs={12}>
-                <Typography variant="h6" gutterBottom>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">
                   조정 히스토리
-                </Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
+                </h3>
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell>날짜</TableCell>
-                        <TableCell>유형</TableCell>
-                        <TableCell align="center">일수</TableCell>
-                        <TableCell>사유</TableCell>
-                        <TableCell>조정자</TableCell>
-                        <TableCell align="center">조정 전</TableCell>
-                        <TableCell align="center">조정 후</TableCell>
+                        <TableHead>날짜</TableHead>
+                        <TableHead>유형</TableHead>
+                        <TableHead className="text-center">일수</TableHead>
+                        <TableHead>사유</TableHead>
+                        <TableHead>조정자</TableHead>
+                        <TableHead className="text-center">조정 전</TableHead>
+                        <TableHead className="text-center">조정 후</TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {(employeeDetails?.adjustments || []).slice(0, 5).map((adjustment) => (
                         <TableRow key={adjustment._id}>
@@ -375,46 +370,45 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                             {format(new Date(adjustment.adjustedAt), 'yyyy-MM-dd HH:mm', { locale: ko })}
                           </TableCell>
                           <TableCell>
-                            <Chip
-                              icon={getAdjustmentTypeIcon(adjustment.type)}
-                              label={getAdjustmentTypeLabel(adjustment.type)}
-                              color={getAdjustmentTypeColor(adjustment.type) as any}
-                              size="small"
-                            />
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              {getAdjustmentTypeIcon(adjustment.type)}
+                              {getAdjustmentTypeLabel(adjustment.type)}
+                            </Badge>
                           </TableCell>
-                          <TableCell align="center">
+                          <TableCell className="text-center">
                             {adjustment.type === 'add' ? '+' : '-'}{adjustment.amount}일
                           </TableCell>
                           <TableCell>{adjustment.reason}</TableCell>
                           <TableCell>{adjustment.adjustedByName}</TableCell>
-                          <TableCell align="center">{adjustment.beforeBalance}일</TableCell>
-                          <TableCell align="center">{adjustment.afterBalance}일</TableCell>
+                          <TableCell className="text-center">{adjustment.beforeBalance}일</TableCell>
+                          <TableCell className="text-center">{adjustment.afterBalance}일</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
-              </Grid>
+                </div>
+              </div>
             )}
-          </Grid>
+          </div>
         ) : (
           !detailsLoading && (
-            <Alert severity="warning">
-              직원 연차 정보를 불러올 수 없습니다.
+            <Alert>
+              <AlertDescription>
+                직원 연차 정보를 불러올 수 없습니다.
+              </AlertDescription>
             </Alert>
           )
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>취소</Button>
+      <DialogFooter>
+        <Button variant="outline" onClick={handleClose}>취소</Button>
         <Button
           onClick={handleSubmit}
-          variant="contained"
           disabled={loading || !amount || !reason.trim()}
         >
-          {loading ? <CircularProgress size={20} /> : '적용하기'}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : '적용하기'}
         </Button>
-      </DialogActions>
+      </DialogFooter>
     </Dialog>
   );
 };

@@ -1,48 +1,48 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  IconButton,
-  Tooltip,
-  Badge,
-  Avatar,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Alert,
-  Stack,
-  Tab,
-  Tabs,
-  LinearProgress,
-  CircularProgress
-} from '@mui/material';
+} from '@/components/ui/table';
 import {
-  Check as CheckIcon,
-  Close as CloseIcon,
-  CalendarToday as CalendarIcon,
-  Person as PersonIcon,
-  BeachAccess as BeachAccessIcon,
-  LocalHospital as SickIcon,
-  Event as EventIcon,
-  Work as WorkIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  Schedule as ScheduleIcon
-} from '@mui/icons-material';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Check,
+  X,
+  Calendar,
+  User,
+  Umbrella,
+  Stethoscope,
+  CalendarDays,
+  Briefcase,
+  TrendingUp,
+  AlertTriangle,
+  Clock,
+  Loader2,
+} from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/api';
@@ -71,36 +71,9 @@ interface LeaveRequest {
   approvalComment?: string;
 }
 
-// TabPanel 컴포넌트
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
 const EmployeeLeaveManagement: React.FC = () => {
   // Tab management
-  const [tabValue, setTabValue] = useState(0);
+  const [activeTab, setActiveTab] = useState('approval');
   
   // Leave requests data
   const [pendingRequests, setPendingRequests] = useState<LeaveRequest[]>([]);
@@ -245,17 +218,17 @@ const EmployeeLeaveManagement: React.FC = () => {
   const getLeaveTypeIcon = (type: string) => {
     switch (type) {
       case 'annual':
-        return <BeachAccessIcon sx={{ color: '#2196f3' }} />;
+        return <Umbrella className="h-5 w-5 text-blue-500" />;
       case 'sick':
-        return <SickIcon sx={{ color: '#f44336' }} />;
+        return <Stethoscope className="h-5 w-5 text-red-500" />;
       case 'personal':
-        return <PersonIcon sx={{ color: '#ff9800' }} />;
+        return <User className="h-5 w-5 text-orange-500" />;
       case 'special':
-        return <EventIcon sx={{ color: '#9c27b0' }} />;
+        return <CalendarDays className="h-5 w-5 text-purple-500" />;
       case 'substitute':
-        return <WorkIcon sx={{ color: '#607d8b' }} />;
+        return <Briefcase className="h-5 w-5 text-gray-500" />;
       default:
-        return <CalendarIcon sx={{ color: '#9e9e9e' }} />;
+        return <Calendar className="h-5 w-5 text-gray-400" />;
     }
   };
 
@@ -273,13 +246,13 @@ const EmployeeLeaveManagement: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'warning';
+        return 'bg-yellow-100 text-yellow-800';
       case 'approved':
-        return 'success';
+        return 'bg-green-100 text-green-800';
       case 'rejected':
-        return 'error';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -306,356 +279,398 @@ const EmployeeLeaveManagement: React.FC = () => {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
   if (user?.role !== 'admin' && user?.role !== 'manager') {
     return (
-      <Box p={3}>
-        <Alert severity="error">
-          접근 권한이 없습니다.
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertDescription>
+            접근 권한이 없습니다.
+          </AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold text-blue-600">
         👥 직원 휴가 관리
-      </Typography>
+      </h1>
 
       <Card>
-        <CardContent>
-          {/* 탭 네비게이션 */}
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="leave management tabs">
-            <Tab
-              label={
-                <Badge badgeContent={pendingRequests.length} color="error">
-                  승인 관리
-                </Badge>
-              }
-            />
-            <Tab
-              label={
-                <Badge badgeContent={pendingCancellations.length} color="warning">
-                  취소 승인
-                </Badge>
-              }
-            />
+        <CardContent className="p-6">
+          {/* Tab Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="approval" className="flex items-center gap-2">
+                승인 관리
+                {pendingRequests.length > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {pendingRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="cancellation" className="flex items-center gap-2">
+                취소 승인
+                {pendingCancellations.length > 0 && (
+                  <Badge className="ml-2 bg-yellow-500 hover:bg-yellow-600">
+                    {pendingCancellations.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            {loading && (
+              <div className="mt-4">
+                <Progress value={50} className="h-2" />
+              </div>
+            )}
+
+            {/* Approval Management Tab */}
+            <TabsContent value="approval" className="mt-6">
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : pendingRequests.length === 0 ? (
+                <div className="flex justify-center items-center py-8">
+                  <p className="text-muted-foreground">
+                    승인 대기 중인 휴가 신청이 없습니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>신청자</TableHead>
+                        <TableHead>부서</TableHead>
+                        <TableHead>휴가 종류</TableHead>
+                        <TableHead>기간</TableHead>
+                        <TableHead>일수</TableHead>
+                        <TableHead>사유</TableHead>
+                        <TableHead>신청일</TableHead>
+                        <TableHead>작업</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingRequests.map((request) => (
+                        <TableRow key={request._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback>
+                                  {request.userName?.[0] || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              {request.userName || '사용자 정보 없음'}
+                            </div>
+                          </TableCell>
+                          <TableCell>{request.userDepartment || '부서 정보 없음'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getLeaveTypeIcon(request.leaveType)}
+                              {getLeaveTypeLabel(request.leaveType)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {safeFormatDate(request.startDate)} ~{' '}
+                            {safeFormatDate(request.endDate)}
+                          </TableCell>
+                          <TableCell>{request.daysCount || 0}일</TableCell>
+                          <TableCell>{request.reason || '-'}</TableCell>
+                          <TableCell>
+                            {safeFormatDate(request.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (request) {
+                                          setSelectedRequest(request);
+                                          handleApproval('approve');
+                                        }
+                                      }}
+                                      className="text-green-600 hover:text-green-700"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>승인</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => request && handleOpenApprovalDialog(request)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>거부</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Cancellation Approval Tab */}
+            <TabsContent value="cancellation" className="mt-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>직원명</TableHead>
+                      <TableHead>휴가 종류</TableHead>
+                      <TableHead>기간</TableHead>
+                      <TableHead>일수</TableHead>
+                      <TableHead>원래 사유</TableHead>
+                      <TableHead>취소 사유</TableHead>
+                      <TableHead>취소 신청일</TableHead>
+                      <TableHead>작업</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingCancellations.map((request) => (
+                      <TableRow key={request._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                {request.userName?.[0] || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {request.userName}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {request.userDepartment}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getLeaveTypeIcon(request.leaveType)}
+                            {getLeaveTypeLabel(request.leaveType)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {request.startDate === request.endDate
+                            ? safeFormatDate(request.startDate)
+                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
+                          }
+                        </TableCell>
+                        <TableCell>{request.daysCount}일</TableCell>
+                        <TableCell>
+                          <div className="text-sm max-w-48 truncate">
+                            {request.reason}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm max-w-48 truncate">
+                            {request.cancellationReason}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {safeFormatDate(request.cancellationRequestedAt)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setApprovalComment('');
+                                      setApprovalDialogOpen(true);
+                                    }}
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>취소 승인</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setApprovalComment('');
+                                      setApprovalDialogOpen(true);
+                                    }}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>취소 거부</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {pendingCancellations.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            대기 중인 취소 신청이 없습니다.
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
           </Tabs>
         </CardContent>
-        
-        {loading && (
-          <LinearProgress />
-        )}
-
-        {/* 승인 관리 탭 */}
-        <TabPanel value={tabValue} index={0}>
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
-          ) : pendingRequests.length === 0 ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <Typography color="text.secondary">
-                승인 대기 중인 휴가 신청이 없습니다.
-              </Typography>
-            </Box>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>신청자</TableCell>
-                    <TableCell>부서</TableCell>
-                    <TableCell>휴가 종류</TableCell>
-                    <TableCell>기간</TableCell>
-                    <TableCell>일수</TableCell>
-                    <TableCell>사유</TableCell>
-                    <TableCell>신청일</TableCell>
-                    <TableCell>작업</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pendingRequests.map((request) => (
-                    <TableRow key={request._id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Avatar sx={{ width: 24, height: 24 }}>
-                            {request.userName?.[0] || '?'}
-                          </Avatar>
-                          {request.userName || '사용자 정보 없음'}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{request.userDepartment || '부서 정보 없음'}</TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {getLeaveTypeIcon(request.leaveType)}
-                          {getLeaveTypeLabel(request.leaveType)}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {safeFormatDate(request.startDate)} ~{' '}
-                        {safeFormatDate(request.endDate)}
-                      </TableCell>
-                      <TableCell>{request.daysCount || 0}일</TableCell>
-                      <TableCell>{request.reason || '-'}</TableCell>
-                      <TableCell>
-                        {safeFormatDate(request.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <Tooltip title="승인">
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => {
-                                if (request) {
-                                  setSelectedRequest(request);
-                                  handleApproval('approve');
-                                }
-                              }}
-                            >
-                              <CheckIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="거부">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => request && handleOpenApprovalDialog(request)}
-                            >
-                              <CloseIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!pendingRequests || pendingRequests.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        <Typography color="text.secondary">
-                          승인 대기 중인 휴가 신청이 없습니다.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </TabPanel>
-
-        {/* 취소 승인 탭 */}
-        <TabPanel value={tabValue} index={1}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>직원명</TableCell>
-                  <TableCell>휴가 종류</TableCell>
-                  <TableCell>기간</TableCell>
-                  <TableCell>일수</TableCell>
-                  <TableCell>원래 사유</TableCell>
-                  <TableCell>취소 사유</TableCell>
-                  <TableCell>취소 신청일</TableCell>
-                  <TableCell>작업</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {pendingCancellations.map((request) => (
-                  <TableRow key={request._id}>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar sx={{ width: 32, height: 32 }}>
-                          {request.userName?.[0] || '?'}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2">
-                            {request.userName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {request.userDepartment}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {getLeaveTypeIcon(request.leaveType)}
-                        {getLeaveTypeLabel(request.leaveType)}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {request.startDate === request.endDate
-                        ? safeFormatDate(request.startDate)
-                        : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
-                      }
-                    </TableCell>
-                    <TableCell>{request.daysCount}일</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap>
-                        {request.reason}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap>
-                        {request.cancellationReason}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {safeFormatDate(request.cancellationRequestedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <Tooltip title="취소 승인">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
-                            }}
-                            color="success"
-                          >
-                            <CheckIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="취소 거부">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
-                            }}
-                            color="error"
-                          >
-                            <CloseIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {pendingCancellations.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                        대기 중인 취소 신청이 없습니다.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </TabPanel>
       </Card>
 
-      {/* 거부 사유 입력 다이얼로그 */}
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
-        <DialogTitle>휴가 신청 거부</DialogTitle>
+      {/* Reject Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="거부 사유"
-            fullWidth
-            multiline
-            rows={4}
-            variant="outlined"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="거부 사유를 입력해주세요..."
-          />
+          <DialogHeader>
+            <DialogTitle>휴가 신청 거부</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="reject-reason">거부 사유</Label>
+              <textarea
+                id="reject-reason"
+                rows={4}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="거부 사유를 입력해주세요..."
+                className="mt-1 w-full p-2 border border-input rounded-md bg-background"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setRejectDialogOpen(false)} variant="outline">
+              취소
+            </Button>
+            <Button 
+              onClick={handleReject} 
+              variant="destructive"
+              disabled={!rejectReason.trim()}
+            >
+              거부
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)}>취소</Button>
-          <Button 
-            onClick={handleReject} 
-            color="error" 
-            variant="contained"
-            disabled={!rejectReason.trim()}
-          >
-            거부
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* 새로운 승인 다이얼로그 */}
-      <Dialog open={approvalDialogOpen} onClose={handleCloseApprovalDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {selectedRequest?.cancellationRequested ? '휴가 취소 승인 관리' : '휴가 승인 관리'}
-        </DialogTitle>
-        <DialogContent>
+      {/* New Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedRequest?.cancellationRequested ? '휴가 취소 승인 관리' : '휴가 승인 관리'}
+            </DialogTitle>
+          </DialogHeader>
           {selectedRequest && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                {selectedRequest.cancellationRequested 
-                  ? `${selectedRequest.userName}님의 휴가 취소 신청`
-                  : `${selectedRequest.userName}님의 휴가 신청`
-                }
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {getLeaveTypeLabel(selectedRequest.leaveType)} • {selectedRequest.daysCount}일 • {' '}
-                {safeFormatDate(selectedRequest.startDate)} ~ {' '}
-                {safeFormatDate(selectedRequest.endDate)}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                <strong>사유:</strong> {selectedRequest.reason}
-              </Typography>
-              {selectedRequest.cancellationRequested && selectedRequest.cancellationReason && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  <strong>취소 사유:</strong> {selectedRequest.cancellationReason}
-                </Typography>
-              )}
-              <TextField
-                fullWidth
-                label={selectedRequest.cancellationRequested ? "취소 승인/거부 사유" : "승인/거부 사유"}
-                multiline
-                rows={3}
-                value={approvalComment}
-                onChange={(e) => setApprovalComment(e.target.value)}
-                sx={{ mt: 2 }}
-              />
-            </Box>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium">
+                  {selectedRequest.cancellationRequested 
+                    ? `${selectedRequest.userName}님의 휴가 취소 신청`
+                    : `${selectedRequest.userName}님의 휴가 신청`
+                  }
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {getLeaveTypeLabel(selectedRequest.leaveType)} • {selectedRequest.daysCount}일 • {' '}
+                  {safeFormatDate(selectedRequest.startDate)} ~ {' '}
+                  {safeFormatDate(selectedRequest.endDate)}
+                </p>
+                <p className="text-sm mt-2">
+                  <strong>사유:</strong> {selectedRequest.reason}
+                </p>
+                {selectedRequest.cancellationRequested && selectedRequest.cancellationReason && (
+                  <p className="text-sm mt-2">
+                    <strong>취소 사유:</strong> {selectedRequest.cancellationReason}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="approval-comment">
+                  {selectedRequest.cancellationRequested ? "취소 승인/거부 사유" : "승인/거부 사유"}
+                </Label>
+                <textarea
+                  id="approval-comment"
+                  rows={3}
+                  value={approvalComment}
+                  onChange={(e) => setApprovalComment(e.target.value)}
+                  className="mt-1 w-full p-2 border border-input rounded-md bg-background"
+                />
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button onClick={handleCloseApprovalDialog} variant="outline">
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedRequest?.cancellationRequested) {
+                  handleCancellationApproval(selectedRequest._id, 'reject');
+                } else {
+                  handleApproval('reject');
+                }
+              }}
+              variant="destructive"
+            >
+              {selectedRequest?.cancellationRequested ? '취소 거부' : '거부'}
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedRequest?.cancellationRequested) {
+                  handleCancellationApproval(selectedRequest._id, 'approve');
+                } else {
+                  handleApproval('approve');
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {selectedRequest?.cancellationRequested ? '취소 승인' : '승인'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseApprovalDialog}>취소</Button>
-          <Button
-            onClick={() => {
-              if (selectedRequest?.cancellationRequested) {
-                handleCancellationApproval(selectedRequest._id, 'reject');
-              } else {
-                handleApproval('reject');
-              }
-            }}
-            color="error"
-            variant="outlined"
-          >
-            {selectedRequest?.cancellationRequested ? '취소 거부' : '거부'}
-          </Button>
-          <Button
-            onClick={() => {
-              if (selectedRequest?.cancellationRequested) {
-                handleCancellationApproval(selectedRequest._id, 'approve');
-              } else {
-                handleApproval('approve');
-              }
-            }}
-            color="success"
-            variant="contained"
-          >
-            {selectedRequest?.cancellationRequested ? '취소 승인' : '승인'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

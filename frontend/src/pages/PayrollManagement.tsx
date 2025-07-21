@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Button,
-  TextField,
-  MenuItem,
-  Tabs,
-  Tab,
-  Paper,
-  Chip,
-  Divider,
-} from '@mui/material'
-import {
-  Add,
+  Plus,
   TrendingUp,
-  People,
-  AttachMoney,
-  FileUpload,
-  Assessment,
-} from '@mui/icons-material'
+  Users,
+  DollarSign,
+  Upload,
+  BarChart3,
+} from 'lucide-react'
 import { format, subMonths, addMonths } from 'date-fns'
 import PayrollGrid from '@/components/PayrollGrid'
 import PayrollDashboard from '@/components/PayrollDashboard'
@@ -33,28 +25,9 @@ import { useNotification } from '@/components/NotificationProvider'
 import apiService from '@/services/api'
 import { DashboardStats, PayrollStats } from '@/types'
 
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`payroll-tabpanel-${index}`}
-      aria-labelledby={`payroll-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  )
-}
 
 const PayrollManagement: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState(0)
+  const [currentTab, setCurrentTab] = useState('dashboard')
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [stats, setStats] = useState<PayrollStats | null>(null)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
@@ -101,8 +74,8 @@ const PayrollManagement: React.FC = () => {
     loadPayrollStats()
   }, [selectedMonth])
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue)
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value)
   }
 
   const handleMonthChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,175 +99,174 @@ const PayrollManagement: React.FC = () => {
     value: string | number
     icon: React.ReactNode
     color?: string
-  }> = ({ title, value, icon, color = 'primary' }) => (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h5" component="div">
-              {typeof value === 'number' ? value.toLocaleString() : value}
-              {typeof value === 'number' && '원'}
-            </Typography>
-          </Box>
-          <Box sx={{ color: `${color}.main` }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  )
+  }> = ({ title, value, icon, color = 'primary' }) => {
+    const iconColorClass = color === 'primary' ? 'text-blue-500' : 
+                          color === 'secondary' ? 'text-purple-500' : 
+                          color === 'success' ? 'text-green-500' : 
+                          color === 'warning' ? 'text-yellow-500' : 
+                          color === 'info' ? 'text-cyan-500' : 'text-gray-500'
+
+    return (
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">
+                {title}
+              </p>
+              <div className="text-2xl font-semibold">
+                {typeof value === 'number' ? value.toLocaleString() : value}
+                {typeof value === 'number' && '원'}
+              </div>
+            </div>
+            <div className={`${iconColorClass} text-3xl`}>
+              {icon}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <Box>
+    <div className="p-6">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
           급여 관리
-        </Typography>
-        <Chip 
-          label={user?.role === 'admin' ? '관리자' : '매니저'} 
-          color="primary" 
-          variant="outlined" 
-        />
-      </Box>
+        </h1>
+        <Badge variant="outline" className="text-blue-600 border-blue-300">
+          {user?.role === 'admin' ? '관리자' : '매니저'}
+        </Badge>
+      </div>
 
       {/* Statistics Cards */}
       {dashboardStats && (
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="총 직원 수"
-              value={dashboardStats.total_employees}
-              icon={<People fontSize="large" />}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="당월 총 급여"
-              value={dashboardStats.total_payroll}
-              icon={<AttachMoney fontSize="large" />}
-              color="success"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="대기 중인 업로드"
-              value={dashboardStats.pending_uploads}
-              icon={<FileUpload fontSize="large" />}
-              color="warning"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="현재 월"
-              value={dashboardStats.current_month}
-              icon={<TrendingUp fontSize="large" />}
-              color="info"
-            />
-          </Grid>
-        </Grid>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            title="총 직원 수"
+            value={dashboardStats.total_employees}
+            icon={<Users />}
+          />
+          <StatCard
+            title="당월 총 급여"
+            value={dashboardStats.total_payroll}
+            icon={<DollarSign />}
+            color="success"
+          />
+          <StatCard
+            title="대기 중인 업로드"
+            value={dashboardStats.pending_uploads}
+            icon={<Upload />}
+            color="warning"
+          />
+          <StatCard
+            title="현재 월"
+            value={dashboardStats.current_month}
+            icon={<TrendingUp />}
+            color="info"
+          />
+        </div>
       )}
 
       {/* Month Selection */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button variant="outlined" onClick={handlePreviousMonth}>
-            이전 월
-          </Button>
-          <TextField
-            type="month"
-            value={selectedMonth}
-            onChange={handleMonthChange}
-            label="조회 월"
-            sx={{ minWidth: 160 }}
-          />
-          <Button variant="outlined" onClick={handleNextMonth}>
-            다음 월
-          </Button>
-          <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
-          {stats && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                직원 수: {stats.employee_count}명
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                총 지급액: {stats.grand_total.toLocaleString()}원
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      </Paper>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Button variant="outline" onClick={handlePreviousMonth}>
+              이전 월
+            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="month-select">조회 월</Label>
+              <Input
+                id="month-select"
+                type="month"
+                value={selectedMonth}
+                onChange={handleMonthChange}
+                className="min-w-40"
+              />
+            </div>
+            <Button variant="outline" onClick={handleNextMonth}>
+              다음 월
+            </Button>
+            <Separator orientation="vertical" className="h-8 mx-2" />
+            {stats && (
+              <div className="flex gap-4 items-center">
+                <span className="text-sm text-gray-600">
+                  직원 수: {stats.employee_count}명
+                </span>
+                <span className="text-sm text-gray-600">
+                  총 지급액: {stats.grand_total.toLocaleString()}원
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          aria-label="payroll management tabs"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="대시보드" />
-          <Tab label="급여 현황" />
-          <Tab label="매출 관리" />
-          <Tab label="상여금/포상금" />
-          <Tab label="인센티브 계산" />
-          {user?.role === 'admin' && <Tab label="파일 업로드" />}
+      <Card>
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="grid w-full grid-cols-6 gap-1">
+            <TabsTrigger value="dashboard">대시보드</TabsTrigger>
+            <TabsTrigger value="payroll">급여 현황</TabsTrigger>
+            <TabsTrigger value="sales">매출 관리</TabsTrigger>
+            <TabsTrigger value="bonus">상여금/포상금</TabsTrigger>
+            <TabsTrigger value="incentive">인센티브 계산</TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="upload">파일 업로드</TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="dashboard" className="p-4">
+            <PayrollDashboard 
+              yearMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
+          </TabsContent>
+
+          <TabsContent value="payroll" className="p-4">
+            <PayrollGrid 
+              yearMonth={selectedMonth} 
+              onDataChange={loadPayrollStats}
+            />
+          </TabsContent>
+
+          <TabsContent value="sales" className="p-4">
+            <SalesManagement yearMonth={selectedMonth} />
+          </TabsContent>
+
+          <TabsContent value="bonus" className="p-4">
+            <BonusManagement yearMonth={selectedMonth} />
+          </TabsContent>
+
+          <TabsContent value="incentive" className="p-4">
+            <IncentiveCalculator />
+          </TabsContent>
+
+          {user?.role === 'admin' && (
+            <TabsContent value="upload" className="p-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">
+                  Excel 파일 업로드
+                </h3>
+                <p className="text-gray-600">
+                  노무사가 제공한 급여 확정 Excel 파일을 업로드하여 검증합니다.
+                  파일 관리 메뉴에서 더 자세한 기능을 사용할 수 있습니다.
+                </p>
+                <Button
+                  onClick={() => window.location.href = '/files'}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  파일 관리로 이동
+                </Button>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
-
-        <TabPanel value={currentTab} index={0}>
-          <PayrollDashboard 
-            yearMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-          />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={1}>
-          <PayrollGrid 
-            yearMonth={selectedMonth} 
-            onDataChange={loadPayrollStats}
-          />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={2}>
-          <SalesManagement yearMonth={selectedMonth} />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={3}>
-          <BonusManagement yearMonth={selectedMonth} />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={4}>
-          <IncentiveCalculator />
-        </TabPanel>
-
-        {user?.role === 'admin' && (
-          <TabPanel value={currentTab} index={5}>
-            <Box sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Excel 파일 업로드
-              </Typography>
-              <Typography color="text.secondary">
-                노무사가 제공한 급여 확정 Excel 파일을 업로드하여 검증합니다.
-                파일 관리 메뉴에서 더 자세한 기능을 사용할 수 있습니다.
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<FileUpload />}
-                sx={{ mt: 2 }}
-                onClick={() => window.location.href = '/files'}
-              >
-                파일 관리로 이동
-              </Button>
-            </Box>
-          </TabPanel>
-        )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   )
 }
 

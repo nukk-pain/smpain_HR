@@ -1,39 +1,43 @@
 import React, { useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  LinearProgress,
-  Alert,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
-  Chip,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Table,
-  TableHead,
   TableBody,
-  TableRow,
   TableCell,
-  Paper,
-  IconButton,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   CloudUpload as UploadIcon,
-  GetApp as DownloadIcon,
-  Preview as PreviewIcon,
-  Compare as CompareIcon,
+  Download as DownloadIcon,
+  Eye as PreviewIcon,
+  GitCompare as CompareIcon,
   CheckCircle as CheckIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  Assessment as ReportIcon,
-} from '@mui/icons-material';
-// import { useDropzone } from 'react-dropzone';
+  XCircle as ErrorIcon,
+  AlertTriangle as WarningIcon,
+  FileText as ReportIcon,
+  Loader2,
+} from 'lucide-react';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 
@@ -173,320 +177,324 @@ const FileUpload: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
-        Excel File Upload & Processing
-      </Typography>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">
+        급여 파일 업로드
+      </h1>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload Section */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">File Upload</Typography>
-                <Button
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadTemplate}
-                  variant="outlined"
-                  size="small"
-                >
-                  Template
-                </Button>
-              </Box>
-
-              <TextField
-                fullWidth
-                label="Year Month"
-                type="month"
-                value={yearMonth}
-                onChange={(e) => setYearMonth(e.target.value)}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <Paper
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  border: '2px dashed',
-                  borderColor: 'grey.300',
-                  backgroundColor: 'background.paper',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    backgroundColor: 'action.hover'
-                  }
-                }}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">파일 업로드</h3>
+              <Button
+                onClick={handleDownloadTemplate}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
               >
+                <DownloadIcon className="h-4 w-4" />
+                템플릿 다운로드
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="year-month">년월 선택</Label>
+                <Input
+                  id="year-month"
+                  type="month"
+                  value={yearMonth}
+                  onChange={(e) => setYearMonth(e.target.value)}
+                />
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary hover:bg-accent/50 transition-colors">
                 <input
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={handleFileUpload}
-                  style={{ display: 'none' }}
+                  className="hidden"
                   id="file-upload"
                 />
-                <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'block' }}>
-                  <UploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Click to select Excel file
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Upload payroll file (.xlsx, .xls)
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Maximum file size: 10MB
-                  </Typography>
+                <label htmlFor="file-upload" className="cursor-pointer block">
+                  <UploadIcon className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    파일 선택
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    급여 파일을 업로드하세요 (.xlsx, .xls)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    최대 파일 크기: 10MB
+                  </p>
                 </label>
-              </Paper>
+              </div>
 
               {uploading && (
-                <Box sx={{ mt: 2 }}>
-                  <LinearProgress />
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Uploading and parsing file...
-                  </Typography>
-                </Box>
+                <div className="space-y-2">
+                  <Progress value={50} className="w-full" />
+                  <p className="text-sm text-muted-foreground">
+                    파일 업로드 및 분석 중...
+                  </p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Upload Result */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Upload Results
-              </Typography>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">업로드 결과</h3>
 
-              {uploadResult ? (
-                <Box>
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    File uploaded and parsed successfully!
-                  </Alert>
-
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                        <Typography variant="h4" color="primary">
-                          {uploadResult.totalRows}
-                        </Typography>
-                        <Typography variant="body2">Total Rows</Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                        <Typography variant="h4" color="success.main">
-                          {uploadResult.validRows}
-                        </Typography>
-                        <Typography variant="body2">Valid Rows</Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-
-                  {uploadResult.invalidRows > 0 && (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      {uploadResult.invalidRows} rows have validation errors
-                    </Alert>
-                  )}
-
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Button
-                      startIcon={<PreviewIcon />}
-                      onClick={handlePreview}
-                      variant="outlined"
-                      size="small"
-                    >
-                      Preview
-                    </Button>
-                    <Button
-                      startIcon={<CompareIcon />}
-                      onClick={handleCompare}
-                      variant="outlined"
-                      size="small"
-                    >
-                      Compare
-                    </Button>
-                    {comparisonResult && (
-                      <>
-                        <Button
-                          startIcon={<ReportIcon />}
-                          onClick={handleDownloadReport}
-                          variant="outlined"
-                          size="small"
-                        >
-                          Download Report
-                        </Button>
-                        <Button
-                          startIcon={<CheckIcon />}
-                          onClick={handleProcess}
-                          variant="contained"
-                          size="small"
-                          disabled={processing}
-                        >
-                          {processing ? 'Processing...' : 'Process'}
-                        </Button>
-                      </>
-                    )}
-                  </Box>
-                </Box>
-              ) : (
-                <Alert severity="info">
-                  Upload an Excel file to see results here
+            {uploadResult ? (
+              <div className="space-y-4">
+                <Alert>
+                  <CheckIcon className="h-4 w-4" />
+                  <AlertDescription>
+                    파일이 성공적으로 업로드되고 분석되었습니다!
+                  </AlertDescription>
                 </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {uploadResult.totalRows}
+                    </div>
+                    <div className="text-sm text-muted-foreground">전체 행</div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {uploadResult.validRows}
+                    </div>
+                    <div className="text-sm text-muted-foreground">유효한 행</div>
+                  </div>
+                </div>
+
+                {uploadResult.invalidRows > 0 && (
+                  <Alert variant="destructive">
+                    <WarningIcon className="h-4 w-4" />
+                    <AlertDescription>
+                      {uploadResult.invalidRows}개의 행에 유효성 오류가 있습니다
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={handlePreview}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <PreviewIcon className="h-4 w-4" />
+                    미리보기
+                  </Button>
+                  <Button
+                    onClick={handleCompare}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <CompareIcon className="h-4 w-4" />
+                    비교
+                  </Button>
+                  {comparisonResult && (
+                    <>
+                      <Button
+                        onClick={handleDownloadReport}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <ReportIcon className="h-4 w-4" />
+                        보고서 다운로드
+                      </Button>
+                      <Button
+                        onClick={handleProcess}
+                        disabled={processing}
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        {processing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckIcon className="h-4 w-4" />
+                        )}
+                        {processing ? '처리 중...' : '처리'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Alert>
+                <AlertDescription>
+                  Excel 파일을 업로드하면 결과가 여기에 표시됩니다
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Comparison Results */}
         {comparisonResult && (
-          <Grid item xs={12}>
+          <div className="lg:col-span-2">
             <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Comparison Results
-                </Typography>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">비교 결과</h3>
 
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6} sm={3}>
-                    <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#e8f5e8', borderRadius: 1 }}>
-                      <Typography variant="h4" color="success.main">
-                        {comparisonResult.matches}
-                      </Typography>
-                      <Typography variant="body2">Matches</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#fff3e0', borderRadius: 1 }}>
-                      <Typography variant="h4" color="warning.main">
-                        {comparisonResult.differences}
-                      </Typography>
-                      <Typography variant="body2">Differences</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#ffebee', borderRadius: 1 }}>
-                      <Typography variant="h4" color="error.main">
-                        {comparisonResult.notFound}
-                      </Typography>
-                      <Typography variant="body2">Not Found</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="h4">
-                        {comparisonResult.invalid}
-                      </Typography>
-                      <Typography variant="body2">Invalid</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-green-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {comparisonResult.matches}
+                    </div>
+                    <div className="text-sm text-muted-foreground">일치</div>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {comparisonResult.differences}
+                    </div>
+                    <div className="text-sm text-muted-foreground">차이</div>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-red-600">
+                      {comparisonResult.notFound}
+                    </div>
+                    <div className="text-sm text-muted-foreground">미발견</div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold">
+                      {comparisonResult.invalid}
+                    </div>
+                    <div className="text-sm text-muted-foreground">무효</div>
+                  </div>
+                </div>
 
                 {comparisonResult.differences > 0 && (
-                  <Alert severity="warning">
-                    {comparisonResult.differences} records have differences that need attention
+                  <Alert variant="destructive">
+                    <WarningIcon className="h-4 w-4" />
+                    <AlertDescription>
+                      {comparisonResult.differences}개의 레코드에 주의가 필요한 차이가 있습니다
+                    </AlertDescription>
                   </Alert>
                 )}
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         )}
-      </Grid>
+      </div>
 
       {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Upload Preview</DialogTitle>
-        <DialogContent>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Employee ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Base Salary</TableCell>
-                <TableCell>Incentive</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {previewData.slice(0, 10).map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell>{row['사원번호']}</TableCell>
-                  <TableCell>{row['성명']}</TableCell>
-                  <TableCell>{row['부서']}</TableCell>
-                  <TableCell>{row['기본급']?.toLocaleString()}</TableCell>
-                  <TableCell>{row['인센티브']?.toLocaleString()}</TableCell>
-                  <TableCell>{row['지급총액']?.toLocaleString()}</TableCell>
-                  <TableCell>
-                    {row.__isValid ? (
-                      <Chip icon={<CheckIcon />} label="Valid" color="success" size="small" />
-                    ) : (
-                      <Chip icon={<ErrorIcon />} label="Invalid" color="error" size="small" />
-                    )}
-                  </TableCell>
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>업로드 미리보기</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>사원번호</TableHead>
+                  <TableHead>성명</TableHead>
+                  <TableHead>부서</TableHead>
+                  <TableHead>기본급</TableHead>
+                  <TableHead>인센티브</TableHead>
+                  <TableHead>총액</TableHead>
+                  <TableHead>상태</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {previewData.slice(0, 10).map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{row['사원번호']}</TableCell>
+                    <TableCell>{row['성명']}</TableCell>
+                    <TableCell>{row['부서']}</TableCell>
+                    <TableCell>{row['기본급']?.toLocaleString()}</TableCell>
+                    <TableCell>{row['인센티브']?.toLocaleString()}</TableCell>
+                    <TableCell>{row['지급총액']?.toLocaleString()}</TableCell>
+                    <TableCell>
+                      {row.__isValid ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          유효
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          무효
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsPreviewOpen(false)}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsPreviewOpen(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Comparison Dialog */}
-      <Dialog open={isComparisonOpen} onClose={() => setIsComparisonOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Data Comparison</DialogTitle>
-        <DialogContent>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Employee ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>System Total</TableCell>
-                <TableCell>Upload Total</TableCell>
-                <TableCell>Difference</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {comparisonResult?.details.slice(0, 10).map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>{item.employeeId}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={item.status}
-                      color={
-                        item.status === 'match' ? 'success' :
-                        item.status === 'different' ? 'warning' : 'error'
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{item.system?.totalInput?.toLocaleString()}</TableCell>
-                  <TableCell>{item.uploaded?.['지급총액']?.toLocaleString()}</TableCell>
-                  <TableCell>
-                    {item.differences?.totalInput ? (
-                      <Typography color={item.differences.totalInput > 0 ? 'success.main' : 'error.main'}>
-                        {item.differences.totalInput > 0 ? '+' : ''}{item.differences.totalInput.toLocaleString()}
-                      </Typography>
-                    ) : '-'}
-                  </TableCell>
+      <Dialog open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>데이터 비교</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>사원번호</TableHead>
+                  <TableHead>성명</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>시스템 총액</TableHead>
+                  <TableHead>업로드 총액</TableHead>
+                  <TableHead>차이</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {comparisonResult?.details.slice(0, 10).map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{item.employeeId}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          item.status === 'match' ? 'default' :
+                          item.status === 'different' ? 'secondary' : 'destructive'
+                        }
+                        className={
+                          item.status === 'match' ? 'bg-green-100 text-green-800' :
+                          item.status === 'different' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }
+                      >
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{item.system?.totalInput?.toLocaleString()}</TableCell>
+                    <TableCell>{item.uploaded?.['지급총액']?.toLocaleString()}</TableCell>
+                    <TableCell>
+                      {item.differences?.totalInput ? (
+                        <span className={item.differences.totalInput > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {item.differences.totalInput > 0 ? '+' : ''}{item.differences.totalInput.toLocaleString()}
+                        </span>
+                      ) : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsComparisonOpen(false)}>닫기</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsComparisonOpen(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

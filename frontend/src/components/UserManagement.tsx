@@ -1,48 +1,53 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Button,
-  TextField,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  Alert,
-  CircularProgress,
-  Card,
-  CardContent,
-  Checkbox,
-  FormControlLabel,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  VpnKey as ResetPasswordIcon,
-  PersonAdd as ActivateIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
-  Search as SearchIcon,
-  DeleteForever as PermanentDeleteIcon,
-  Security as PermissionsIcon,
-} from '@mui/icons-material';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Key,
+  UserPlus,
+  Upload,
+  Download,
+  Search,
+  Trash,
+  Shield,
+  Loader2,
+} from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { User, UserForm, Department, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -319,78 +324,117 @@ const UserManagement: React.FC = () => {
   const ActionCellRenderer = (props: any) => {
     const user = props.data;
     return (
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Tooltip title="View Details">
-          <IconButton size="small" onClick={() => handleViewUser(user)}>
-            <ViewIcon />
-          </IconButton>
+      <div className="flex gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleViewUser(user)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>View Details</TooltipContent>
         </Tooltip>
-        <Tooltip title="Edit User">
-          <IconButton size="small" onClick={() => handleEditUser(user)}>
-            <EditIcon />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditUser(user)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit User</TooltipContent>
         </Tooltip>
-        <Tooltip title="Reset Password">
-          <IconButton size="small" onClick={() => handleResetPassword(user)}>
-            <ResetPasswordIcon />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleResetPassword(user)}
+            >
+              <Key className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Reset Password</TooltipContent>
         </Tooltip>
         {user.isActive ? (
-          <Tooltip title="Deactivate User">
-            <IconButton size="small" onClick={() => handleDeleteUser(user)}>
-              <DeleteIcon />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteUser(user)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Deactivate User</TooltipContent>
           </Tooltip>
         ) : (
-          <Tooltip title="Activate User">
-            <IconButton size="small" onClick={() => handleActivateUser(user)}>
-              <ActivateIcon />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleActivateUser(user)}
+              >
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Activate User</TooltipContent>
           </Tooltip>
         )}
-        <Tooltip title="Manage Permissions">
-          <IconButton 
-            size="small" 
-            onClick={() => handleManagePermissions(user)}
-            sx={{ color: 'primary.main' }}
-          >
-            <PermissionsIcon />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleManagePermissions(user)}
+              className="text-primary"
+            >
+              <Shield className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Manage Permissions</TooltipContent>
         </Tooltip>
         {user.username !== 'admin' && (
-          <Tooltip title="Permanently Delete from Database">
-            <IconButton 
-              size="small" 
-              onClick={() => handlePermanentDeleteUser(user)}
-              sx={{ color: 'error.main' }}
-            >
-              <PermanentDeleteIcon />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handlePermanentDeleteUser(user)}
+                className="text-destructive"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Permanently Delete from Database</TooltipContent>
           </Tooltip>
         )}
-      </Box>
+      </div>
     );
   };
 
   const StatusCellRenderer = (props: any) => {
     const isActive = props.value;
     return (
-      <Chip
-        label={isActive ? 'Active' : 'Inactive'}
-        color={isActive ? 'success' : 'error'}
-        size="small"
-      />
+      <Badge variant={isActive ? 'default' : 'destructive'}>
+        {isActive ? 'Active' : 'Inactive'}
+      </Badge>
     );
   };
 
   const ContractTypeCellRenderer = (props: any) => {
     const contractType = props.value;
     return (
-      <Chip
-        label={contractType === 'regular' ? 'Regular' : 'Contract'}
-        color={contractType === 'regular' ? 'primary' : 'secondary'}
-        size="small"
-      />
+      <Badge variant={contractType === 'regular' ? 'default' : 'secondary'}>
+        {contractType === 'regular' ? 'Regular' : 'Contract'}
+      </Badge>
     );
   };
 
@@ -465,483 +509,487 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">User Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddUser}
-        >
-          Add User
-        </Button>
-      </Box>
+    <TooltipProvider>
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <Button onClick={handleAddUser}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        </div>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton onClick={handleSearch}>
-                      <SearchIcon />
-                    </IconButton>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Department</InputLabel>
-                <Select
-                  value={departmentFilter}
-                  label="Department"
-                  onChange={(e) => setDepartmentFilter(e.target.value)}
+        <Card>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative">
+                <Label htmlFor="search" className="sr-only">
+                  Search users
+                </Label>
+                <Input
+                  id="search"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={handleSearch}
                 >
-                  <MenuItem value="">All Departments</MenuItem>
-                  {departments.map((dept) => (
-                    <MenuItem key={dept.name} value={dept.name}>
-                      {dept.name}
-                    </MenuItem>
-                  ))}
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              <div>
+                <Label htmlFor="department" className="sr-only">
+                  Department
+                </Label>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger id="department">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.name} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
+              </div>
+              <div>
+                <Label htmlFor="status" className="sr-only">
+                  Status
+                </Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
+              </div>
               <Button
-                fullWidth
-                variant="outlined"
                 onClick={handleSearch}
-                startIcon={<SearchIcon />}
+                variant="outline"
+                className="w-full"
               >
+                <Search className="mr-2 h-4 w-4" />
                 Search
               </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <div className="ag-theme-material" style={{ height: 600, width: '100%' }}>
-              <AgGridReact
-                columnDefs={columnDefs}
-                rowData={users}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={20}
-                onGridReady={onGridReady}
-                suppressRowHoverHighlight={false}
-                suppressCellFocus={true}
-              />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Add/Edit User Dialog */}
-      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {isEditing ? 'Edit User' : 'Add New User'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Username"
-                value={userForm.username}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setUserForm({ ...userForm, username: value });
-                  
-                  // Real-time validation
-                  if (value && !validateUsername(value)) {
-                    setUsernameError('영문, 한글, 숫자, _, - 만 사용 가능 (2-30자)');
-                  } else {
-                    setUsernameError('');
-                  }
-                }}
-                required
-                disabled={isEditing}
-                error={!!usernameError}
-                helperText={usernameError || "영문, 한글, 숫자, _, - 사용 가능 (2-30자)"}
-              />
-            </Grid>
-            {!isEditing && (
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+        <Card>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="ag-theme-alpine" style={{ height: 600, width: '100%' }}>
+                <AgGridReact
+                  columnDefs={columnDefs}
+                  rowData={users}
+                  defaultColDef={defaultColDef}
+                  pagination={true}
+                  paginationPageSize={20}
+                  onGridReady={onGridReady}
+                  suppressRowHoverHighlight={false}
+                  suppressCellFocus={true}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Add/Edit User Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {isEditing ? 'Edit User' : 'Add New User'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  value={userForm.username}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setUserForm({ ...userForm, username: value });
+                    
+                    // Real-time validation
+                    if (value && !validateUsername(value)) {
+                      setUsernameError('영문, 한글, 숫자, _, - 만 사용 가능 (2-30자)');
+                    } else {
+                      setUsernameError('');
+                    }
+                  }}
                   required
+                  disabled={isEditing}
+                  className={usernameError ? 'border-destructive' : ''}
                 />
-              </Grid>
-            )}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="이름 (Full Name)"
-                value={userForm.name}
-                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                required
-                placeholder="홍길동"
-                inputProps={{
-                  style: { imeMode: 'active' }
-                }}
-                helperText="한글 이름을 입력하세요"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="생년월일 (Birth Date)"
-                type="date"
-                value={userForm.birthDate}
-                onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                helperText="YYYY-MM-DD 형식"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="전화번호 (Phone Number)"
-                value={userForm.phoneNumber}
-                onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
-                placeholder="010-1234-5678"
-                helperText="연락 가능한 전화번호를 입력하세요"
-              />
-            </Grid>
-            {isEditing && (
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Employee ID"
-                  value={userForm.employeeId}
-                  onChange={(e) => setUserForm({ ...userForm, employeeId: e.target.value })}
-                  disabled
+                <p className={`text-sm ${usernameError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {usernameError || "영문, 한글, 숫자, _, - 사용 가능 (2-30자)"}
+                </p>
+              </div>
+              {!isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={userForm.password}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="name">이름 (Full Name) *</Label>
+                <Input
+                  id="name"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  required
+                  placeholder="홍길동"
                 />
-              </Grid>
-            )}
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Department</InputLabel>
-                <Select
-                  value={userForm.department}
-                  onChange={(e) => setUserForm({ ...userForm, department: e.target.value })}
-                  label="Department"
-                >
-                  {departments.map((dept) => (
-                    <MenuItem key={dept._id} value={dept.name}>
-                      {dept.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Position</InputLabel>
-                <Select
-                  value={userForm.position}
-                  onChange={(e) => setUserForm({ ...userForm, position: e.target.value })}
-                  label="Position"
-                >
-                  <MenuItem value="">No Position</MenuItem>
-                  {positions.map((position) => (
-                    <MenuItem key={position._id} value={position.title}>
-                      {position.title}
-                      {position.department && ` (${position.department})`}
-                      {position.level && ` - Level ${position.level}`}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={userForm.role}
-                  label="Role"
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
-                >
-                  <MenuItem value="user">User</MenuItem>
-                  <MenuItem value="manager">Manager</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Contract Type</InputLabel>
-                <Select
-                  value={userForm.contractType}
-                  label="Contract Type"
-                  onChange={(e) => setUserForm({ ...userForm, contractType: e.target.value as any })}
-                >
-                  <MenuItem value="regular">Regular</MenuItem>
-                  <MenuItem value="contract">Contract</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Hire Date"
-                type="date"
-                value={userForm.hireDate}
-                onChange={(e) => setUserForm({ ...userForm, hireDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Base Salary"
-                type="number"
-                value={userForm.baseSalary}
-                onChange={(e) => setUserForm({ ...userForm, baseSalary: parseInt(e.target.value) || 0 })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Account Number"
-                value={userForm.accountNumber}
-                onChange={(e) => setUserForm({ ...userForm, accountNumber: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Incentive Formula</InputLabel>
-                <Select
-                  value={userForm.incentiveFormula}
-                  label="Incentive Formula"
-                  onChange={(e) => setUserForm({ ...userForm, incentiveFormula: e.target.value })}
-                >
-                  <MenuItem value="">No Incentive</MenuItem>
-                  <MenuItem value="personal_sales_15">Personal Sales 15%</MenuItem>
-                  <MenuItem value="personal_sales_10">Personal Sales 10%</MenuItem>
-                  <MenuItem value="personal_sales_5">Personal Sales 5%</MenuItem>
-                  <MenuItem value="team_sales_10">Team Sales 10%</MenuItem>
-                  <MenuItem value="team_sales_5">Team Sales 5%</MenuItem>
-                  <MenuItem value="total_sales_3">Total Sales 3%</MenuItem>
-                  <MenuItem value="fixed_bonus">Fixed Monthly Bonus</MenuItem>
-                  <MenuItem value="performance_based">Performance Based</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveUser} variant="contained">
-            {isEditing ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* View User Dialog */}
-      <Dialog open={isViewDialogOpen} onClose={() => setIsViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>User Details</DialogTitle>
-        <DialogContent>
-          {selectedUser && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Employee ID</Typography>
-                <Typography variant="body1">{selectedUser.employeeId}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Name</Typography>
-                <Typography variant="body1">{selectedUser.name}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Username</Typography>
-                <Typography variant="body1">{selectedUser.username}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Birth Date</Typography>
-                <Typography variant="body1">{selectedUser.birthDate || 'Not provided'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Phone Number</Typography>
-                <Typography variant="body1">{selectedUser.phoneNumber || 'Not provided'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Department</Typography>
-                <Typography variant="body1">{selectedUser.department}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Position</Typography>
-                <Typography variant="body1">{selectedUser.position}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Role</Typography>
-                <Typography variant="body1">{selectedUser.role}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Contract Type</Typography>
-                <Typography variant="body1">{selectedUser.contractType}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Hire Date</Typography>
-                <Typography variant="body1">{selectedUser.hireDateFormatted}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Years of Service</Typography>
-                <Typography variant="body1">{selectedUser.yearsOfService}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Annual Leave</Typography>
-                <Typography variant="body1">{selectedUser.annualLeave} days</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2">Account Number</Typography>
-                <Typography variant="body1">{selectedUser.accountNumber}</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2">Incentive Formula</Typography>
-                <Typography variant="body1">{selectedUser.incentiveFormula}</Typography>
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permanent Delete User Confirmation Dialog */}
-      <Dialog open={permanentDeleteConfirmOpen} onClose={() => setPermanentDeleteConfirmOpen(false)}>
-        <DialogTitle sx={{ color: 'error.main' }}>
-          ⚠️ Permanently Delete User
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            <Typography variant="h6">PERMANENT DELETION</Typography>
-          </Alert>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to <strong>permanently delete</strong> user "{userToDeletePermanently?.name}" from the database?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            This will completely remove:
-          </Typography>
-          <ul>
-            <li>User profile and account information</li>
-            <li>All associated leave records</li>
-            <li>All payroll data for this user</li>
-            <li>All historical data</li>
-          </ul>
-          <Typography variant="body2" color="error.main" sx={{ mt: 2 }}>
-            <strong>This action cannot be undone!</strong>
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            Employee ID: <strong>{userToDeletePermanently?.employeeId}</strong><br/>
-            Department: <strong>{userToDeletePermanently?.department}</strong><br/>
-            Position: <strong>{userToDeletePermanently?.position}</strong>
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPermanentDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={confirmPermanentDeleteUser} 
-            color="error" 
-            variant="contained"
-            startIcon={<PermanentDeleteIcon />}
-          >
-            Permanently Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permissions Management Dialog */}
-      <Dialog open={permissionsDialogOpen} onClose={() => setPermissionsDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          🔐 권한 관리 - {selectedUserForPermissions?.name}
-        </DialogTitle>
-        <DialogContent>
-          {permissionsLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" py={4}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                사용자의 권한을 관리할 수 있습니다. 체크된 항목은 해당 사용자가 접근할 수 있는 기능입니다.
-              </Typography>
-              
-              {availablePermissions && Object.entries(availablePermissions).map(([category, permissions]: [string, any]) => (
-                <Box key={category} sx={{ mb: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 1, color: 'primary.main' }}>
-                    {category === 'users' && '👥 직원 관리'}
-                    {category === 'leave' && '🏖️ 휴가 관리'}
-                    {category === 'payroll' && '💰 급여 관리'}
-                    {category === 'departments' && '🏢 부서 관리'}
-                    {category === 'positions' && '👔 직급 관리'}
-                    {category === 'reports' && '📊 보고서'}
-                    {category === 'files' && '📁 파일 관리'}
-                    {category === 'admin' && '⚙️ 관리자'}
-                  </Typography>
-                  <Box sx={{ pl: 2 }}>
-                    {permissions.map((perm: any) => (
-                      <FormControlLabel
-                        key={perm.key}
-                        control={
-                          <Checkbox
-                            checked={userPermissions.includes(perm.key)}
-                            onChange={(e) => handlePermissionChange(perm.key, e.target.checked)}
-                          />
-                        }
-                        label={perm.name}
-                      />
+                <p className="text-sm text-muted-foreground">한글 이름을 입력하세요</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">생년월일 (Birth Date)</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={userForm.birthDate}
+                  onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
+                />
+                <p className="text-sm text-muted-foreground">YYYY-MM-DD 형식</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">전화번호 (Phone Number)</Label>
+                <Input
+                  id="phoneNumber"
+                  value={userForm.phoneNumber}
+                  onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+                  placeholder="010-1234-5678"
+                />
+                <p className="text-sm text-muted-foreground">연락 가능한 전화번호를 입력하세요</p>
+              </div>
+              {isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="employeeId">Employee ID</Label>
+                  <Input
+                    id="employeeId"
+                    value={userForm.employeeId}
+                    onChange={(e) => setUserForm({ ...userForm, employeeId: e.target.value })}
+                    disabled
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select value={userForm.department} onValueChange={(value) => setUserForm({ ...userForm, department: value })}>
+                  <SelectTrigger id="department">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept._id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
                     ))}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPermissionsDialogOpen(false)}>취소</Button>
-          <Button 
-            onClick={handleSavePermissions} 
-            variant="contained" 
-            disabled={permissionsLoading}
-            startIcon={<PermissionsIcon />}
-          >
-            권한 저장
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Select value={userForm.position} onValueChange={(value) => setUserForm({ ...userForm, position: value })}>
+                  <SelectTrigger id="position">
+                    <SelectValue placeholder="Select Position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Position</SelectItem>
+                    {positions.map((position) => (
+                      <SelectItem key={position._id} value={position.title}>
+                        {position.title}
+                        {position.department && ` (${position.department})`}
+                        {position.level && ` - Level ${position.level}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={userForm.role} onValueChange={(value) => setUserForm({ ...userForm, role: value as any })}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contractType">Contract Type</Label>
+                <Select value={userForm.contractType} onValueChange={(value) => setUserForm({ ...userForm, contractType: value as any })}>
+                  <SelectTrigger id="contractType">
+                    <SelectValue placeholder="Select Contract Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="contract">Contract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hireDate">Hire Date</Label>
+                <Input
+                  id="hireDate"
+                  type="date"
+                  value={userForm.hireDate}
+                  onChange={(e) => setUserForm({ ...userForm, hireDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="baseSalary">Base Salary</Label>
+                <Input
+                  id="baseSalary"
+                  type="number"
+                  value={userForm.baseSalary}
+                  onChange={(e) => setUserForm({ ...userForm, baseSalary: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="accountNumber">Account Number</Label>
+                <Input
+                  id="accountNumber"
+                  value={userForm.accountNumber}
+                  onChange={(e) => setUserForm({ ...userForm, accountNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="incentiveFormula">Incentive Formula</Label>
+                <Select value={userForm.incentiveFormula} onValueChange={(value) => setUserForm({ ...userForm, incentiveFormula: value })}>
+                  <SelectTrigger id="incentiveFormula">
+                    <SelectValue placeholder="Select Incentive Formula" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Incentive</SelectItem>
+                    <SelectItem value="personal_sales_15">Personal Sales 15%</SelectItem>
+                    <SelectItem value="personal_sales_10">Personal Sales 10%</SelectItem>
+                    <SelectItem value="personal_sales_5">Personal Sales 5%</SelectItem>
+                    <SelectItem value="team_sales_10">Team Sales 10%</SelectItem>
+                    <SelectItem value="team_sales_5">Team Sales 5%</SelectItem>
+                    <SelectItem value="total_sales_3">Total Sales 3%</SelectItem>
+                    <SelectItem value="fixed_bonus">Fixed Monthly Bonus</SelectItem>
+                    <SelectItem value="performance_based">Performance Based</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogContent>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)} variant="outline">Cancel</Button>
+            <Button onClick={handleSaveUser}>
+              {isEditing ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </Dialog>
+
+        {/* View User Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+            </DialogHeader>
+            {selectedUser && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Employee ID</p>
+                  <p className="text-base">{selectedUser.employeeId}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Name</p>
+                  <p className="text-base">{selectedUser.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Username</p>
+                  <p className="text-base">{selectedUser.username}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Birth Date</p>
+                  <p className="text-base">{selectedUser.birthDate || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Phone Number</p>
+                  <p className="text-base">{selectedUser.phoneNumber || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Department</p>
+                  <p className="text-base">{selectedUser.department}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Position</p>
+                  <p className="text-base">{selectedUser.position}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Role</p>
+                  <p className="text-base">{selectedUser.role}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Contract Type</p>
+                  <p className="text-base">{selectedUser.contractType}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Hire Date</p>
+                  <p className="text-base">{selectedUser.hireDateFormatted}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Years of Service</p>
+                  <p className="text-base">{selectedUser.yearsOfService}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Annual Leave</p>
+                  <p className="text-base">{selectedUser.annualLeave} days</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">Account Number</p>
+                  <p className="text-base">{selectedUser.accountNumber}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">Incentive Formula</p>
+                  <p className="text-base">{selectedUser.incentiveFormula}</p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Permanent Delete User Confirmation Dialog */}
+        <Dialog open={permanentDeleteConfirmOpen} onOpenChange={setPermanentDeleteConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-destructive">
+                ⚠️ Permanently Delete User
+              </DialogTitle>
+            </DialogHeader>
+            <Alert className="mb-4">
+              <AlertTitle>PERMANENT DELETION</AlertTitle>
+            </Alert>
+            <div className="space-y-4">
+              <p className="text-base">
+                Are you sure you want to <strong>permanently delete</strong> user "{userToDeletePermanently?.name}" from the database?
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This will completely remove:
+              </p>
+              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                <li>User profile and account information</li>
+                <li>All associated leave records</li>
+                <li>All payroll data for this user</li>
+                <li>All historical data</li>
+              </ul>
+              <p className="text-sm text-destructive font-semibold">
+                This action cannot be undone!
+              </p>
+              <div className="text-sm">
+                Employee ID: <strong>{userToDeletePermanently?.employeeId}</strong><br/>
+                Department: <strong>{userToDeletePermanently?.department}</strong><br/>
+                Position: <strong>{userToDeletePermanently?.position}</strong>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setPermanentDeleteConfirmOpen(false)} variant="outline">Cancel</Button>
+              <Button 
+                onClick={confirmPermanentDeleteUser} 
+                variant="destructive"
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                Permanently Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Permissions Management Dialog */}
+        <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                🔐 권한 관리 - {selectedUserForPermissions?.name}
+              </DialogTitle>
+            </DialogHeader>
+            {permissionsLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <p className="text-sm text-muted-foreground mb-6">
+                  사용자의 권한을 관리할 수 있습니다. 체크된 항목은 해당 사용자가 접근할 수 있는 기능입니다.
+                </p>
+                
+                {availablePermissions && Object.entries(availablePermissions).map(([category, permissions]: [string, any]) => (
+                  <div key={category} className="space-y-2">
+                    <h3 className="text-lg font-semibold text-primary">
+                      {category === 'users' && '👥 직원 관리'}
+                      {category === 'leave' && '🏖️ 휴가 관리'}
+                      {category === 'payroll' && '💰 급여 관리'}
+                      {category === 'departments' && '🏢 부서 관리'}
+                      {category === 'positions' && '👔 직급 관리'}
+                      {category === 'reports' && '📊 보고서'}
+                      {category === 'files' && '📁 파일 관리'}
+                      {category === 'admin' && '⚙️ 관리자'}
+                    </h3>
+                    <div className="pl-6 space-y-2">
+                      {permissions.map((perm: any) => (
+                        <div key={perm.key} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={perm.key}
+                            checked={userPermissions.includes(perm.key)}
+                            onCheckedChange={(checked) => handlePermissionChange(perm.key, checked as boolean)}
+                          />
+                          <Label htmlFor={perm.key} className="font-normal">
+                            {perm.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setPermissionsDialogOpen(false)} variant="outline">취소</Button>
+              <Button 
+                onClick={handleSavePermissions} 
+                disabled={permissionsLoading}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                권한 저장
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

@@ -1,28 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  TextField,
-  Button,
-  Avatar,
-  Divider,
-  Alert,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip
-} from '@mui/material';
-import {
-  Person as PersonIcon,
+  User as PersonIcon,
   Save as SaveIcon,
   Edit as EditIcon,
-  Cancel as CancelIcon
-} from '@mui/icons-material';
+  X as CancelIcon,
+  Loader2
+} from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/api';
@@ -137,188 +127,184 @@ const UserProfile: React.FC = () => {
 
   if (!userInfo) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" fontWeight={600}>
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
           👤 내 정보
-        </Typography>
+        </h1>
         {!editing ? (
           <Button
-            variant="contained"
-            startIcon={<EditIcon />}
             onClick={handleEdit}
+            className="flex items-center gap-2"
           >
+            <EditIcon className="h-4 w-4" />
             정보 수정
           </Button>
         ) : (
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-2">
             <Button
-              variant="outlined"
-              startIcon={<CancelIcon />}
+              variant="outline"
               onClick={handleCancel}
+              className="flex items-center gap-2"
             >
+              <CancelIcon className="h-4 w-4" />
               취소
             </Button>
             <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
               onClick={handleSave}
               disabled={loading}
+              className="flex items-center gap-2"
             >
-              {loading ? <CircularProgress size={20} /> : '저장'}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SaveIcon className="h-4 w-4" />}
+              저장
             </Button>
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Profile Summary Card */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-            <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main' }}>
-              <PersonIcon sx={{ fontSize: 40 }} />
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-6 mb-6">
+            <Avatar className="w-20 h-20">
+              <AvatarFallback className="bg-blue-600 text-white">
+                <PersonIcon className="h-10 w-10" />
+              </AvatarFallback>
             </Avatar>
-            <Box>
-              <Typography variant="h5" fontWeight={600}>
+            <div>
+              <h2 className="text-xl font-semibold mb-1">
                 {userInfo.name}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
+              </h2>
+              <p className="text-muted-foreground mb-2">
                 {userInfo.employeeId} | {userInfo.department || '부서 정보 없음'}
-              </Typography>
-              <Chip 
-                label={getRoleLabel(userInfo.role)}
-                color="primary"
-                size="small"
-                sx={{ mt: 1 }}
-              />
-            </Box>
-          </Box>
+              </p>
+              <Badge variant="default" className="bg-blue-100 text-blue-800">
+                {getRoleLabel(userInfo.role)}
+              </Badge>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Personal Information */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             👤 개인 정보
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
+          </h3>
+          <div className="border-b mb-4"></div>
           
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="이름"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">이름</Label>
+              <Input
+                id="name"
                 value={formData.name}
                 disabled
                 placeholder="홍길동"
-                inputProps={{
-                  style: { imeMode: 'active' }
-                }}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="생년월일"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthDate">생년월일</Label>
+              <Input
+                id="birthDate"
                 type="date"
                 value={formData.birthDate}
                 onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 disabled={!editing}
-                InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="전화번호"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">전화번호</Label>
+              <Input
+                id="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                 disabled={!editing}
                 placeholder="010-1234-5678"
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Work Information */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             🏢 근무 정보
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
+          </h3>
+          <div className="border-b mb-4"></div>
           
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="부서"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="department">부서</Label>
+              <Input
+                id="department"
                 value={userInfo.department || '정보 없음'}
                 disabled
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="직급"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="position">직급</Label>
+              <Input
+                id="position"
                 value={userInfo.position || '정보 없음'}
                 disabled
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="입사일"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hireDate">입사일</Label>
+              <Input
+                id="hireDate"
                 value={userInfo.hireDateFormatted || userInfo.hireDate || '정보 없음'}
                 disabled
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="근무 형태"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractType">근무 형태</Label>
+              <Input
+                id="contractType"
                 value={getContractTypeLabel(userInfo.contractType)}
                 disabled
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="근속년수"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="yearsOfService">근속년수</Label>
+              <Input
+                id="yearsOfService"
                 value={userInfo.yearsOfService !== undefined && userInfo.yearsOfService !== null ? `${userInfo.yearsOfService}년` : '정보 없음'}
                 disabled
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="연차"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="annualLeave">연차</Label>
+              <Input
+                id="annualLeave"
                 value={userInfo.annualLeave !== undefined && userInfo.annualLeave !== null ? `${userInfo.annualLeave}일` : '정보 없음'}
                 disabled
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {editing && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
+        <Alert className="mb-6">
+          <AlertDescription>
             <strong>수정 가능한 정보:</strong> 이름, 생년월일, 전화번호만 수정할 수 있습니다.
             부서, 직급 등의 근무 정보는 관리자에게 문의하세요.
-          </Typography>
+          </AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 };
 
