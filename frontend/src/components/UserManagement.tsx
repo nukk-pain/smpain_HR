@@ -46,6 +46,7 @@ import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { User, UserForm, Department, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
+import { cn } from '@/lib/utils';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 

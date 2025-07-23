@@ -1,15 +1,7 @@
-import tailwindcss from '@tailwindcss/postcss'
-import autoprefixer from 'autoprefixer'
-
 export default {
-  plugins: [
-    tailwindcss({
-      darkMode: ["class"],
-      content: [
-        "./index.html",
-        "./src/**/*.{ts,tsx,js,jsx}",
-      ],
-      prefix: "",
+  plugins: {
+    '@tailwindcss/postcss': {
+      // 여기에 tailwind.config.js의 theme 내용을 붙여넣습니다.
       theme: {
         container: {
           center: true,
@@ -75,8 +67,12 @@ export default {
           },
         },
       },
-      plugins: [],
-    }),
-    autoprefixer,
-  ],
+      // content 경로도 여기에 포함시킵니다.
+      content: [
+        "./index.html",
+        "./src/**/*.{ts,tsx,js,jsx}",
+      ],
+    },
+    autoprefixer: {},
+  },
 }

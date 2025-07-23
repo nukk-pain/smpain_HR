@@ -24,6 +24,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { useNotification } from '@/components/NotificationProvider'
 import apiService from '@/services/api'
 import { DashboardStats, PayrollStats } from '@/types'
+import { cn } from '@/lib/utils'
 
 
 const PayrollManagement: React.FC = () => {

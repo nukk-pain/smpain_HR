@@ -43,6 +43,7 @@ import { ko } from 'date-fns/locale';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { useAuth } from './AuthProvider';
+import { cn } from '@/lib/utils';
 
 interface Bonus {
   _id: string;

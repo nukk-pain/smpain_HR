@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 
@@ -383,15 +384,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       {stats.topPerformers?.slice(0, 5).map((performer, index) => (
                         <TableRow key={index}>
                           <TableCell>
-                            <div sx={{ display: 'flex', alignItems: 'center' }}>
+                            <div className="flex items-center gap-2">
                               {performer.name}
                               {index < 3 && (
-                                <Chip 
-                                  size="small" 
-                                  label={index + 1} 
-                                  color={index === 0 ? 'warning' : index === 1 ? 'default' : 'default'}
-                                  sx={{ ml: 1 }}
-                                />
+                                <Badge variant={index === 0 ? 'destructive' : 'secondary'}>
+                                  {index + 1}
+                                </Badge>
                               )}
                             </div>
                           </TableCell>
@@ -417,7 +415,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                   <h3 className="text-lg font-semibold mb-2">
                     {dept.department}
                   </h3>
-                  <div sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-600">
                       직원 수
                     </span>
@@ -425,7 +423,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       {dept.employeeCount}명
                     </span>
                   </div>
-                  <div sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-600">
                       총 급여
                     </span>
@@ -433,7 +431,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       {dept.totalSalary.toLocaleString()}원
                     </span>
                   </div>
-                  <div sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-600">
                       평균 급여
                     </span>
@@ -441,10 +439,9 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       {dept.averageSalary.toLocaleString()}원
                     </span>
                   </div>
-                  <LinearProgress 
-                    variant="determinate" 
+                  <Progress 
                     value={stats.totalPayroll > 0 ? (dept.totalSalary / stats.totalPayroll) * 100 : 0} 
-                    sx={{ mt: 2 }}
+                    className="mt-2"
                   />
                   <span className="text-xs text-gray-600 mt-1 block">
                     전체 급여의 {stats.totalPayroll > 0 ? ((dept.totalSalary / stats.totalPayroll) * 100).toFixed(1) : 0}%

@@ -52,6 +52,7 @@ import { format } from 'date-fns';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { useAuth } from './AuthProvider';
+import { cn } from '@/lib/utils';
 
 interface SalesData {
   _id: string;

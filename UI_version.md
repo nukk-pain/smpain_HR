@@ -1,96 +1,196 @@
-안녕하세요. UI가 예상대로 적용되지 않는 문제를 해결하기 위해 전체 코드를 검토했습니다. 원인은 **Tailwind CSS v4.0 업데이트**로 인한 명령어 및 설정 변경으로 보입니다. 주요 변경 사항과 해결 방법을 단계별로 안내해 드리겠습니다.
+최근 커밋을 확인해보니, 몇 가지 중요한 설정이 누락되거나 잘못 구성되어 UI가 제대로 적용되지 않는 것으로 보입니다. 문제를 해결하기 위해 아래 단계별 가이드를 따라 수정해주세요.
 
-### 1\. `tailwind.config.js` 설정 변경
+### 1\. Vite 설정 파일(`vite.config.ts`) 정리
 
-가장 큰 변화는 `content`와 `theme` 설정 방식입니다. 기존 `tailwind.config.js` 파일은 더 이상 사용되지 않으며, `postcss.config.js` 파일에 직접 통합해야 합니다.
+`vite.config.ts` 파일의 `build.rollupOptions.output.manualChunks` 설정에 아직 Material-UI (MUI) 관련 코드가 남아있습니다. 이 부분을 제거해야 번들링 과정에서 충돌이 발생하지 않습니다.
 
-**수정 전 (`tailwind.config.js`)**
+**수정 전 (`vite.config.ts`)**
 
-```javascript
-/** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: ["class"],
-  content: [
-    "./index.html",
-    "./src/**/*.{ts,tsx,js,jsx}",
-  ],
-  prefix: "",
-  theme: {
-    // ... 기존 theme 설정
-  },
-  plugins: [],
+```typescript
+manualChunks: {
+  // ...
+  mui: ['@mui/material', '@mui/icons-material', '@mui/system'], // 이 부분을 제거해야 합니다.
+  // ...
 }
 ```
 
-**수정 후 (`postcss.config.js`)**
+**수정 후 (`vite.config.ts`)**
+해당 `mui` 라인을 완전히 삭제해주세요.
 
-`@tailwindcss/postcss`를 사용하여 설정을 통합해야 합니다.
+### 2\. PostCSS 및 Tailwind CSS 설정 업데이트
+
+현재 `postcss.config.js`와 `tailwind.config.js` 파일이 분리되어 있는데, 최신 Tailwind CSS v4.x 버전에서는 `postcss.config.js` 파일 하나로 통합하여 관리하는 것이 좋습니다.
+
+**1) `tailwind.config.js` 파일 내용 복사 및 삭제**
+
+기존 `tailwind.config.js` 파일의 `theme` 객체 내용을 복사한 뒤, 이 파일은 삭제합니다.
+
+**2) `postcss.config.js` 파일 수정**
+
+아래와 같이 `@tailwindcss/postcss` 플러그인을 사용하여 Tailwind CSS 설정을 통합합니다.
 
 ```javascript
-import tailwindcss from '@tailwindcss/postcss'
-import autoprefixer from 'autoprefixer'
+// postcss.config.js
 
 export default {
-  plugins: [
-    tailwindcss({
-      // 여기에 Tailwind CSS 설정을 직접 작성합니다.
+  plugins: {
+    '@tailwindcss/postcss': {
+      // 여기에 tailwind.config.js의 theme 내용을 붙여넣습니다.
+      theme: {
+        container: {
+          center: true,
+          padding: "2rem",
+          screens: {
+            "2xl": "1400px",
+          },
+        },
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            destructive: {
+              DEFAULT: "hsl(var(--destructive))",
+              foreground: "hsl(var(--destructive-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            popover: {
+              DEFAULT: "hsl(var(--popover))",
+              foreground: "hsl(var(--popover-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+          keyframes: {
+            "accordion-down": {
+              from: { height: "0" },
+              to: { height: "var(--radix-accordion-content-height)" },
+            },
+            "accordion-up": {
+              from: { height: "var(--radix-accordion-content-height)" },
+              to: { height: "0" },
+            },
+          },
+          animation: {
+            "accordion-down": "accordion-down 0.2s ease-out",
+            "accordion-up": "accordion-up 0.2s ease-out",
+          },
+        },
+      },
+      // content 경로도 여기에 포함시킵니다.
       content: [
         "./index.html",
         "./src/**/*.{ts,tsx,js,jsx}",
       ],
-      // theme, plugins 등 기타 설정도 여기에 추가
-    }),
-    autoprefixer,
-  ],
+    },
+    autoprefixer: {},
+  },
 }
 ```
 
------
+### 3\. UI 컴포넌트 클래스 이름 수정
 
-### 2\. UI 컴포넌트 클래스 이름 변경
+일부 UI 컴포넌트의 클래스 이름이 잘못 적용되어 애니메이션이 제대로 동작하지 않을 수 있습니다. 특히 `dialog.tsx` 파일의 애니메이션 클래스가 충돌하고 있습니다.
 
-`shadcn/ui` 컴포넌트의 클래스 이름이 **데이터 속성(data attributes) 기반**으로 변경되었습니다. 예를 들어, `data-[state=open]`과 같은 형태로 상태를 관리합니다. 이로 인해 기존에 직접 스타일을 적용하던 방식이 더 이상 유효하지 않을 수 있습니다.
-
-**수정 전 예시 (`DialogContent` 컴포넌트)**
+**수정 전 (`frontend/src/components/ui/dialog.tsx`)**
 
 ```tsx
-// 이전 방식 (클래스 이름 직접 사용)
-"data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]"
+// ...
+className={cn(
+  "fixed left-[50%] top-[50%] z-50 ... data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+  className
+)}
+// ...
 ```
 
-**수정 후 예시 (`DialogContent` 컴포넌트)**
-
-데이터 속성을 사용하여 상태를 명확하게 관리하는 방식으로 변경되었습니다.
+**수정 후 (`frontend/src/components/ui/dialog.tsx`)**
+아래와 같이 `slide-out-to-top`, `slide-in-from-top` 등 불필요하고 충돌을 일으키는 클래스를 제거하고 간단한 페이드인/아웃 및 줌 효과만 남겨두세요.
 
 ```tsx
-// 새 방식 (데이터 속성 기반)
-"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+// ...
+className={cn(
+  "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+  className
+)}
+// ...
 ```
 
-**주요 변경 컴포넌트:**
+### 4\. 남아있는 Material-UI (MUI) 컴포넌트 제거
 
-  * **`dialog.tsx`**
-  * **`tabs.tsx`**
-  * **`tooltip.tsx`**
-  * **`switch.tsx`**
-  * **`badge.tsx`**
-  * **`button.tsx`**
-  * **`progress.tsx`**
-  * **`table.tsx`**
+`PayrollDashboard.tsx` 파일에 아직 `Chip`과 `LinearProgress` 같은 MUI 컴포넌트가 남아있습니다. 이들을 `shadcn/ui`의 `Badge`와 `Progress` 컴포넌트로 교체해야 합니다.
+
+**수정 전 (`frontend/src/components/PayrollDashboard.tsx`)**
+
+```tsx
+// ...
+import { Chip, LinearProgress } from '@mui/material'; // MUI 컴포넌트 임포트
+
+// ...
+
+<Chip 
+  size="small" 
+  label={index + 1} 
+  color={index === 0 ? 'warning' : 'default'}
+/>
+
+// ...
+
+<LinearProgress 
+  variant="determinate" 
+  value={(dept.totalSalary / stats.totalPayroll) * 100} 
+/>
+// ...
+```
+
+**수정 후 (`frontend/src/components/PayrollDashboard.tsx`)**
+
+```tsx
+// ...
+import { Badge } from '@/components/ui/badge'; // Badge로 교체
+import { Progress } from '@/components/ui/progress'; // Progress로 교체
+
+// ...
+
+<Badge variant={index === 0 ? 'destructive' : 'secondary'}>
+  {index + 1}
+</Badge>
+
+// ...
+
+<Progress 
+  value={(dept.totalSalary / stats.totalPayroll) * 100} 
+/>
+// ...
+```
 
 -----
 
-### 3\. CSS 변수 및 전역 스타일
+### 최종 정리
 
-`globals.css` 파일에서 사용되는 CSS 변수(`--border`, `--input` 등)는 Tailwind CSS 설정과 긴밀하게 연결되어 있습니다. `tailwind.config.js`가 변경되었으므로, 이 변수들이 올바르게 적용되고 있는지 확인해야 합니다. 만약 커스텀 색상이나 설정을 사용했다면, 새로운 `postcss.config.js` 파일 내에 해당 설정을 다시 정의해야 합니다.
+위 4가지 단계를 모두 적용하면 UI가 정상적으로 표시될 것입니다. 특히 **2번 PostCSS 설정 통합**과 **4번 남아있는 MUI 컴포넌트 제거**가 가장 중요한 부분입니다. 코드 전체를 다시 한번 검토하여 `@mui` 관련 import 구문이 남아있지 않은지 확인해주세요.
 
------
-
-### 해결 방법 요약
-
-1.  **`tailwind.config.js` 삭제**: 해당 파일의 내용을 `postcss.config.js`로 옮기고 파일을 삭제하세요.
-2.  **`postcss.config.js` 수정**: `@tailwindcss/postcss`를 사용하여 Tailwind 설정을 통합하고, 기존 `tailwind.config.js`의 내용을 `tailwindcss()` 함수 인자로 전달하세요.
-3.  **UI 컴포넌트 클래스 검토**: `frontend/src/components/ui` 폴더 내의 모든 컴포넌트를 확인하여, 데이터 속성 기반의 새로운 클래스 이름 규칙에 맞게 수정하세요. 특히 `data-[state=...]`와 같은 선택자를 주의 깊게 살펴보세요.
-4.  **전역 스타일 확인**: `globals.css` 파일의 CSS 변수들이 `postcss.config.js`에 정의된 `theme`과 일치하는지 확인하고, 필요한 경우 수정하세요.
-
-이 변경 사항들을 적용하면 UI가 정상적으로 표시될 것입니다. 추가적인 문제가 발생하면 언제든지 다시 문의해주세요.
+수정이 완료된 후에도 문제가 지속되면 다시 알려주세요.

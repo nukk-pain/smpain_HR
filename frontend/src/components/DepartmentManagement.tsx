@@ -42,6 +42,7 @@ import {
 import { Department, DepartmentEmployees, User, OrganizationChart, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
+import { cn } from '@/lib/utils';
 
 const DepartmentManagement: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
