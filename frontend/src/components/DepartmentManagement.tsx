@@ -252,7 +252,7 @@ const DepartmentManagement: React.FC = () => {
   const renderUserTree = (user: User, level: number = 0) => {
     return (
       <div key={`${user._id}-${level}`} style={{ marginLeft: `${level * 12}px` }}>
-        <Card className={`mb-2 ${level === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+        <Card className={cn('mb-2', level === 0 ? 'bg-gray-50' : 'bg-white')}>
           <CardContent className="py-2">
             <div className="flex items-center gap-2">
               <UserIcon className={`h-4 w-4 ${
@@ -656,7 +656,7 @@ const DepartmentManagement: React.FC = () => {
                 {selectedDepartment.employees.map((employee, index) => (
                   <div key={employee._id || `employee-${index}`} className="border-b last:border-b-0 pb-4 last:pb-0">
                     <div className="flex items-center gap-3">
-                      <UserIcon className={`h-5 w-5 ${employee.role === 'manager' ? 'text-yellow-500' : 'text-blue-500'}`} />
+                      <UserIcon className={cn('h-5 w-5', employee.role === 'manager' ? 'text-yellow-500' : 'text-blue-500')} />
                       <div>
                         <h4 className="font-semibold">{employee.name}</h4>
                         <div className="flex gap-2 mt-2 flex-wrap">

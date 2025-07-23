@@ -119,7 +119,7 @@ const PayrollManagement: React.FC = () => {
                 {typeof value === 'number' && '원'}
               </div>
             </div>
-            <div className={`${iconColorClass} text-3xl`}>
+            <div className={cn(iconColorClass, 'text-3xl')}>
               {icon}
             </div>
           </div>

@@ -639,7 +639,7 @@ const UserManagement: React.FC = () => {
                   disabled={isEditing}
                   className={usernameError ? 'border-destructive' : ''}
                 />
-                <p className={`text-sm ${usernameError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <p className={cn('text-sm', usernameError ? 'text-destructive' : 'text-muted-foreground')}>
                   {usernameError || "영문, 한글, 숫자, _, - 사용 가능 (2-30자)"}
                 </p>
               </div>

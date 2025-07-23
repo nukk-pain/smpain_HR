@@ -176,7 +176,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
               <p className="text-sm text-muted-foreground mb-1">
                 {title}
               </p>
-              <p className={`text-2xl font-bold ${getColorClass(color)}`}>
+              <p className={cn('text-2xl font-bold', getColorClass(color))}>
                 {formatValue(value)}
               </p>
               {growth !== undefined && (
@@ -196,7 +196,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                 </div>
               )}
             </div>
-            <div className={`ml-4 text-4xl ${getColorClass(color)}`}>
+            <div className={cn('ml-4 text-4xl', getColorClass(color))}>
               {icon}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 interface FormFieldProps {
   label: string
@@ -22,7 +23,7 @@ export function FormField({
   className 
 }: FormFieldProps) {
   return (
-    <div className={`grid w-full items-center gap-1.5 ${className || ''}`}>
+    <div className={cn('grid w-full items-center gap-1.5', className)}>
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}

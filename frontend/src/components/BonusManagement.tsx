@@ -257,11 +257,11 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
               <p className="text-sm text-muted-foreground mb-1">
                 {title}
               </p>
-              <p className={`text-2xl font-bold ${getColorClass(color)}`}>
+              <p className={cn('text-2xl font-bold', getColorClass(color))}>
                 {value.toLocaleString()}원
               </p>
             </div>
-            <div className={`text-3xl ${getColorClass(color)}`}>
+            <div className={cn('text-3xl', getColorClass(color))}>
               {icon}
             </div>
           </div>
