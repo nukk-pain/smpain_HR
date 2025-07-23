@@ -1,0 +1,5 @@
+NODE_ENV=test
+PORT=5455
+MONGODB_URL=mongodb://localhost:27017/SM_nomu
+DB_NAME=SM_nomu
+SESSION_SECRET=hr-test-secret
