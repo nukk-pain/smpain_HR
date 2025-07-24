@@ -342,7 +342,6 @@ export interface Position {
   title: string;
   description?: string;
   department?: string;
-  level?: number;
   responsibilities?: string[];
   requirements?: string[];
   employeeCount?: number;

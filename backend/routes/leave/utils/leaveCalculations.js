@@ -88,20 +88,37 @@ const calculateBusinessDaysWithPolicy = async (db, startDate, endDate) => {
   const end = new Date(endDate);
   let daysCount = 0;
   let currentDate = new Date(start);
+  let weekendDaysDetail = [];
   
   while (currentDate <= end) {
     const dayOfWeek = currentDate.getDay();
+    const dateString = currentDate.toISOString().split('T')[0];
+    
     if (dayOfWeek === 0) { 
       // Sunday - use policy value
-      daysCount += policy.specialRules.sundayLeave || 0;
+      const sundayValue = policy.specialRules.sundayLeave || 0;
+      daysCount += sundayValue;
+      if (sundayValue > 0) {
+        weekendDaysDetail.push(`Sunday ${dateString}: ${sundayValue} days`);
+      }
     } else if (dayOfWeek === 6) { 
-      // Saturday - use policy value
-      daysCount += policy.specialRules.saturdayLeave || 0.5;
+      // Saturday - use policy value  
+      const saturdayValue = policy.specialRules.saturdayLeave || 0.5;
+      daysCount += saturdayValue;
+      if (saturdayValue > 0) {
+        weekendDaysDetail.push(`Saturday ${dateString}: ${saturdayValue} days`);
+      }
     } else { 
       // Monday-Friday - 1 day
       daysCount++;
     }
     currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  // Add debug logging for weekend calculations
+  if (weekendDaysDetail.length > 0) {
+    console.log(`🔍 [DEBUG] 주말 일수 계산 상세:`, weekendDaysDetail);
+    console.log(`🔍 [DEBUG] 주말 정책: 토요일=${policy.specialRules.saturdayLeave || 0.5}일, 일요일=${policy.specialRules.sundayLeave || 0}일`);
   }
   
   return Math.max(daysCount, 0);

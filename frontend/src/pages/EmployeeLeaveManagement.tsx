@@ -186,6 +186,12 @@ const EmployeeLeaveManagement: React.FC = () => {
       showSuccess(
         action === 'approve' ? '휴가가 승인되었습니다.' : '휴가가 거부되었습니다.'
       );
+      
+      // 다른 탭/창에 연차가 업데이트되었음을 알림
+      if (selectedRequest.leaveType === 'annual') {
+        localStorage.setItem('leaveUpdated', new Date().toISOString());
+      }
+      
       handleCloseApprovalDialog();
       await loadData();
     } catch (error: any) {
@@ -201,6 +207,12 @@ const EmployeeLeaveManagement: React.FC = () => {
       showSuccess(
         action === 'approve' ? '휴가 취소가 승인되었습니다.' : '휴가 취소가 거부되었습니다.'
       );
+      
+      // 다른 탭/창에 연차가 업데이트되었음을 알림
+      if (action === 'approve' && selectedRequest?.leaveType === 'annual') {
+        localStorage.setItem('leaveUpdated', new Date().toISOString());
+      }
+      
       handleCloseApprovalDialog();
       await loadData();
     } catch (error: any) {

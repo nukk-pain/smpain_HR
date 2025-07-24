@@ -30,6 +30,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   
   // Calculate days count using policy-based calculation
   const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate);
+  console.log(`🔍 [DEBUG] 휴가 일수 계산: ${startDate} ~ ${endDate} = ${daysCount}일`);
   
   // Get current policy for validation
   const policy = await getCurrentPolicy(db);
@@ -132,69 +133,88 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     }
   }
 
-  // Check leave balance for annual leave (allow -3 days advance)
+  // 신청 시점 차감 방식: 연차 신청 시 잔여일수 확인 및 즉시 차감
   if (leaveType === 'annual') {
-    const currentYear = new Date().getFullYear();
+    // 현재 사용자의 잔여 연차 확인 (users.leaveBalance 필드 사용)
+    const currentBalance = user.leaveBalance || 0;
     
-    // Calculate total annual leave including carry-over
-    const hireDate = user.hireDate ? new Date(user.hireDate) : new Date(user.createdAt);
-    const baseAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
-    const carryOverLeave = await getCarryOverLeave(db, user._id, currentYear);
-    const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
-    
-    // Get used annual leave
-    const usedLeave = await db.collection('leaveRequests').aggregate([
-      {
-        $match: {
-          userId: user._id,
-          leaveType: 'annual',
-          status: { $in: ['approved', 'pending'] },
-          startDate: { $gte: new Date(`${currentYear}-01-01`), $lte: new Date(`${currentYear}-12-31`) }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalDays: { $sum: '$daysCount' }
-        }
-      }
-    ]).toArray();
-    
-    const usedAnnualLeave = usedLeave.length > 0 ? usedLeave[0].totalDays : 0;
-    const remainingLeave = totalAnnualLeave - usedAnnualLeave;
-    
-    // Allow advance usage up to -3 days
-    if (remainingLeave - daysCount < -3) {
+    // 잔여일수 부족 검사 (최대 3일까지 미리 사용 허용)
+    if (currentBalance - daysCount < -3) {
       return res.status(400).json({ 
         error: '연차 잔여일수가 부족합니다. 최대 3일까지 미리 사용할 수 있습니다.',
-        currentBalance: remainingLeave,
+        currentBalance: currentBalance,
         requestedDays: daysCount,
+        wouldRemain: currentBalance - daysCount,
         allowedMinimum: -3
       });
     }
   }
   
-  const leaveRequest = {
-    userId: userObjectId,
-    userName: user.name,
-    userDepartment: user.department,
-    leaveType,
-    startDate,
-    endDate,
-    daysCount,
-    reason,
-    substituteEmployee: substituteEmployee || '',
-    status: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  
-  const result = await db.collection('leaveRequests').insertOne(leaveRequest);
-  
-  res.json({
-    success: true,
-    data: { id: result.insertedId, ...leaveRequest }
-  });
+  // 휴가 신청 생성 및 연차 차감 처리 (트랜잭션 없이)
+  try {
+    // 1. 연차인 경우 잔여일수 차감
+    if (leaveType === 'annual') {
+      console.log(`🔍 [DEBUG] 연차 차감: userId=${userObjectId}, 차감할 일수=${daysCount}, 현재 잔여=${user.leaveBalance || 0}`);
+      const deductResult = await db.collection('users').updateOne(
+        { _id: userObjectId },
+        { $inc: { leaveBalance: -daysCount } }
+      );
+      console.log(`🔍 [DEBUG] 차감 결과: ${deductResult.modifiedCount}개 문서 수정됨`);
+      
+      if (deductResult.matchedCount === 0) {
+        return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+      }
+    }
+    
+    // 2. 휴가 신청 생성
+    const leaveRequest = {
+      userId: userObjectId,
+      userName: user.name,
+      userDepartment: user.department,
+      leaveType,
+      startDate,
+      endDate,
+      daysCount,
+      reason,
+      substituteEmployee: substituteEmployee || '',
+      status: 'pending',
+      deductedDays: leaveType === 'annual' ? daysCount : 0, // 차감된 일수 기록
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await db.collection('leaveRequests').insertOne(leaveRequest);
+    
+    res.json({
+      success: true,
+      data: { id: result.insertedId, ...leaveRequest },
+      message: leaveType === 'annual' ? 
+        `휴가 신청이 완료되었습니다. 잔여 연차: ${(user.leaveBalance || 0) - daysCount}일` :
+        '휴가 신청이 완료되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('휴가 신청 오류:', error);
+    
+    // 오류 시 연차 차감 롤백 (연차인 경우만)
+    if (leaveType === 'annual') {
+      try {
+        await db.collection('users').updateOne(
+          { _id: userObjectId },
+          { $inc: { leaveBalance: daysCount } } // 차감했던 것을 다시 복원
+        );
+        console.log(`🔄 [DEBUG] 오류로 인한 연차 복원: ${daysCount}일`);
+      } catch (rollbackError) {
+        console.error('연차 복원 실패:', rollbackError);
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: '휴가 신청 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
 }));
 
 /**
@@ -459,28 +479,84 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
     });
   } else {
     // Handle regular leave approval/rejection
-    const updateData = {
-      status: action === 'approve' ? 'approved' : 'rejected',
-      approvedBy: new ObjectId(approverId),
-      approvedByName: approver.name,
-      approvedAt: new Date(),
-      approvalComment: comment || '',
-      updatedAt: new Date()
-    };
+    const leaveRequest = await db.collection('leaveRequests').findOne({
+      _id: toObjectId(id),
+      status: 'pending'
+    });
     
-    const result = await db.collection('leaveRequests').updateOne(
-      { _id: toObjectId(id), status: 'pending' },
-      { $set: updateData }
-    );
-    
-    if (result.matchedCount === 0) {
+    if (!leaveRequest) {
       return res.status(404).json({ error: 'Leave request not found or already processed' });
     }
     
-    res.json({
-      success: true,
-      message: `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully`
-    });
+    // 휴가 승인/거부 처리 (트랜잭션 없이)
+    try {
+      // 1. 휴가 신청 상태 업데이트
+      const updateData = {
+        status: action === 'approve' ? 'approved' : 'rejected',
+        approvedBy: new ObjectId(approverId),
+        approvedByName: approver.name,
+        approvedAt: new Date(),
+        approvalComment: comment || '',
+        updatedAt: new Date()
+      };
+      
+      console.log(`🔍 [DEBUG] 휴가 ${action === 'approve' ? '승인' : '거부'} 처리: ${leaveRequest.userName} - ${leaveRequest.leaveType} ${leaveRequest.daysCount}일`);
+      
+      const updateResult = await db.collection('leaveRequests').updateOne(
+        { _id: toObjectId(id), status: 'pending' },
+        { $set: updateData }
+      );
+      
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: 'Leave request not found or already processed' });
+      }
+      
+      console.log(`🔍 [DEBUG] 휴가 신청 상태 업데이트 완료: ${updateResult.modifiedCount}개 문서 수정됨`);
+      
+      // 2. 거부 시 연차 복구
+      if (action === 'reject' && leaveRequest.leaveType === 'annual' && leaveRequest.deductedDays > 0) {
+        const restoreResult = await db.collection('users').updateOne(
+          { _id: leaveRequest.userId },
+          { $inc: { leaveBalance: leaveRequest.deductedDays } }
+        );
+        
+        console.log(`🔍 [DEBUG] 연차 거부 시 복구: 사용자 ${leaveRequest.userName} - 복구 ${leaveRequest.deductedDays}일, 수정된 문서: ${restoreResult.modifiedCount}개`);
+        
+        if (restoreResult.matchedCount === 0) {
+          console.error('❌ [ERROR] 연차 복구 실패: 사용자를 찾을 수 없음');
+        }
+      }
+      
+      // 3. 승인 시 로그 (기존과 동일)
+      if (action === 'approve' && leaveRequest.leaveType === 'annual') {
+        console.log(`✅ [DEBUG] 연차 승인: ${leaveRequest.userName} - 사용 ${leaveRequest.daysCount}일 (이미 차감됨)`);
+      }
+      
+      res.json({
+        success: true,
+        message: `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+        balanceRestored: action === 'reject' && leaveRequest.leaveType === 'annual' ? leaveRequest.deductedDays : 0
+      });
+      
+    } catch (error) {
+      console.error('❌ [ERROR] 휴가 승인/거부 처리 오류:', error);
+      
+      // 오류 시 수동 롤백 처리 (상태 업데이트가 완료되었지만 연차 복구가 실패한 경우)
+      if (action === 'reject' && leaveRequest.leaveType === 'annual') {
+        try {
+          // 상태 업데이트를 원복하려 하지만, 이미 변경되었을 가능성이 높음
+          console.log('🔄 [DEBUG] 오류로 인한 수동 복구 시도 중...');
+        } catch (rollbackError) {
+          console.error('❌ [ERROR] 수동 롤백 실패:', rollbackError);
+        }
+      }
+      
+      res.status(500).json({
+        success: false,
+        error: '휴가 승인/거부 처리 중 오류가 발생했습니다.',
+        details: error.message
+      });
+    }
   }
 }));
 

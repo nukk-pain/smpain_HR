@@ -71,7 +71,6 @@ const DepartmentManagement: React.FC = () => {
     title: '',
     description: '',
     department: '',
-    level: 1,
   });
 
   const { showNotification } = useNotification();
@@ -97,8 +96,14 @@ const DepartmentManagement: React.FC = () => {
   const loadPositions = useCallback(async () => {
     try {
       const response = await apiService.getPositions();
-      setPositions(response.success ? response.data : []);
+      
+      if (response.success) {
+        setPositions(response.data);
+      } else {
+        setPositions([]);
+      }
     } catch (error) {
+      console.error('❌ DepartmentManagement: Error loading positions:', error);
       showNotification('error', 'Error', 'Failed to load positions');
     }
   }, [showNotification]);
@@ -208,7 +213,7 @@ const DepartmentManagement: React.FC = () => {
       setIsPositionDialogOpen(false);
       setIsPositionEditMode(false);
       setEditingPosition(null);
-      setNewPosition({ title: '', description: '', department: '', level: 1 });
+      setNewPosition({ title: '', description: '', department: '' });
       loadPositions();
     } catch (error: any) {
       showNotification('error', 'Error', error.response?.data?.error || `Failed to ${isPositionEditMode ? 'update' : 'create'} position`);
@@ -221,7 +226,6 @@ const DepartmentManagement: React.FC = () => {
       title: position.title,
       description: position.description || '',
       department: position.department || '',
-      level: position.level || 1,
     });
     setIsPositionEditMode(true);
     setIsPositionDialogOpen(true);
@@ -329,9 +333,10 @@ const DepartmentManagement: React.FC = () => {
       </Card>
 
       {activeTab === 0 && (
-        <Grid container spacing={3}>
-        {/* Departments Overview */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ mt: 3 }}>
+          <Grid container spacing={3}>
+            {/* Departments Overview */}
+            <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -344,38 +349,39 @@ const DepartmentManagement: React.FC = () => {
                 <List>
                   {departments.map((dept, index) => (
                     <React.Fragment key={dept._id || `dept-${index}`}>
-                      <ListItem
-                        secondaryAction={
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              size="small"
-                              startIcon={<ViewIcon />}
-                              onClick={() => handleViewDepartment(dept.name)}
-                            >
-                              View
-                            </Button>
-                            <Button
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditDepartment(dept)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteDepartment(dept)}
-                            >
-                              Delete
-                            </Button>
-                          </Box>
-                        }
-                      >
+                      <ListItem>
                         <ListItemIcon>
                           <PeopleIcon />
                         </ListItemIcon>
                         <ListItemText
-                          primary={dept.name}
+                          primary={
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                              <Typography variant="body1">{dept.name}</Typography>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  startIcon={<ViewIcon />}
+                                  onClick={() => handleViewDepartment(dept.name)}
+                                >
+                                  View
+                                </Button>
+                                <Button
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditDepartment(dept)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteDepartment(dept)}
+                                >
+                                  Delete
+                                </Button>
+                              </Box>
+                            </Box>
+                          }
                           secondary={
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
                               <Chip
@@ -464,22 +470,28 @@ const DepartmentManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        </Grid>
+          </Grid>
+        </Box>
       )}
 
       {activeTab === 1 && (
-        <Grid container spacing={3}>
-          {/* Positions Overview */}
-          <Grid item xs={12}>
+        <Box sx={{ mt: 3 }}>
+          <Grid container spacing={3}>
+            {/* Positions Overview */}
+            <Grid item xs={12}>
             <Card>
               <CardContent>
+                {(() => {
+                  return null;
+                })()}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <PositionIcon color="primary" />
                   <Typography variant="h6">Positions</Typography>
                 </Box>
-                {positions.length === 0 ? (
-                  <Alert severity="info">No positions found</Alert>
-                ) : (
+                {(() => {
+                  return positions.length === 0 ? (
+                    <Alert severity="info">No positions found</Alert>
+                  ) : (
                   <List>
                     {positions.map((position, index) => (
                       <React.Fragment key={position._id || `position-${index}`}>
@@ -514,11 +526,6 @@ const DepartmentManagement: React.FC = () => {
                                   />
                                 )}
                                 <Chip
-                                  label={`Level ${position.level}`}
-                                  size="small"
-                                  color="secondary"
-                                />
-                                <Chip
                                   label={`${position.employeeCount} employees`}
                                   size="small"
                                   color="default"
@@ -536,11 +543,13 @@ const DepartmentManagement: React.FC = () => {
                       </React.Fragment>
                     ))}
                   </List>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           </Grid>
-        </Grid>
+          </Grid>
+        </Box>
       )}
 
       {/* Add Department Dialog */}
@@ -707,7 +716,7 @@ const DepartmentManagement: React.FC = () => {
         setIsPositionDialogOpen(false);
         setIsPositionEditMode(false);
         setEditingPosition(null);
-        setNewPosition({ title: '', description: '', department: '', level: 1 });
+        setNewPosition({ title: '', description: '', department: '' });
       }} maxWidth="sm" fullWidth>
         <DialogTitle>{isPositionEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
         <DialogContent>
@@ -747,17 +756,6 @@ const DepartmentManagement: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Level (직급 레벨)"
-                type="number"
-                value={newPosition.level}
-                onChange={(e) => setNewPosition({ ...newPosition, level: parseInt(e.target.value) || 1 })}
-                inputProps={{ min: 1, max: 10 }}
-                helperText="1: 신입, 2: 주니어, 3: 시니어, 4: 팀장, 5: 부장"
-              />
             </Grid>
           </Grid>
         </DialogContent>

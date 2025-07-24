@@ -107,7 +107,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     return map;
   }, {});
   
-  // Calculate leave balance for each user
+  // Get leave balance for each user from DB (consistent with personal dashboard)
   const members = await Promise.all(users.map(async (user) => {
     const userLeaveRequests = leaveRequests.filter(req => 
       req.userId && req.userId.toString() === user._id.toString()
@@ -119,16 +119,10 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     const carryOverLeave = await getCarryOverLeave(db, user._id, year);
     const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
     
-    // Calculate used and pending leave
-    const usedAnnualLeave = userLeaveRequests
-      .filter(req => req.leaveType === 'annual' && req.status === 'approved')
-      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
-    
-    const pendingAnnualLeave = userLeaveRequests
-      .filter(req => req.leaveType === 'annual' && req.status === 'pending')
-      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
-    
-    const remainingAnnualLeave = totalAnnualLeave - usedAnnualLeave;
+    // Use DB stored values (consistent with personal dashboard)
+    const remainingAnnualLeave = user.leaveBalance || 0;
+    const usedAnnualLeave = Math.max(0, totalAnnualLeave - remainingAnnualLeave);
+    const pendingAnnualLeave = 0; // Already deducted from leaveBalance when requested
     
     // Get recent and upcoming leaves
     const now = new Date();

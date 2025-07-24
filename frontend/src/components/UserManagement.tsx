@@ -233,9 +233,9 @@ const UserManagement: React.FC = () => {
         await apiService.updateUser(selectedUser._id, userForm);
         showNotification('success', 'Success', 'User updated successfully');
       } else {
-        // Remove employeeId from form data since it's auto-generated
-        const { employeeId, ...formDataWithoutEmployeeId } = userForm;
-        await apiService.createUser(formDataWithoutEmployeeId);
+        // Remove employeeId, birthDate, phoneNumber from form data since they're auto-generated or user-editable
+        const { employeeId, birthDate, phoneNumber, ...formDataWithoutPersonalInfo } = userForm;
+        await apiService.createUser(formDataWithoutPersonalInfo);
         showNotification('success', 'Success', 'User created successfully');
       }
       setIsDialogOpen(false);
@@ -613,32 +613,38 @@ const UserManagement: React.FC = () => {
                 required
                 placeholder="홍길동"
                 inputProps={{
-                  style: { imeMode: 'active' }
+                  style: { imeMode: 'active' },
+                  lang: 'ko',
+                  autoComplete: 'name'
                 }}
                 helperText="한글 이름을 입력하세요"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="생년월일 (Birth Date)"
-                type="date"
-                value={userForm.birthDate}
-                onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                helperText="YYYY-MM-DD 형식"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="전화번호 (Phone Number)"
-                value={userForm.phoneNumber}
-                onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
-                placeholder="010-1234-5678"
-                helperText="연락 가능한 전화번호를 입력하세요"
-              />
-            </Grid>
+            {isEditing && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="생년월일 (Birth Date)"
+                    type="date"
+                    value={userForm.birthDate}
+                    onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="YYYY-MM-DD 형식"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="전화번호 (Phone Number)"
+                    value={userForm.phoneNumber}
+                    onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+                    placeholder="010-1234-5678"
+                    helperText="연락 가능한 전화번호를 입력하세요"
+                  />
+                </Grid>
+              </>
+            )}
             {isEditing && (
               <Grid item xs={12} md={6}>
                 <TextField
@@ -679,7 +685,6 @@ const UserManagement: React.FC = () => {
                     <MenuItem key={position._id} value={position.title}>
                       {position.title}
                       {position.department && ` (${position.department})`}
-                      {position.level && ` - Level ${position.level}`}
                     </MenuItem>
                   ))}
                 </Select>

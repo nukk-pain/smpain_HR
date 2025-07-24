@@ -42,26 +42,13 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
     return res.status(404).json({ error: 'Leave request not found or already processed' });
   }
   
-  // 연차 승인 시 즉시 연차 잔여일수 차감
+  // 연차 승인 시 로그만 남기고, 실제 잔여일수는 leaveBalance.js에서 실시간 계산
   if (action === 'approve') {
     const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
     if (leaveRequest && leaveRequest.leaveType === 'annual') {
       const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
       if (user) {
-        const currentBalance = user.leaveBalance || 0;
-        const newBalance = Math.max(0, currentBalance - leaveRequest.daysCount);
-        
-        await db.collection('users').updateOne(
-          { _id: leaveRequest.userId },
-          { 
-            $set: { 
-              leaveBalance: newBalance,
-              updatedAt: new Date()
-            }
-          }
-        );
-        
-        console.log(`연차 승인: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.daysCount}일, 잔여: ${newBalance}일`);
+        console.log(`연차 승인: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.daysCount}일`);
       }
     }
   }

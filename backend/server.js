@@ -11,6 +11,7 @@ const createAuthRoutes = require('./routes/auth');
 const createUserRoutes = require('./routes/users');
 const leaveRoutes = require('./routes/leave');
 const createDepartmentRoutes = require('./routes/departments');
+const createPositionRoutes = require('./routes/positions');
 const createPayrollRoutes = require('./routes/payroll');
 const createBonusRoutes = require('./routes/bonus');
 const createSalesRoutes = require('./routes/sales');
@@ -390,55 +391,21 @@ app.get('/api/organization-chart', requireAuth, asyncHandler(async (_, res) => {
   }
 }));
 
-app.get('/api/positions', requireAuth, asyncHandler(async (_, res) => {
-  try {
-    // Get unique positions from users collection
-    const positions = await db.collection('users').aggregate([
-      { $match: { isActive: true, position: { $exists: true, $ne: null, $ne: '' } } },
-      {
-        $group: {
-          _id: '$position',
-          employeeCount: { $sum: 1 },
-          departments: { $addToSet: '$department' }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]).toArray();
-
-    const positionsWithData = positions.map(pos => ({
-      _id: pos._id,
-      title: pos._id,
-      employeeCount: pos.employeeCount,
-      department: pos.departments.length === 1 ? pos.departments[0] : '',
-      description: '',
-      level: 1, // Default level
-      isActive: true
-    }));
-
-    res.json({ success: true, data: positionsWithData });
-  } catch (error) {
-    console.error('Get positions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-}));
 
 // Initialize routes after database connection
 async function initializeRoutes() {
   console.log('🔗 Initializing routes...');
 
-  // Add debug middleware
-  app.use((req, _, next) => {
-    console.log(`📍 Request: ${req.method} ${req.url}`);
-    next();
-  });
 
   // Make database available to all routes through app.locals
   app.locals.db = db;
+
 
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
   app.use('/api/leave', leaveRoutes);
   app.use('/api/departments', createDepartmentRoutes(db));
+  app.use('/api/positions', createPositionRoutes(db));
   app.use('/api/payroll', createPayrollRoutes(db));
   app.use('/api/bonus', createBonusRoutes(db));
   app.use('/api/sales', createSalesRoutes(db));

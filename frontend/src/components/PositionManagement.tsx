@@ -33,7 +33,6 @@ interface Position {
   _id: string;
   title: string;
   description: string;
-  level: number;
   department?: string;
   responsibilities: string[];
   requirements: string[];
@@ -50,7 +49,6 @@ const PositionManagement: React.FC = () => {
   const [newPosition, setNewPosition] = useState({
     title: '',
     description: '',
-    level: 1,
     department: '',
     responsibilities: '',
     requirements: '',
@@ -84,8 +82,8 @@ const PositionManagement: React.FC = () => {
     try {
       const positionData = {
         ...newPosition,
-        responsibilities: newPosition.responsibilities.split('\n').filter(r => r.trim()),
-        requirements: newPosition.requirements.split('\n').filter(r => r.trim()),
+        responsibilities: newPosition.responsibilities ? newPosition.responsibilities.split('\n').filter(r => r.trim()) : [],
+        requirements: newPosition.requirements ? newPosition.requirements.split('\n').filter(r => r.trim()) : [],
       };
 
       if (isEditMode && editingPosition) {
@@ -108,10 +106,9 @@ const PositionManagement: React.FC = () => {
     setNewPosition({
       title: position.title,
       description: position.description,
-      level: position.level,
       department: position.department || '',
-      responsibilities: position.responsibilities.join('\n'),
-      requirements: position.requirements.join('\n'),
+      responsibilities: position.responsibilities ? position.responsibilities.join('\n') : '',
+      requirements: position.requirements ? position.requirements.join('\n') : '',
     });
     setIsEditMode(true);
     setIsDialogOpen(true);
@@ -136,7 +133,6 @@ const PositionManagement: React.FC = () => {
     setNewPosition({
       title: '',
       description: '',
-      level: 1,
       department: '',
       responsibilities: '',
       requirements: '',
@@ -213,7 +209,6 @@ const PositionManagement: React.FC = () => {
                               <Typography variant="subtitle1" fontWeight={600}>
                                 {position.title}
                               </Typography>
-                              <Chip label={`Level ${position.level}`} size="small" color="secondary" />
                               {position.department && (
                                 <Chip label={position.department} size="small" variant="outlined" />
                               )}
@@ -224,7 +219,7 @@ const PositionManagement: React.FC = () => {
                               <Typography variant="body2" color="text.secondary">
                                 {position.description}
                               </Typography>
-                              {position.responsibilities.length > 0 && (
+                              {position.responsibilities && position.responsibilities.length > 0 && (
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                                   <strong>Key Responsibilities:</strong> {position.responsibilities.slice(0, 2).join(', ')}
                                   {position.responsibilities.length > 2 && '...'}
@@ -249,23 +244,12 @@ const PositionManagement: React.FC = () => {
         <DialogTitle>{isEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={8}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Position Title"
                 value={newPosition.title}
                 onChange={(e) => setNewPosition({ ...newPosition, title: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Level"
-                type="number"
-                value={newPosition.level}
-                onChange={(e) => setNewPosition({ ...newPosition, level: parseInt(e.target.value) || 1 })}
-                inputProps={{ min: 1, max: 10 }}
                 required
               />
             </Grid>

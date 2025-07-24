@@ -92,8 +92,12 @@ function createUserRoutes(db) {
     }
   }
 
-  // Debug endpoint to check current user permissions
-  router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
+  // Debug endpoints - only available in development
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (!isProduction) {
+    // Debug endpoint to check current user permissions
+    router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
     try {
       let currentUser = null;
       
@@ -209,6 +213,7 @@ function createUserRoutes(db) {
       res.status(500).json({ error: error.message });
     }
   }));
+  } // End of debug endpoints protection
 
   // Get all users
   router.get('/', requireAuth, requirePermission(PERMISSIONS.USERS_VIEW), asyncHandler(async (req, res) => {
@@ -454,6 +459,51 @@ function createUserRoutes(db) {
     res.json({
       success: true,
       message: 'Permissions updated successfully'
+    });
+  }));
+
+  // Activate user
+  router.post('/:id/activate', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { isActive: true, updatedAt: new Date() } }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'User activated successfully'
+    });
+  }));
+
+  // Reset user password
+  router.post('/:id/reset-password', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { password: hashedPassword, updatedAt: new Date() } }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
     });
   }));
 
