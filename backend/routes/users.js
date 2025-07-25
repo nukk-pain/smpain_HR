@@ -300,6 +300,10 @@ function createUserRoutes(db) {
       admin: ['leave:view', 'leave:manage', 'users:view', 'users:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions']
     };
     
+    // Calculate initial leave balance for new user
+    const userHireDate = hireDate ? new Date(hireDate) : new Date();
+    const initialLeaveBalance = calculateAnnualLeaveEntitlement(userHireDate);
+    
     const newUser = {
       username,
       password: hashedPassword,
@@ -319,6 +323,7 @@ function createUserRoutes(db) {
       isActive: true,
       permissions: DEFAULT_PERMISSIONS[role] || [],
       visibleTeams: [], // Empty by default - managers need explicit permission
+      leaveBalance: initialLeaveBalance, // Initialize with calculated leave balance
       createdAt: new Date(),
       updatedAt: new Date()
     };
