@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Tab,
-  Tabs,
   Card,
   CardContent,
   Dialog,
@@ -61,43 +59,18 @@ import { LeaveRequest, LeaveBalance, LeaveForm, LeaveApprovalForm } from '@/type
 import { useConfig, useConfigProps } from '@/hooks/useConfig';
 import { LeaveType, LeaveStatus } from '@/types/config';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`leave-tabpanel-${index}`}
-      aria-labelledby={`leave-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
   const { leave, date, message } = useConfig();
   const { getLeaveSelectProps, getStatusChipProps } = useConfigProps();
-  const [tabValue, setTabValue] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [formData, setFormData] = useState<LeaveForm>({
     leaveType: leave.types.ANNUAL as any,
     startDate: '',
@@ -107,11 +80,10 @@ const LeaveManagement: React.FC = () => {
     personalOffDays: []
   });
   
-  // Cancellation states
+  // Cancellation dialog states
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<LeaveRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [cancellationHistory, setCancellationHistory] = useState<LeaveRequest[]>([]);
 
   const apiService = new ApiService();
 
@@ -145,8 +117,7 @@ const LeaveManagement: React.FC = () => {
       setLoading(true);
       await Promise.all([
         loadLeaveRequests(),
-        loadLeaveBalance(),
-        loadCancellationHistory()
+        loadLeaveBalance()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -175,18 +146,6 @@ const LeaveManagement: React.FC = () => {
   };
 
 
-  const loadCancellationHistory = async () => {
-    try {
-      const response = await apiService.getCancellationHistory();
-      setCancellationHistory(response.data || []);
-    } catch (error) {
-      console.error('Error loading cancellation history:', error);
-    }
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const handleOpenDialog = (request?: LeaveRequest) => {
     if (request) {
@@ -333,6 +292,16 @@ const LeaveManagement: React.FC = () => {
         return 'default';
     }
   };
+  
+  const getStatusDisplayLabel = (request: LeaveRequest): string => {
+    if (request.status === 'cancelled') {
+      return '취소됨';
+    }
+    if (request.cancellationRequested && request.cancellationStatus === 'pending') {
+      return '취소 대기';
+    }
+    return getStatusLabel(request.status);
+  };
 
   const safeFormatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-';
@@ -343,6 +312,23 @@ const LeaveManagement: React.FC = () => {
       return dateString;
     }
   };
+
+  // 연도별로 필터링된 휴가 목록
+  const filteredLeaveRequests = leaveRequests.filter(request => {
+    const requestYear = new Date(request.startDate).getFullYear();
+    return requestYear === selectedYear;
+  });
+
+  // 사용 가능한 연도 목록 (입사일부터 현재까지)
+  const availableYears = (() => {
+    const currentYear = new Date().getFullYear();
+    const hireYear = user?.hireDate ? new Date(user.hireDate).getFullYear() : currentYear;
+    const years = [];
+    for (let year = currentYear; year >= hireYear; year--) {
+      years.push(year);
+    }
+    return years;
+  })();
 
   const calculateDays = (startDate: string, endDate: string, personalOffDays: string[] = []): number => {
     if (!startDate || !endDate) return 0;
@@ -393,15 +379,31 @@ const LeaveManagement: React.FC = () => {
           <Typography variant="h4" component="h1" fontWeight={600}>
             휴가 관리
           </Typography>
-          {user?.role !== 'admin' && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <TextField
+              select
+              label="연도"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              size="small"
+              sx={{ minWidth: 100 }}
             >
-              휴가 신청
-            </Button>
-          )}
+              {availableYears.map(year => (
+                <MenuItem key={year} value={year}>
+                  {year}년
+                </MenuItem>
+              ))}
+            </TextField>
+            {user?.role !== 'admin' && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+              >
+                휴가 신청
+              </Button>
+            )}
+          </Stack>
         </Box>
 
         {/* 휴가 잔여일수 카드 - admin은 휴가가 없으므로 표시하지 않음 */}
@@ -463,22 +465,7 @@ const LeaveManagement: React.FC = () => {
         )}
 
         <Card>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label='내 휴가 신청' />
-              {user?.role !== 'admin' && (
-                <Tab
-                  label={
-                    <Badge badgeContent={cancellationHistory.length} color="info">
-                      취소 내역
-                    </Badge>
-                  }
-                />
-              )}
-            </Tabs>
-          </Box>
-
-          <TabPanel value={tabValue} index={0}>
+          <CardContent>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -493,7 +480,7 @@ const LeaveManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {leaveRequests.map((request) => (
+                  {filteredLeaveRequests.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -509,7 +496,7 @@ const LeaveManagement: React.FC = () => {
                       <TableCell>{request.reason}</TableCell>
                       <TableCell>
                         <Chip
-                          label={getStatusLabel(request.status)}
+                          label={getStatusDisplayLabel(request)}
                           color={getStatusColor(request.status) as any}
                           size="small"
                         />
@@ -564,11 +551,11 @@ const LeaveManagement: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {leaveRequests.length === 0 && (
+                  {filteredLeaveRequests.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} align="center">
                         <Typography color="text.secondary">
-                          휴가 신청 내역이 없습니다.
+                          {selectedYear}년 휴가 신청 내역이 없습니다.
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -576,89 +563,7 @@ const LeaveManagement: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </TabPanel>
-
-          {/* 취소 내역 탭 (일반 사용자용) */}
-          {user?.role !== 'admin' && (
-            <TabPanel value={tabValue} index={1}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>휴가 종류</TableCell>
-                      <TableCell>기간</TableCell>
-                      <TableCell>일수</TableCell>
-                      <TableCell>신청 사유</TableCell>
-                      <TableCell>취소 사유</TableCell>
-                      <TableCell>취소 상태</TableCell>
-                      <TableCell>취소 신청일</TableCell>
-                      <TableCell>처리일</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cancellationHistory.map((request) => (
-                      <TableRow key={request._id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request.leaveType)}
-                            {getLeaveTypeLabel(request.leaveType)}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {request.startDate === request.endDate
-                            ? safeFormatDate(request.startDate)
-                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
-                          }
-                        </TableCell>
-                        <TableCell>{request.daysCount}일</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.reason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.cancellationReason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              request.cancellationStatus === 'pending' ? '대기' :
-                              request.cancellationStatus === 'approved' ? '승인됨' : '거부됨'
-                            }
-                            size="small"
-                            color={
-                              request.cancellationStatus === 'pending' ? 'warning' :
-                              request.cancellationStatus === 'approved' ? 'success' : 'error'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {safeFormatDate(request.cancellationRequestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          {request.cancellationApprovedAt 
-                            ? safeFormatDate(request.cancellationApprovedAt) 
-                            : '-'
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {cancellationHistory.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography color="text.secondary" sx={{ py: 4 }}>
-                            취소 신청 내역이 없습니다.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
-          )}
+          </CardContent>
 
         </Card>
 
