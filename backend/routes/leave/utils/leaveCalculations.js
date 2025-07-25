@@ -80,21 +80,27 @@ const getCarryOverLeave = async (db, userId, currentYear) => {
  * @param {Object} db - Database instance
  * @param {Date|string} startDate - Start date
  * @param {Date|string} endDate - End date
+ * @param {Array} personalOffDays - Array of personal off days (YYYY-MM-DD format)
  * @returns {number} - Number of business days
  */
-const calculateBusinessDaysWithPolicy = async (db, startDate, endDate) => {
+const calculateBusinessDaysWithPolicy = async (db, startDate, endDate, personalOffDays = []) => {
   const policy = await getCurrentPolicy(db);
   const start = new Date(startDate);
   const end = new Date(endDate);
   let daysCount = 0;
   let currentDate = new Date(start);
   let weekendDaysDetail = [];
+  let personalOffDaysDetail = [];
   
   while (currentDate <= end) {
     const dayOfWeek = currentDate.getDay();
     const dateString = currentDate.toISOString().split('T')[0];
     
-    if (dayOfWeek === 0) { 
+    // Check if it's a personal off day first
+    if (personalOffDays.includes(dateString)) {
+      personalOffDaysDetail.push(`Personal off day ${dateString}: 0 days`);
+      // Personal off days don't count as leave days
+    } else if (dayOfWeek === 0) { 
       // Sunday - use policy value
       const sundayValue = policy.specialRules.sundayLeave || 0;
       daysCount += sundayValue;
@@ -115,7 +121,10 @@ const calculateBusinessDaysWithPolicy = async (db, startDate, endDate) => {
     currentDate.setDate(currentDate.getDate() + 1);
   }
   
-  // Add debug logging for weekend calculations
+  // Add debug logging
+  if (personalOffDaysDetail.length > 0) {
+    console.log(`👤 [DEBUG] 개인 오프일 계산 상세:`, personalOffDaysDetail);
+  }
   if (weekendDaysDetail.length > 0) {
     console.log(`🔍 [DEBUG] 주말 일수 계산 상세:`, weekendDaysDetail);
     console.log(`🔍 [DEBUG] 주말 정책: 토요일=${policy.specialRules.saturdayLeave || 0.5}일, 일요일=${policy.specialRules.sundayLeave || 0}일`);

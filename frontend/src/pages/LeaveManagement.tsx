@@ -103,7 +103,8 @@ const LeaveManagement: React.FC = () => {
     startDate: '',
     endDate: '',
     reason: '',
-    substituteEmployee: ''
+    substituteEmployee: '',
+    personalOffDays: []
   });
   
   // Cancellation states
@@ -195,7 +196,8 @@ const LeaveManagement: React.FC = () => {
         startDate: request.startDate,
         endDate: request.endDate,
         reason: request.reason,
-        substituteEmployee: request.substituteEmployee || ''
+        substituteEmployee: request.substituteEmployee || '',
+        personalOffDays: request.personalOffDays || []
       });
     } else {
       setEditingRequest(null);
@@ -204,7 +206,8 @@ const LeaveManagement: React.FC = () => {
         startDate: '',
         endDate: '',
         reason: '',
-        substituteEmployee: ''
+        substituteEmployee: '',
+        personalOffDays: []
       });
     }
     setDialogOpen(true);
@@ -341,7 +344,7 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const calculateDays = (startDate: string, endDate: string): number => {
+  const calculateDays = (startDate: string, endDate: string, personalOffDays: string[] = []): number => {
     if (!startDate || !endDate) return 0;
     try {
       const start = parseISO(startDate);
@@ -351,8 +354,13 @@ const LeaveManagement: React.FC = () => {
       let currentDate = new Date(start);
       
       while (currentDate <= end) {
+        const dateString = format(currentDate, 'yyyy-MM-dd');
         const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek === 0) { 
+        
+        // Check if it's a personal off day first
+        if (personalOffDays.includes(dateString)) {
+          // Personal off days don't count
+        } else if (dayOfWeek === 0) { 
           // 일요일 - 0일
         } else if (dayOfWeek === 6) { 
           // 토요일 - 0.5일
@@ -730,7 +738,63 @@ const LeaveManagement: React.FC = () => {
                 </Grid>
               </Grid>
               
-              {/* 세 번째 줄: 신청 사유 */}
+              {/* 세 번째 줄: 개인 오프일 선택 (기간이 설정된 경우에만 표시) */}
+              {formData.startDate && formData.endDate && (
+                <Grid item xs={12}>
+                  <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      개인 오프일 선택 (선택사항)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      개인적으로 정해진 오프일이 휴가 기간에 포함된 경우 선택하세요. 이 날들은 연차에서 차감되지 않습니다.
+                    </Typography>
+                    <Grid container spacing={1}>
+                      {(() => {
+                        const dates = [];
+                        const start = parseISO(formData.startDate);
+                        const end = parseISO(formData.endDate);
+                        let current = new Date(start);
+                        
+                        while (current <= end) {
+                          dates.push(format(current, 'yyyy-MM-dd'));
+                          current.setDate(current.getDate() + 1);
+                        }
+                        
+                        return dates.map(dateStr => {
+                          const date = parseISO(dateStr);
+                          const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+                          const isSelected = formData.personalOffDays?.includes(dateStr);
+                          
+                          return (
+                            <Grid item key={dateStr}>
+                              <Chip
+                                label={`${format(date, 'MM/dd')} (${dayOfWeek})`}
+                                color={isSelected ? "primary" : "default"}
+                                variant={isSelected ? "filled" : "outlined"}
+                                onClick={() => {
+                                  const current = formData.personalOffDays || [];
+                                  const newOffDays = isSelected 
+                                    ? current.filter(d => d !== dateStr)
+                                    : [...current, dateStr];
+                                  setFormData({ ...formData, personalOffDays: newOffDays });
+                                }}
+                                sx={{ cursor: 'pointer' }}
+                              />
+                            </Grid>
+                          );
+                        });
+                      })()}
+                    </Grid>
+                    {formData.personalOffDays && formData.personalOffDays.length > 0 && (
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        선택된 개인 오프일: {formData.personalOffDays.length}일 (연차 차감 제외)
+                      </Alert>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+              
+              {/* 네 번째 줄: 신청 사유 */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -744,12 +808,12 @@ const LeaveManagement: React.FC = () => {
               {formData.startDate && formData.endDate && (
                 <Grid item xs={12}>
                   <Alert severity="info">
-                    총 휴가 일수: {calculateDays(formData.startDate, formData.endDate)}일
-                    (일요일 제외, 토요일 0.5일 계산)
+                    총 휴가 일수: {calculateDays(formData.startDate, formData.endDate, formData.personalOffDays)}일
+                    (일요일 제외, 토요일 0.5일 계산, 개인 오프일 제외)
                   </Alert>
                   {formData.leaveType === 'annual' && leaveBalance && (
                     (() => {
-                      const requestedDays = calculateDays(formData.startDate, formData.endDate);
+                      const requestedDays = calculateDays(formData.startDate, formData.endDate, formData.personalOffDays);
                       const remainingAfterRequest = leaveBalance.remainingAnnualLeave - requestedDays;
                       
                       if (remainingAfterRequest < 0 && remainingAfterRequest >= -3) {

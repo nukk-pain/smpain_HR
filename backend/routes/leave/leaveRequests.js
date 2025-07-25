@@ -15,7 +15,7 @@ const getDb = (req) => req.app.locals.db;
  */
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const { leaveType, startDate, endDate, reason, substituteEmployee } = req.body;
+  const { leaveType, startDate, endDate, reason, substituteEmployee, personalOffDays = [] } = req.body;
   const userId = req.session.user.id;
   
   // Get user info
@@ -28,9 +28,9 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
   
-  // Calculate days count using policy-based calculation
-  const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate);
-  console.log(`🔍 [DEBUG] 휴가 일수 계산: ${startDate} ~ ${endDate} = ${daysCount}일`);
+  // Calculate days count using policy-based calculation with personal off days
+  const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate, personalOffDays);
+  console.log(`🔍 [DEBUG] 휴가 일수 계산: ${startDate} ~ ${endDate} = ${daysCount}일 (개인 오프일 ${personalOffDays.length}개 제외)`);
   
   // Get current policy for validation
   const policy = await getCurrentPolicy(db);
@@ -175,6 +175,8 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       startDate,
       endDate,
       daysCount,
+      personalOffDays: personalOffDays || [], // 개인 오프일 저장
+      actualLeaveDays: daysCount, // 실제 차감되는 연차일수 (개인 오프일 제외됨)
       reason,
       substituteEmployee: substituteEmployee || '',
       status: 'pending',
@@ -283,7 +285,7 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
 router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
-  const { leaveType, startDate, endDate, reason, substituteEmployee } = req.body;
+  const { leaveType, startDate, endDate, reason, substituteEmployee, personalOffDays = [] } = req.body;
   const userId = req.session.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
@@ -301,8 +303,8 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Leave request not found or cannot be modified' });
   }
   
-  // Calculate days count using policy-based calculation
-  const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate);
+  // Calculate days count using policy-based calculation with personal off days
+  const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate, personalOffDays);
   
   // Check leave balance for annual leave (allow -3 days advance)
   if (leaveType === 'annual') {
@@ -353,6 +355,8 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     startDate,
     endDate,
     daysCount,
+    personalOffDays: personalOffDays || [],
+    actualLeaveDays: daysCount, // 실제 차감되는 연차일수 (개인 오프일 제외됨)
     reason,
     substituteEmployee: substituteEmployee || '',
     updatedAt: new Date()

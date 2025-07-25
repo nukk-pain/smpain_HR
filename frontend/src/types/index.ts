@@ -75,6 +75,8 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   daysCount: number;
+  personalOffDays?: string[]; // Array of YYYY-MM-DD format dates
+  actualLeaveDays?: number; // Actual leave days excluding personal off days
   reason: string;
   substituteEmployee?: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -232,6 +234,7 @@ export interface LeaveForm {
   endDate: string;
   reason: string;
   substituteEmployee?: string;
+  personalOffDays?: string[]; // Array of YYYY-MM-DD format dates
 }
 
 export interface LeaveApprovalForm {

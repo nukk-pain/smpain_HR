@@ -52,7 +52,8 @@ function createAuthRoutes(db) {
         username: user.username,
         name: user.name,
         role: user.role,
-        permissions: user.permissions || []
+        permissions: user.permissions || [],
+        visibleTeams: user.visibleTeams || []
       };
       
       res.json({ 

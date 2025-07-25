@@ -61,6 +61,7 @@ interface LeaveRequest {
   createdAt: string;
   daysCount: number;
   requestDetails?: string;
+  personalOffDays?: string[];
   cancellationRequested?: boolean;
   cancellationReason?: string;
   cancellationRequestedAt?: string;
@@ -122,7 +123,7 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const loadPendingRequests = async () => {
     try {
-      if (user?.role === 'admin') {
+      if (user?.role === 'admin' || user?.role === 'manager') {
         const response = await apiService.getPendingLeaveRequests();
         setPendingRequests(response.data || []);
       }
@@ -385,6 +386,7 @@ const EmployeeLeaveManagement: React.FC = () => {
                     <TableCell>휴가 종류</TableCell>
                     <TableCell>기간</TableCell>
                     <TableCell>일수</TableCell>
+                    <TableCell>오프일</TableCell>
                     <TableCell>사유</TableCell>
                     <TableCell>신청일</TableCell>
                     <TableCell>작업</TableCell>
@@ -413,6 +415,16 @@ const EmployeeLeaveManagement: React.FC = () => {
                         {safeFormatDate(request.endDate)}
                       </TableCell>
                       <TableCell>{request.daysCount || 0}일</TableCell>
+                      <TableCell>
+                        {request.personalOffDays && request.personalOffDays.length > 0 ? (
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            {request.personalOffDays.map(date => {
+                              const formattedDate = new Date(date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                              return formattedDate;
+                            }).join(', ')}
+                          </Typography>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell>{request.reason || '-'}</TableCell>
                       <TableCell>
                         {safeFormatDate(request.createdAt)}
@@ -448,7 +460,7 @@ const EmployeeLeaveManagement: React.FC = () => {
                   ))}
                   {(!pendingRequests || pendingRequests.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={9} align="center">
                         <Typography color="text.secondary">
                           승인 대기 중인 휴가 신청이 없습니다.
                         </Typography>

@@ -65,7 +65,17 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
  */
 router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const pendingRequests = await db.collection('leaveRequests').find({ status: 'pending' }).sort({ createdAt: -1 }).toArray();
+  const currentUser = req.session.user;
+  
+  let query = { status: 'pending' };
+  
+  // If user is a manager (not admin), filter by departments they can manage
+  if (currentUser.role === 'manager' && currentUser.visibleTeams) {
+    const visibleDepartments = currentUser.visibleTeams.map(team => team.departmentName);
+    query.userDepartment = { $in: visibleDepartments };
+  }
+  
+  const pendingRequests = await db.collection('leaveRequests').find(query).sort({ createdAt: -1 }).toArray();
   
   res.json({
     success: true,
