@@ -1,0 +1,146 @@
+{
+  "missingFeatures": {
+    "bonus": {
+      "name": "Bonus Management",
+      "description": "Complete CRUD operations for employee bonuses",
+      "endpoints": [
+        "GET /api/bonus/:year_month",
+        "PUT /api/bonus/:id",
+        "DELETE /api/bonus/:id",
+        "GET /api/bonus/user/:userId"
+      ],
+      "priority": "Medium",
+      "userStories": [
+        "As an HR manager, I want to add performance bonuses to employees",
+        "As an HR manager, I want to view bonus history for each employee",
+        "As an employee, I want to see my bonus history",
+        "As an admin, I want to edit or remove incorrect bonus entries"
+      ]
+    },
+    "sales": {
+      "name": "Sales Data Management",
+      "description": "Track and manage employee sales performance",
+      "endpoints": [
+        "GET /api/sales/:year_month",
+        "PUT /api/sales/:id",
+        "DELETE /api/sales/:id",
+        "GET /api/sales/user/:userId",
+        "GET /api/sales/stats/:yearMonth"
+      ],
+      "priority": "Medium",
+      "userStories": [
+        "As a sales manager, I want to record monthly sales data for each employee",
+        "As an HR manager, I want to view sales performance to calculate incentives",
+        "As an employee, I want to see my sales history and targets",
+        "As an admin, I want to generate sales reports by department"
+      ]
+    },
+    "payrollUpload": {
+      "name": "Payroll File Upload",
+      "description": "Bulk payroll data import via Excel/CSV",
+      "endpoints": [
+        "GET /api/payroll-upload/:id/compare/:year_month"
+      ],
+      "priority": "Low",
+      "userStories": [
+        "As an HR manager, I want to upload payroll data from Excel",
+        "As an HR manager, I want to preview data before processing",
+        "As an HR manager, I want to compare uploaded data with existing records",
+        "As an admin, I want to process bulk payroll updates efficiently"
+      ]
+    },
+    "reporting": {
+      "name": "Advanced Reporting",
+      "description": "Generate and download various reports",
+      "endpoints": [
+        "GET /api/reports/payroll/:year_month",
+        "GET /api/reports/payroll/:year_month/excel",
+        "GET /api/reports/comparison/:upload_id/:year_month/excel",
+        "GET /api/reports/payslip/:userId/:year_month/excel",
+        "GET /api/reports/template/payroll",
+        "GET /api/reports/leave/:year_month"
+      ],
+      "priority": "High",
+      "userStories": [
+        "As an HR manager, I want to download payroll reports in Excel format",
+        "As an HR manager, I want to generate monthly leave reports",
+        "As an employee, I want to download my payslips",
+        "As an admin, I want to access various report templates"
+      ]
+    },
+    "leaveAdvanced": {
+      "name": "Advanced Leave Features",
+      "description": "Department stats, team calendar, carry-over",
+      "endpoints": [
+        "POST /api/leave/carry-over/:year",
+        "GET /api/leave/department-stats"
+      ],
+      "priority": "Medium",
+      "userStories": [
+        "As a manager, I want to see my department's leave calendar",
+        "As an HR manager, I want to view leave statistics by department",
+        "As an HR manager, I want to manage annual leave carry-over",
+        "As an employee, I want to see my team's leave schedule"
+      ]
+    }
+  },
+  "componentStructure": {
+    "/components/BonusManagement/": [
+      "BonusForm.tsx",
+      "BonusHistory.tsx",
+      "BonusCard.tsx"
+    ],
+    "/components/SalesManagement/": [
+      "SalesDataEntry.tsx",
+      "SalesHistory.tsx",
+      "SalesChart.tsx"
+    ],
+    "/components/Reports/": [
+      "ReportDashboard.tsx",
+      "PayrollReport.tsx",
+      "LeaveReport.tsx",
+      "ReportFilters.tsx"
+    ],
+    "/components/LeaveAdvanced/": [
+      "DepartmentCalendar.tsx",
+      "LeaveStatistics.tsx",
+      "CarryOverManager.tsx",
+      "TeamLeaveView.tsx"
+    ],
+    "/components/PayrollUpload/": [
+      "FileUploader.tsx",
+      "DataPreview.tsx",
+      "ComparisonView.tsx"
+    ]
+  },
+  "estimatedEffort": {
+    "reporting": "2-3 days",
+    "bonus": "2 days",
+    "sales": "2 days",
+    "leaveAdvanced": "3-4 days",
+    "payrollUpload": "2-3 days"
+  },
+  "dependencies": {
+    "reporting": [
+      "Excel export library (xlsx)",
+      "PDF generation (optional)"
+    ],
+    "bonus": [
+      "Form validation",
+      "Date picker"
+    ],
+    "sales": [
+      "Chart library (recharts/chart.js)",
+      "Data grid"
+    ],
+    "leaveAdvanced": [
+      "Calendar component",
+      "Date range picker"
+    ],
+    "payrollUpload": [
+      "File upload component",
+      "Data comparison view"
+    ]
+  },
+  "generatedAt": "2025-07-24T09:26:03.981Z"
+}

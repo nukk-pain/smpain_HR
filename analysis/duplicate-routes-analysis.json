@@ -1,0 +1,282 @@
+{
+  "duplicates": 0,
+  "conflicts": 5,
+  "leaveRoutes": 30,
+  "duplicateDetails": {},
+  "conflictDetails": {
+    "GET /api/leave": [
+      {
+        "original": "GET /api/leave/",
+        "file": "routes/leave/leaveApproval.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "GET /api/leave/",
+        "file": "routes/leave/leaveBalance-old.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "GET /api/leave/",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "GET /api/leave/",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "GET /api/leave/",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/"
+      }
+    ],
+    "GET /api/leave/:param": [
+      {
+        "original": "GET /api/leave/:month",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/:month"
+      },
+      {
+        "original": "GET /api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      }
+    ],
+    "POST /api/leave": [
+      {
+        "original": "POST /api/leave/",
+        "file": "routes/leave/leaveCancellation.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "POST /api/leave/",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/"
+      },
+      {
+        "original": "POST /api/leave/",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/"
+      }
+    ],
+    "PUT /api/leave/:param": [
+      {
+        "original": "PUT /api/leave/:id",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/:id"
+      },
+      {
+        "original": "PUT /api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      }
+    ],
+    "DELETE /api/leave/:param": [
+      {
+        "original": "DELETE /api/leave/:id",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/:id"
+      },
+      {
+        "original": "DELETE /api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      }
+    ]
+  },
+  "leaveFunctionality": {
+    "requests": [
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      },
+      {
+        "method": "PUT",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      },
+      {
+        "method": "DELETE",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id"
+      }
+    ],
+    "balance": [],
+    "approval": [
+      {
+        "method": "POST",
+        "endpoint": "/api/admin/leave/bulk-approve",
+        "file": "routes/admin.js",
+        "routePattern": "/leave/bulk-approve"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/approve",
+        "file": "routes/leave/leaveCancellation.js",
+        "routePattern": "/approve"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/:id/approve",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id/approve"
+      }
+    ],
+    "cancellation": [
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/:id/cancel",
+        "file": "routes/leave/leaveRequests.js",
+        "routePattern": "/:id/cancel"
+      }
+    ],
+    "calendar": [],
+    "exceptions": [],
+    "other": [
+      {
+        "method": "GET",
+        "endpoint": "/api/admin/leave/overview",
+        "file": "routes/admin.js",
+        "routePattern": "/leave/overview"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/admin/leave/adjust",
+        "file": "routes/admin.js",
+        "routePattern": "/leave/adjust"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/admin/leave/employee/:id",
+        "file": "routes/admin.js",
+        "routePattern": "/leave/employee/:id"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/admin/leave/bulk-pending",
+        "file": "routes/admin.js",
+        "routePattern": "/leave/bulk-pending"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveApproval.js",
+        "routePattern": "/:id"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveApproval.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveBalance-old.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/carry-over/:year",
+        "file": "routes/leave/leaveBalance-old.js",
+        "routePattern": "/carry-over/:year"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/:userId?",
+        "file": "routes/leave/leaveBalance.js",
+        "routePattern": "/:userId?"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/:month",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/:month"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/department-stats",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/department-stats"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/:employeeId/log",
+        "file": "routes/leave/leaveCalendar.js",
+        "routePattern": "/:employeeId/log"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveCancellation.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/pending",
+        "file": "routes/leave/leaveCancellation.js",
+        "routePattern": "/pending"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/history",
+        "file": "routes/leave/leaveCancellation.js",
+        "routePattern": "/history"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/leave/",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/"
+      },
+      {
+        "method": "PUT",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/:id"
+      },
+      {
+        "method": "DELETE",
+        "endpoint": "/api/leave/:id",
+        "file": "routes/leave/leaveExceptions.js",
+        "routePattern": "/:id"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/reports/leave/:year_month",
+        "file": "routes/reports.js",
+        "routePattern": "/leave/:year_month"
+      }
+    ]
+  },
+  "generatedAt": "2025-07-24T09:14:16.269Z"
+}

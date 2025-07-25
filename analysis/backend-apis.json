@@ -1,0 +1,542 @@
+[
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/leave/overview",
+    "file": "routes/admin.js",
+    "routePattern": "/leave/overview"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/admin/leave/adjust",
+    "file": "routes/admin.js",
+    "routePattern": "/leave/adjust"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/leave/employee/:id",
+    "file": "routes/admin.js",
+    "routePattern": "/leave/employee/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/stats/system",
+    "file": "routes/admin.js",
+    "routePattern": "/stats/system"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/policy",
+    "file": "routes/admin.js",
+    "routePattern": "/policy"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/admin/policy",
+    "file": "routes/admin.js",
+    "routePattern": "/policy"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/policy/history",
+    "file": "routes/admin.js",
+    "routePattern": "/policy/history"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/admin/leave/bulk-pending",
+    "file": "routes/admin.js",
+    "routePattern": "/leave/bulk-pending"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/admin/leave/bulk-approve",
+    "file": "routes/admin.js",
+    "routePattern": "/leave/bulk-approve"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "file": "routes/auth.js",
+    "routePattern": "/login"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/auth/logout",
+    "file": "routes/auth.js",
+    "routePattern": "/logout"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/auth/clear-session",
+    "file": "routes/auth.js",
+    "routePattern": "/clear-session"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "file": "routes/auth.js",
+    "routePattern": "/me"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/auth/change-password",
+    "file": "routes/auth.js",
+    "routePattern": "/change-password"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/bonus/:year_month",
+    "file": "routes/bonus.js",
+    "routePattern": "/:year_month"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bonus/",
+    "file": "routes/bonus.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/bonus/:id",
+    "file": "routes/bonus.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/bonus/:id",
+    "file": "routes/bonus.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/bonus/user/:userId",
+    "file": "routes/bonus.js",
+    "routePattern": "/user/:userId"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/departments/",
+    "file": "routes/departments.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/departments/",
+    "file": "routes/departments.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/departments/:id",
+    "file": "routes/departments.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/departments/:id",
+    "file": "routes/departments.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/departments/:name/employees",
+    "file": "routes/departments.js",
+    "routePattern": "/:name/employees"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveApproval.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveApproval.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveBalance-old.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/carry-over/:year",
+    "file": "routes/leave/leaveBalance-old.js",
+    "routePattern": "/carry-over/:year"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/:userId?",
+    "file": "routes/leave/leaveBalance.js",
+    "routePattern": "/:userId?"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/:month",
+    "file": "routes/leave/leaveCalendar.js",
+    "routePattern": "/:month"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveCalendar.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/department-stats",
+    "file": "routes/leave/leaveCalendar.js",
+    "routePattern": "/department-stats"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/:employeeId/log",
+    "file": "routes/leave/leaveCalendar.js",
+    "routePattern": "/:employeeId/log"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveCancellation.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/approve",
+    "file": "routes/leave/leaveCancellation.js",
+    "routePattern": "/approve"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/pending",
+    "file": "routes/leave/leaveCancellation.js",
+    "routePattern": "/pending"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/history",
+    "file": "routes/leave/leaveCancellation.js",
+    "routePattern": "/history"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveExceptions.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveExceptions.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveExceptions.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveExceptions.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/leave/:id",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/:id/approve",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/:id/approve"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/leave/:id/cancel",
+    "file": "routes/leave/leaveRequests.js",
+    "routePattern": "/:id/cancel"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll/monthly/:year_month",
+    "file": "routes/payroll.js",
+    "routePattern": "/monthly/:year_month"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/payroll/monthly",
+    "file": "routes/payroll.js",
+    "routePattern": "/monthly"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/payroll/monthly/:id",
+    "file": "routes/payroll.js",
+    "routePattern": "/monthly/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/payroll/monthly/:id",
+    "file": "routes/payroll.js",
+    "routePattern": "/monthly/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll/employee/:userId",
+    "file": "routes/payroll.js",
+    "routePattern": "/employee/:userId"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll/stats/:yearMonth",
+    "file": "routes/payroll.js",
+    "routePattern": "/stats/:yearMonth"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/positions/",
+    "file": "routes/positions.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/positions/:id",
+    "file": "routes/positions.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/positions/",
+    "file": "routes/positions.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/positions/:id",
+    "file": "routes/positions.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/positions/:id",
+    "file": "routes/positions.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/positions/department/:department",
+    "file": "routes/positions.js",
+    "routePattern": "/department/:department"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/payroll/:year_month",
+    "file": "routes/reports.js",
+    "routePattern": "/payroll/:year_month"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/payroll/:year_month/excel",
+    "file": "routes/reports.js",
+    "routePattern": "/payroll/:year_month/excel"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/comparison/:upload_id/:year_month/excel",
+    "file": "routes/reports.js",
+    "routePattern": "/comparison/:upload_id/:year_month/excel"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/payslip/:userId/:year_month/excel",
+    "file": "routes/reports.js",
+    "routePattern": "/payslip/:userId/:year_month/excel"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/template/payroll",
+    "file": "routes/reports.js",
+    "routePattern": "/template/payroll"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/reports/leave/:year_month",
+    "file": "routes/reports.js",
+    "routePattern": "/leave/:year_month"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/sales/:year_month",
+    "file": "routes/sales.js",
+    "routePattern": "/:year_month"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sales/",
+    "file": "routes/sales.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/sales/:id",
+    "file": "routes/sales.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/sales/:id",
+    "file": "routes/sales.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/sales/user/:userId",
+    "file": "routes/sales.js",
+    "routePattern": "/user/:userId"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/sales/stats/:yearMonth",
+    "file": "routes/sales.js",
+    "routePattern": "/stats/:yearMonth"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll-upload/",
+    "file": "routes/upload.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/payroll-upload/",
+    "file": "routes/upload.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll-upload/:id/preview",
+    "file": "routes/upload.js",
+    "routePattern": "/:id/preview"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/payroll-upload/:id/compare/:year_month",
+    "file": "routes/upload.js",
+    "routePattern": "/:id/compare/:year_month"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/payroll-upload/:id/process",
+    "file": "routes/upload.js",
+    "routePattern": "/:id/process"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/users/debug/permissions",
+    "file": "routes/users.js",
+    "routePattern": "/debug/permissions"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/users/debug/fix-admin",
+    "file": "routes/users.js",
+    "routePattern": "/debug/fix-admin"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/users/debug/login-admin",
+    "file": "routes/users.js",
+    "routePattern": "/debug/login-admin"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/users/debug/fix-employee-ids",
+    "file": "routes/users.js",
+    "routePattern": "/debug/fix-employee-ids"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/users/",
+    "file": "routes/users.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/users/:id",
+    "file": "routes/users.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/users/",
+    "file": "routes/users.js",
+    "routePattern": "/"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/users/profile/:id",
+    "file": "routes/users.js",
+    "routePattern": "/profile/:id"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/users/:id",
+    "file": "routes/users.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/api/users/:id",
+    "file": "routes/users.js",
+    "routePattern": "/:id"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/users/:id/permissions",
+    "file": "routes/users.js",
+    "routePattern": "/:id/permissions"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/api/users/:id/permissions",
+    "file": "routes/users.js",
+    "routePattern": "/:id/permissions"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/users/stats/overview",
+    "file": "routes/users.js",
+    "routePattern": "/stats/overview"
+  }
+]

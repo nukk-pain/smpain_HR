@@ -1,0 +1,170 @@
+{
+  "summary": {
+    "total": 55,
+    "debug": 4,
+    "trailing_slash": 0,
+    "potentially_needed": 10,
+    "truly_unused": 41
+  },
+  "patterns": {
+    "debug": [
+      "GET /api/users/debug/permissions",
+      "POST /api/users/debug/fix-admin",
+      "POST /api/users/debug/login-admin",
+      "POST /api/users/debug/fix-employee-ids"
+    ],
+    "trailing_slash": [],
+    "truly_unused": [
+      "POST /api/auth/clear-session",
+      "POST /api/bonus/",
+      "GET /api/departments/",
+      "POST /api/departments/",
+      "GET /api/departments/:name/employees",
+      "POST /api/leave/:id",
+      "GET /api/leave/",
+      "GET /api/leave/",
+      "POST /api/leave/carry-over/:year",
+      "GET /api/leave/:userId?",
+      "GET /api/leave/:month",
+      "GET /api/leave/",
+      "GET /api/leave/department-stats",
+      "GET /api/leave/:employeeId/log",
+      "POST /api/leave/",
+      "POST /api/leave/approve",
+      "GET /api/leave/history",
+      "POST /api/leave/",
+      "GET /api/leave/",
+      "POST /api/leave/",
+      "GET /api/leave/",
+      "GET /api/leave/:id",
+      "GET /api/payroll/monthly/:year_month",
+      "PUT /api/payroll/monthly/:id",
+      "DELETE /api/payroll/monthly/:id",
+      "GET /api/payroll/employee/:userId",
+      "GET /api/payroll/stats/:yearMonth",
+      "GET /api/positions/",
+      "POST /api/positions/",
+      "GET /api/positions/department/:department",
+      "GET /api/reports/payroll/:year_month",
+      "GET /api/reports/payroll/:year_month/excel",
+      "GET /api/reports/comparison/:upload_id/:year_month/excel",
+      "GET /api/reports/payslip/:userId/:year_month/excel",
+      "GET /api/reports/template/payroll",
+      "GET /api/reports/leave/:year_month",
+      "POST /api/sales/",
+      "GET /api/payroll-upload/",
+      "POST /api/payroll-upload/",
+      "GET /api/users/",
+      "POST /api/users/"
+    ],
+    "potentially_needed": [
+      "GET /api/bonus/:year_month",
+      "PUT /api/bonus/:id",
+      "DELETE /api/bonus/:id",
+      "GET /api/bonus/user/:userId",
+      "GET /api/sales/:year_month",
+      "PUT /api/sales/:id",
+      "DELETE /api/sales/:id",
+      "GET /api/sales/user/:userId",
+      "GET /api/sales/stats/:yearMonth",
+      "GET /api/payroll-upload/:id/compare/:year_month"
+    ]
+  },
+  "byFile": {
+    "routes/auth.js": [
+      "POST /api/auth/clear-session"
+    ],
+    "routes/bonus.js": [
+      "GET /api/bonus/:year_month",
+      "POST /api/bonus/",
+      "PUT /api/bonus/:id",
+      "DELETE /api/bonus/:id",
+      "GET /api/bonus/user/:userId"
+    ],
+    "routes/departments.js": [
+      "GET /api/departments/",
+      "POST /api/departments/",
+      "GET /api/departments/:name/employees"
+    ],
+    "routes/leave/leaveApproval.js": [
+      "POST /api/leave/:id",
+      "GET /api/leave/"
+    ],
+    "routes/leave/leaveBalance-old.js": [
+      "GET /api/leave/",
+      "POST /api/leave/carry-over/:year"
+    ],
+    "routes/leave/leaveBalance.js": [
+      "GET /api/leave/:userId?"
+    ],
+    "routes/leave/leaveCalendar.js": [
+      "GET /api/leave/:month",
+      "GET /api/leave/",
+      "GET /api/leave/department-stats",
+      "GET /api/leave/:employeeId/log"
+    ],
+    "routes/leave/leaveCancellation.js": [
+      "POST /api/leave/",
+      "POST /api/leave/approve",
+      "GET /api/leave/history"
+    ],
+    "routes/leave/leaveExceptions.js": [
+      "POST /api/leave/",
+      "GET /api/leave/"
+    ],
+    "routes/leave/leaveRequests.js": [
+      "POST /api/leave/",
+      "GET /api/leave/",
+      "GET /api/leave/:id"
+    ],
+    "routes/payroll.js": [
+      "GET /api/payroll/monthly/:year_month",
+      "PUT /api/payroll/monthly/:id",
+      "DELETE /api/payroll/monthly/:id",
+      "GET /api/payroll/employee/:userId",
+      "GET /api/payroll/stats/:yearMonth"
+    ],
+    "routes/positions.js": [
+      "GET /api/positions/",
+      "POST /api/positions/",
+      "GET /api/positions/department/:department"
+    ],
+    "routes/reports.js": [
+      "GET /api/reports/payroll/:year_month",
+      "GET /api/reports/payroll/:year_month/excel",
+      "GET /api/reports/comparison/:upload_id/:year_month/excel",
+      "GET /api/reports/payslip/:userId/:year_month/excel",
+      "GET /api/reports/template/payroll",
+      "GET /api/reports/leave/:year_month"
+    ],
+    "routes/sales.js": [
+      "GET /api/sales/:year_month",
+      "POST /api/sales/",
+      "PUT /api/sales/:id",
+      "DELETE /api/sales/:id",
+      "GET /api/sales/user/:userId",
+      "GET /api/sales/stats/:yearMonth"
+    ],
+    "routes/upload.js": [
+      "GET /api/payroll-upload/",
+      "POST /api/payroll-upload/",
+      "GET /api/payroll-upload/:id/compare/:year_month"
+    ],
+    "routes/users.js": [
+      "GET /api/users/debug/permissions",
+      "POST /api/users/debug/fix-admin",
+      "POST /api/users/debug/login-admin",
+      "POST /api/users/debug/fix-employee-ids",
+      "GET /api/users/",
+      "POST /api/users/"
+    ]
+  },
+  "recommendations": [
+    "Remove or protect debug endpoints",
+    "Implement frontend for bonus management",
+    "Implement frontend for sales data entry",
+    "Consolidate duplicate leave routes",
+    "Document or remove payroll upload feature"
+  ],
+  "generatedAt": "2025-07-24T09:12:37.415Z"
+}

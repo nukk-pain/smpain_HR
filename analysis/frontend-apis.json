@@ -1,0 +1,657 @@
+[
+  {
+    "type": "apiService",
+    "methodName": "login",
+    "httpMethod": "POST",
+    "endpoint": "/auth/login",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "logout",
+    "httpMethod": "POST",
+    "endpoint": "/auth/logout",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getCurrentUser",
+    "httpMethod": "GET",
+    "endpoint": "/auth/me",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getUsers",
+    "httpMethod": "GET",
+    "endpoint": "/users",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getUser",
+    "httpMethod": "GET",
+    "endpoint": "/users/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "createUser",
+    "httpMethod": "POST",
+    "endpoint": "/users",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateUser",
+    "httpMethod": "PUT",
+    "endpoint": "/users/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateUserProfile",
+    "httpMethod": "PUT",
+    "endpoint": "/users/profile/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "deleteUser",
+    "httpMethod": "DELETE",
+    "endpoint": "/users/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "activateUser",
+    "httpMethod": "POST",
+    "endpoint": "/users/:param/activate",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "resetUserPassword",
+    "httpMethod": "POST",
+    "endpoint": "/users/:param/reset-password",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getEmploymentInfo",
+    "httpMethod": "GET",
+    "endpoint": "/users/:param/employment-info",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "bulkImportUsers",
+    "httpMethod": "POST",
+    "endpoint": "/users/bulk-import",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "createLeaveRequest",
+    "httpMethod": "POST",
+    "endpoint": "/leave",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateLeaveRequest",
+    "httpMethod": "PUT",
+    "endpoint": "/leave/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "deleteLeaveRequest",
+    "httpMethod": "DELETE",
+    "endpoint": "/leave/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "approveLeaveRequest",
+    "httpMethod": "POST",
+    "endpoint": "/leave/:param/approve",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "cancelLeaveRequest",
+    "httpMethod": "POST",
+    "endpoint": "/leave/:param/cancel",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "approveLeaveCancellation",
+    "httpMethod": "POST",
+    "endpoint": "/leave/:param/cancel/approve",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPendingCancellations",
+    "httpMethod": "GET",
+    "endpoint": "/leave/cancellations/pending",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getCancellationHistory",
+    "httpMethod": "GET",
+    "endpoint": "/leave/cancellations/history",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getAdminLeaveOverview",
+    "httpMethod": "GET",
+    "endpoint": "/admin/leave/overview",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getEmployeeLeaveDetails",
+    "httpMethod": "GET",
+    "endpoint": "/admin/leave/employee/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "adjustEmployeeLeave",
+    "httpMethod": "POST",
+    "endpoint": "/admin/leave/adjust",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPendingLeaveRequests",
+    "httpMethod": "GET",
+    "endpoint": "/leave/pending",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "approveLeave",
+    "httpMethod": "POST",
+    "endpoint": "/leave/:param/approve",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "rejectLeave",
+    "httpMethod": "POST",
+    "endpoint": "/leave/:param/approve",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getMonthlyPayments",
+    "httpMethod": "GET",
+    "endpoint": "/payroll/monthly/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updatePayroll",
+    "httpMethod": "POST",
+    "endpoint": "/payroll/monthly",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getSalesData",
+    "httpMethod": "GET",
+    "endpoint": "/payroll/sales/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "calculateIncentive",
+    "httpMethod": "POST",
+    "endpoint": "/payroll/calculate-incentive",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "addBonus",
+    "httpMethod": "POST",
+    "endpoint": "/payroll/bonus",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPayrollReport",
+    "httpMethod": "GET",
+    "endpoint": "/reports/payroll/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getUploadPreview",
+    "httpMethod": "GET",
+    "endpoint": "/payroll-upload/:param/preview",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "compareUploadData",
+    "httpMethod": "GET",
+    "endpoint": "/payroll-upload/:param/compare/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "processUpload",
+    "httpMethod": "PUT",
+    "endpoint": "/payroll-upload/:param/process",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getDashboardStats",
+    "httpMethod": "GET",
+    "endpoint": "/admin/stats/system",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getLeaveStats",
+    "httpMethod": "GET",
+    "endpoint": "/leave/stats/overview",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getUserStats",
+    "httpMethod": "GET",
+    "endpoint": "/users/stats/overview",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPayrollStats",
+    "httpMethod": "GET",
+    "endpoint": "/payroll/stats/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getDepartments",
+    "httpMethod": "GET",
+    "endpoint": "/departments",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "createDepartment",
+    "httpMethod": "POST",
+    "endpoint": "/departments",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateDepartment",
+    "httpMethod": "PUT",
+    "endpoint": "/departments/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "deleteDepartment",
+    "httpMethod": "DELETE",
+    "endpoint": "/departments/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getDepartmentEmployees",
+    "httpMethod": "GET",
+    "endpoint": "/departments/:param/employees",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getOrganizationChart",
+    "httpMethod": "GET",
+    "endpoint": "/organization-chart",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPositions",
+    "httpMethod": "GET",
+    "endpoint": "/positions",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPosition",
+    "httpMethod": "GET",
+    "endpoint": "/positions/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "createPosition",
+    "httpMethod": "POST",
+    "endpoint": "/positions",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updatePosition",
+    "httpMethod": "PUT",
+    "endpoint": "/positions/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "deletePosition",
+    "httpMethod": "DELETE",
+    "endpoint": "/positions/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPositionsByDepartment",
+    "httpMethod": "GET",
+    "endpoint": "/positions/department/:param",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getUserPermissions",
+    "httpMethod": "GET",
+    "endpoint": "/users/:param/permissions",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateUserPermissions",
+    "httpMethod": "PUT",
+    "endpoint": "/users/:param/permissions",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getAvailablePermissions",
+    "httpMethod": "GET",
+    "endpoint": "/permissions",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "changePassword",
+    "httpMethod": "POST",
+    "endpoint": "/auth/change-password",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getLeavePolicy",
+    "httpMethod": "GET",
+    "endpoint": "/admin/policy",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "updateLeavePolicy",
+    "httpMethod": "PUT",
+    "endpoint": "/admin/policy",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getPolicyHistory",
+    "httpMethod": "GET",
+    "endpoint": "/admin/policy/history",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "getBulkPendingRequests",
+    "httpMethod": "GET",
+    "endpoint": "/admin/leave/bulk-pending",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "apiService",
+    "methodName": "bulkApproveLeaveRequests",
+    "httpMethod": "POST",
+    "endpoint": "/admin/leave/bulk-approve",
+    "file": "services/api.ts"
+  },
+  {
+    "type": "usage",
+    "file": "components/AuthProvider.tsx",
+    "methods": [
+      "getCurrentUser",
+      "login",
+      "logout"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/BonusManagement.tsx",
+    "methods": [
+      "get",
+      "getUsers",
+      "put",
+      "addBonus",
+      "delete"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/DepartmentManagement.tsx",
+    "methods": [
+      "getDepartments",
+      "getUsers",
+      "getPositions",
+      "getOrganizationChart",
+      "getDepartmentEmployees",
+      "updateDepartment",
+      "createDepartment",
+      "deleteDepartment",
+      "updatePosition",
+      "createPosition",
+      "deletePosition"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/FileUpload.tsx",
+    "methods": [
+      "uploadPayrollFile",
+      "getUploadPreview",
+      "compareUploadData",
+      "processUpload",
+      "downloadPayrollTemplate",
+      "downloadComparisonReport"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/IncentiveCalculator.tsx",
+    "methods": [
+      "getUsers",
+      "get",
+      "post",
+      "put"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/Layout.tsx",
+    "methods": [
+      "changePassword"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/LeaveAdjustmentDialog.tsx",
+    "methods": [
+      "getEmployeeLeaveDetails",
+      "adjustEmployeeLeave"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/LeaveCalendar.tsx",
+    "methods": [
+      "get",
+      "put",
+      "post",
+      "delete"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/PayrollDashboard.tsx",
+    "methods": [
+      "getPayrollReport",
+      "downloadPayrollReport"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/PayrollGrid.tsx",
+    "methods": [
+      "updatePayroll",
+      "getMonthlyPayments"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/PositionManagement.tsx",
+    "methods": [
+      "getPositions",
+      "updatePosition",
+      "createPosition",
+      "deletePosition"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/SalesManagement.tsx",
+    "methods": [
+      "getSalesData",
+      "getUsers",
+      "put",
+      "post",
+      "delete",
+      "calculateIncentive"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/TeamLeaveStatus.tsx",
+    "methods": [
+      "get",
+      "getEmployeeLeaveLog"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/UnifiedDashboard.tsx",
+    "methods": [
+      "getUserStats",
+      "getDashboardStats",
+      "get"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/UserDashboard.tsx",
+    "methods": [
+      "getLeaveBalance",
+      "getLeaveRequests"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "components/UserManagement.tsx",
+    "methods": [
+      "getUsers",
+      "getDepartments",
+      "getPositions",
+      "deleteUser",
+      "activateUser",
+      "resetUserPassword",
+      "updateUser",
+      "createUser",
+      "getAvailablePermissions",
+      "getUserPermissions",
+      "updateUserPermissions"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/AdminBulkOperations.tsx",
+    "methods": [
+      "getBulkPendingRequests",
+      "getDepartments",
+      "bulkApproveLeaveRequests",
+      "post"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/AdminLeaveOverview.tsx",
+    "methods": [
+      "get"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/AdminLeavePolicy.tsx",
+    "methods": [
+      "getLeavePolicy",
+      "updateLeavePolicy"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/EmployeeLeaveManagement.tsx",
+    "methods": [
+      "getPendingLeaveRequests",
+      "getPendingCancellations",
+      "approveLeaveRequest",
+      "approveLeaveCancellation",
+      "approveLeave"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/LeaveManagement.tsx",
+    "methods": [
+      "getLeaveRequests",
+      "getLeaveBalance",
+      "getCancellationHistory",
+      "updateLeaveRequest",
+      "createLeaveRequest",
+      "deleteLeaveRequest",
+      "cancelLeaveRequest"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/PayrollManagement.tsx",
+    "methods": [
+      "getDashboardStats",
+      "getPayrollStats"
+    ]
+  },
+  {
+    "type": "usage",
+    "file": "pages/UserProfile.tsx",
+    "methods": [
+      "updateUserProfile"
+    ]
+  }
+]

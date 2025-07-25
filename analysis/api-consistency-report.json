@@ -1,0 +1,913 @@
+{
+  "summary": {
+    "totalBackendAPIs": 90,
+    "totalFrontendMethods": 61,
+    "matches": 35,
+    "mismatches": 81,
+    "severityBreakdown": {
+      "HIGH": 26,
+      "MEDIUM": 55
+    }
+  },
+  "matches": [
+    {
+      "frontendMethod": "login",
+      "backendEndpoint": "POST /api/auth/login",
+      "backendFile": "routes/auth.js"
+    },
+    {
+      "frontendMethod": "logout",
+      "backendEndpoint": "POST /api/auth/logout",
+      "backendFile": "routes/auth.js"
+    },
+    {
+      "frontendMethod": "getCurrentUser",
+      "backendEndpoint": "GET /api/auth/me",
+      "backendFile": "routes/auth.js"
+    },
+    {
+      "frontendMethod": "getUser",
+      "backendEndpoint": "GET /api/users/:param",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "updateUser",
+      "backendEndpoint": "PUT /api/users/:param",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "updateUserProfile",
+      "backendEndpoint": "PUT /api/users/profile/:param",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "deleteUser",
+      "backendEndpoint": "DELETE /api/users/:param",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "updateLeaveRequest",
+      "backendEndpoint": "PUT /api/leave/:param",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "deleteLeaveRequest",
+      "backendEndpoint": "DELETE /api/leave/:param",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "approveLeaveRequest",
+      "backendEndpoint": "POST /api/leave/:param/approve",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "cancelLeaveRequest",
+      "backendEndpoint": "POST /api/leave/:param/cancel",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "getAdminLeaveOverview",
+      "backendEndpoint": "GET /api/admin/leave/overview",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "getEmployeeLeaveDetails",
+      "backendEndpoint": "GET /api/admin/leave/employee/:param",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "adjustEmployeeLeave",
+      "backendEndpoint": "POST /api/admin/leave/adjust",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "getPendingLeaveRequests",
+      "backendEndpoint": "GET /api/leave/pending",
+      "backendFile": "routes/leave/leaveCancellation.js"
+    },
+    {
+      "frontendMethod": "approveLeave",
+      "backendEndpoint": "POST /api/leave/:param/approve",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "rejectLeave",
+      "backendEndpoint": "POST /api/leave/:param/approve",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "frontendMethod": "updatePayroll",
+      "backendEndpoint": "POST /api/payroll/monthly",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "frontendMethod": "getUploadPreview",
+      "backendEndpoint": "GET /api/payroll-upload/:param/preview",
+      "backendFile": "routes/upload.js"
+    },
+    {
+      "frontendMethod": "processUpload",
+      "backendEndpoint": "PUT /api/payroll-upload/:param/process",
+      "backendFile": "routes/upload.js"
+    },
+    {
+      "frontendMethod": "getDashboardStats",
+      "backendEndpoint": "GET /api/admin/stats/system",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "getUserStats",
+      "backendEndpoint": "GET /api/users/stats/overview",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "updateDepartment",
+      "backendEndpoint": "PUT /api/departments/:param",
+      "backendFile": "routes/departments.js"
+    },
+    {
+      "frontendMethod": "deleteDepartment",
+      "backendEndpoint": "DELETE /api/departments/:param",
+      "backendFile": "routes/departments.js"
+    },
+    {
+      "frontendMethod": "getPosition",
+      "backendEndpoint": "GET /api/positions/:param",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "frontendMethod": "updatePosition",
+      "backendEndpoint": "PUT /api/positions/:param",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "frontendMethod": "deletePosition",
+      "backendEndpoint": "DELETE /api/positions/:param",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "frontendMethod": "getUserPermissions",
+      "backendEndpoint": "GET /api/users/:param/permissions",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "updateUserPermissions",
+      "backendEndpoint": "PUT /api/users/:param/permissions",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "frontendMethod": "changePassword",
+      "backendEndpoint": "POST /api/auth/change-password",
+      "backendFile": "routes/auth.js"
+    },
+    {
+      "frontendMethod": "getLeavePolicy",
+      "backendEndpoint": "GET /api/admin/policy",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "updateLeavePolicy",
+      "backendEndpoint": "PUT /api/admin/policy",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "getPolicyHistory",
+      "backendEndpoint": "GET /api/admin/policy/history",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "getBulkPendingRequests",
+      "backendEndpoint": "GET /api/admin/leave/bulk-pending",
+      "backendFile": "routes/admin.js"
+    },
+    {
+      "frontendMethod": "bulkApproveLeaveRequests",
+      "backendEndpoint": "POST /api/admin/leave/bulk-approve",
+      "backendFile": "routes/admin.js"
+    }
+  ],
+  "mismatches": [
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getUsers",
+      "expectedEndpoint": "GET /api/users",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/users/debug/permissions",
+        "GET /api/users/",
+        "GET /api/users/:id",
+        "GET /api/users/:id/permissions",
+        "GET /api/users/stats/overview"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "createUser",
+      "expectedEndpoint": "POST /api/users",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/users/debug/fix-admin",
+        "POST /api/users/debug/login-admin",
+        "POST /api/users/debug/fix-employee-ids",
+        "POST /api/users/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "activateUser",
+      "expectedEndpoint": "POST /api/users/:param/activate",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/users/debug/fix-admin",
+        "POST /api/users/debug/login-admin",
+        "POST /api/users/debug/fix-employee-ids",
+        "POST /api/users/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "resetUserPassword",
+      "expectedEndpoint": "POST /api/users/:param/reset-password",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/users/debug/fix-admin",
+        "POST /api/users/debug/login-admin",
+        "POST /api/users/debug/fix-employee-ids",
+        "POST /api/users/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getEmploymentInfo",
+      "expectedEndpoint": "GET /api/users/:param/employment-info",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/users/debug/permissions",
+        "GET /api/users/",
+        "GET /api/users/:id",
+        "GET /api/users/:id/permissions",
+        "GET /api/users/stats/overview"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "bulkImportUsers",
+      "expectedEndpoint": "POST /api/users/bulk-import",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/users/debug/fix-admin",
+        "POST /api/users/debug/login-admin",
+        "POST /api/users/debug/fix-employee-ids",
+        "POST /api/users/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "createLeaveRequest",
+      "expectedEndpoint": "POST /api/leave",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/admin/leave/adjust",
+        "POST /api/admin/leave/bulk-approve",
+        "POST /api/leave/:id",
+        "POST /api/leave/carry-over/:year",
+        "POST /api/leave/",
+        "POST /api/leave/approve",
+        "POST /api/leave/",
+        "POST /api/leave/",
+        "POST /api/leave/:id/approve",
+        "POST /api/leave/:id/cancel"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "approveLeaveCancellation",
+      "expectedEndpoint": "POST /api/leave/:param/cancel/approve",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/admin/leave/adjust",
+        "POST /api/admin/leave/bulk-approve",
+        "POST /api/leave/:id",
+        "POST /api/leave/carry-over/:year",
+        "POST /api/leave/",
+        "POST /api/leave/approve",
+        "POST /api/leave/",
+        "POST /api/leave/",
+        "POST /api/leave/:id/approve",
+        "POST /api/leave/:id/cancel"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getPendingCancellations",
+      "expectedEndpoint": "GET /api/leave/cancellations/pending",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/admin/leave/overview",
+        "GET /api/admin/leave/employee/:id",
+        "GET /api/admin/leave/bulk-pending",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:userId?",
+        "GET /api/leave/:month",
+        "GET /api/leave/",
+        "GET /api/leave/department-stats",
+        "GET /api/leave/:employeeId/log",
+        "GET /api/leave/pending",
+        "GET /api/leave/history",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:id",
+        "GET /api/reports/leave/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getCancellationHistory",
+      "expectedEndpoint": "GET /api/leave/cancellations/history",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/admin/leave/overview",
+        "GET /api/admin/leave/employee/:id",
+        "GET /api/admin/leave/bulk-pending",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:userId?",
+        "GET /api/leave/:month",
+        "GET /api/leave/",
+        "GET /api/leave/department-stats",
+        "GET /api/leave/:employeeId/log",
+        "GET /api/leave/pending",
+        "GET /api/leave/history",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:id",
+        "GET /api/reports/leave/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getMonthlyPayments",
+      "expectedEndpoint": "GET /api/payroll/monthly/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/payroll/monthly/:year_month",
+        "GET /api/payroll/employee/:userId",
+        "GET /api/payroll/stats/:yearMonth",
+        "GET /api/reports/payroll/:year_month",
+        "GET /api/reports/payroll/:year_month/excel",
+        "GET /api/reports/template/payroll",
+        "GET /api/payroll-upload/",
+        "GET /api/payroll-upload/:id/preview",
+        "GET /api/payroll-upload/:id/compare/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getSalesData",
+      "expectedEndpoint": "GET /api/payroll/sales/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/payroll/monthly/:year_month",
+        "GET /api/payroll/employee/:userId",
+        "GET /api/payroll/stats/:yearMonth",
+        "GET /api/reports/payroll/:year_month",
+        "GET /api/reports/payroll/:year_month/excel",
+        "GET /api/reports/template/payroll",
+        "GET /api/sales/:year_month",
+        "GET /api/sales/user/:userId",
+        "GET /api/sales/stats/:yearMonth",
+        "GET /api/payroll-upload/",
+        "GET /api/payroll-upload/:id/preview",
+        "GET /api/payroll-upload/:id/compare/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "calculateIncentive",
+      "expectedEndpoint": "POST /api/payroll/calculate-incentive",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/payroll/monthly",
+        "POST /api/payroll-upload/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "addBonus",
+      "expectedEndpoint": "POST /api/payroll/bonus",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/bonus/",
+        "POST /api/payroll/monthly",
+        "POST /api/payroll-upload/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getPayrollReport",
+      "expectedEndpoint": "GET /api/reports/payroll/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/payroll/monthly/:year_month",
+        "GET /api/payroll/employee/:userId",
+        "GET /api/payroll/stats/:yearMonth",
+        "GET /api/reports/payroll/:year_month",
+        "GET /api/reports/payroll/:year_month/excel",
+        "GET /api/reports/comparison/:upload_id/:year_month/excel",
+        "GET /api/reports/payslip/:userId/:year_month/excel",
+        "GET /api/reports/template/payroll",
+        "GET /api/reports/leave/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "compareUploadData",
+      "expectedEndpoint": "GET /api/payroll-upload/:param/compare/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/payroll/monthly/:year_month",
+        "GET /api/payroll/employee/:userId",
+        "GET /api/payroll/stats/:yearMonth",
+        "GET /api/payroll-upload/",
+        "GET /api/payroll-upload/:id/preview",
+        "GET /api/payroll-upload/:id/compare/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getLeaveStats",
+      "expectedEndpoint": "GET /api/leave/stats/overview",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/admin/leave/overview",
+        "GET /api/admin/leave/employee/:id",
+        "GET /api/admin/leave/bulk-pending",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:userId?",
+        "GET /api/leave/:month",
+        "GET /api/leave/",
+        "GET /api/leave/department-stats",
+        "GET /api/leave/:employeeId/log",
+        "GET /api/leave/pending",
+        "GET /api/leave/history",
+        "GET /api/leave/",
+        "GET /api/leave/",
+        "GET /api/leave/:id",
+        "GET /api/reports/leave/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getPayrollStats",
+      "expectedEndpoint": "GET /api/payroll/stats/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/payroll/monthly/:year_month",
+        "GET /api/payroll/employee/:userId",
+        "GET /api/payroll/stats/:yearMonth",
+        "GET /api/reports/payroll/:year_month",
+        "GET /api/reports/payroll/:year_month/excel",
+        "GET /api/reports/template/payroll",
+        "GET /api/payroll-upload/",
+        "GET /api/payroll-upload/:id/preview",
+        "GET /api/payroll-upload/:id/compare/:year_month"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getDepartments",
+      "expectedEndpoint": "GET /api/departments",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/departments/",
+        "GET /api/departments/:name/employees"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "createDepartment",
+      "expectedEndpoint": "POST /api/departments",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/departments/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getDepartmentEmployees",
+      "expectedEndpoint": "GET /api/departments/:param/employees",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/departments/",
+        "GET /api/departments/:name/employees"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getOrganizationChart",
+      "expectedEndpoint": "GET /api/organization-chart",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": []
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getPositions",
+      "expectedEndpoint": "GET /api/positions",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/positions/",
+        "GET /api/positions/:id",
+        "GET /api/positions/department/:department"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "createPosition",
+      "expectedEndpoint": "POST /api/positions",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "POST /api/positions/"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getPositionsByDepartment",
+      "expectedEndpoint": "GET /api/positions/department/:param",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/positions/",
+        "GET /api/positions/:id",
+        "GET /api/positions/department/:department"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "severity": "HIGH",
+      "frontendMethod": "getAvailablePermissions",
+      "expectedEndpoint": "GET /api/permissions",
+      "frontendFile": "services/api.ts",
+      "similarEndpoints": [
+        "GET /api/users/debug/permissions",
+        "GET /api/users/:id/permissions"
+      ]
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/auth/clear-session",
+      "backendFile": "routes/auth.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/bonus/:year_month",
+      "backendFile": "routes/bonus.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/bonus/",
+      "backendFile": "routes/bonus.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "PUT /api/bonus/:id",
+      "backendFile": "routes/bonus.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "DELETE /api/bonus/:id",
+      "backendFile": "routes/bonus.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/bonus/user/:userId",
+      "backendFile": "routes/bonus.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/departments/",
+      "backendFile": "routes/departments.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/departments/",
+      "backendFile": "routes/departments.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/departments/:name/employees",
+      "backendFile": "routes/departments.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/:id",
+      "backendFile": "routes/leave/leaveApproval.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/",
+      "backendFile": "routes/leave/leaveApproval.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/",
+      "backendFile": "routes/leave/leaveBalance-old.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/carry-over/:year",
+      "backendFile": "routes/leave/leaveBalance-old.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/:userId?",
+      "backendFile": "routes/leave/leaveBalance.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/:month",
+      "backendFile": "routes/leave/leaveCalendar.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/",
+      "backendFile": "routes/leave/leaveCalendar.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/department-stats",
+      "backendFile": "routes/leave/leaveCalendar.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/:employeeId/log",
+      "backendFile": "routes/leave/leaveCalendar.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/",
+      "backendFile": "routes/leave/leaveCancellation.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/approve",
+      "backendFile": "routes/leave/leaveCancellation.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/history",
+      "backendFile": "routes/leave/leaveCancellation.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/",
+      "backendFile": "routes/leave/leaveExceptions.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/",
+      "backendFile": "routes/leave/leaveExceptions.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/leave/",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/leave/:id",
+      "backendFile": "routes/leave/leaveRequests.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/payroll/monthly/:year_month",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "PUT /api/payroll/monthly/:id",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "DELETE /api/payroll/monthly/:id",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/payroll/employee/:userId",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/payroll/stats/:yearMonth",
+      "backendFile": "routes/payroll.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/positions/",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/positions/",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/positions/department/:department",
+      "backendFile": "routes/positions.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/payroll/:year_month",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/payroll/:year_month/excel",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/comparison/:upload_id/:year_month/excel",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/payslip/:userId/:year_month/excel",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/template/payroll",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/reports/leave/:year_month",
+      "backendFile": "routes/reports.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/sales/:year_month",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/sales/",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "PUT /api/sales/:id",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "DELETE /api/sales/:id",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/sales/user/:userId",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/sales/stats/:yearMonth",
+      "backendFile": "routes/sales.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/payroll-upload/",
+      "backendFile": "routes/upload.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/payroll-upload/",
+      "backendFile": "routes/upload.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/payroll-upload/:id/compare/:year_month",
+      "backendFile": "routes/upload.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/users/debug/permissions",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/users/debug/fix-admin",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/users/debug/login-admin",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/users/debug/fix-employee-ids",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "GET /api/users/",
+      "backendFile": "routes/users.js"
+    },
+    {
+      "type": "UNUSED_BACKEND",
+      "severity": "MEDIUM",
+      "backendEndpoint": "POST /api/users/",
+      "backendFile": "routes/users.js"
+    }
+  ],
+  "generatedAt": "2025-07-24T07:47:14.861Z"
+}
