@@ -20,6 +20,10 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   permissions?: string[];
+  visibleTeams?: {
+    departmentId: string;
+    departmentName: string;
+  }[];
   
   // Calculated fields
   yearsOfService?: number;
@@ -216,6 +220,10 @@ export interface UserForm {
   incentiveFormula?: string;
   birthDate?: string;
   phoneNumber?: string;
+  visibleTeams?: {
+    departmentId: string;
+    departmentName: string;
+  }[];
 }
 
 export interface LeaveForm {

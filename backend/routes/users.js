@@ -318,6 +318,7 @@ function createUserRoutes(db) {
       phoneNumber: phoneNumber || null,
       isActive: true,
       permissions: DEFAULT_PERMISSIONS[role] || [],
+      visibleTeams: [], // Empty by default - managers need explicit permission
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -372,7 +373,7 @@ function createUserRoutes(db) {
   // Update user (admin/manager function)
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber } = req.body;
+    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;
     
     const updateData = {
       username,
@@ -391,6 +392,17 @@ function createUserRoutes(db) {
       isActive: isActive !== undefined ? isActive : true,
       updatedAt: new Date()
     };
+    
+    // Only admins can modify visibleTeams
+    if (req.session.user.role === 'admin' && visibleTeams !== undefined) {
+      // Validate visibleTeams structure
+      if (Array.isArray(visibleTeams)) {
+        updateData.visibleTeams = visibleTeams.map(team => ({
+          departmentId: team.departmentId ? new ObjectId(team.departmentId) : null,
+          departmentName: team.departmentName || ''
+        }));
+      }
+    }
     
     const result = await db.collection('users').updateOne(
       { _id: new ObjectId(id) },

@@ -228,14 +228,13 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   
   let query = {};
   
-  // Regular users and managers can only see their own requests
-  if (userRole === 'user' || userRole === 'manager') {
-    const userObjectId = await getUserObjectId(db, userId);
-    if (!userObjectId) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    query.userId = userObjectId;
+  // All users (including admin) see only their own requests in personal leave page
+  // Admin can see all requests through separate admin endpoints
+  const userObjectId = await getUserObjectId(db, userId);
+  if (!userObjectId) {
+    return res.status(404).json({ error: 'User not found' });
   }
+  query.userId = userObjectId;
   
   const leaveRequests = await db.collection('leaveRequests').find(query).sort({ createdAt: -1 }).toArray();
   
@@ -257,14 +256,13 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
   
   let query = { _id: toObjectId(id) };
   
-  // Regular users and managers can only see their own requests
-  if (userRole === 'user' || userRole === 'manager') {
-    const userObjectId = await getUserObjectId(db, userId);
-    if (!userObjectId) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    query.userId = userObjectId;
+  // All users (including admin) can only see their own requests in personal leave page
+  // Admin can see all requests through separate admin endpoints
+  const userObjectId = await getUserObjectId(db, userId);
+  if (!userObjectId) {
+    return res.status(404).json({ error: 'User not found' });
   }
+  query.userId = userObjectId;
   
   const leaveRequest = await db.collection('leaveRequests').findOne(query);
   
