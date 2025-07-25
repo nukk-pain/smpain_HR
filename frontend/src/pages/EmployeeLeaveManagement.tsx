@@ -204,17 +204,17 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const handleCancellationApproval = async (requestId: string, action: 'approve' | 'reject') => {
     try {
-      await apiService.approveLeaveCancellation(requestId, action, approvalComment);
+      await apiService.approveLeaveCancellation(requestId, action, ''); // 빈 코멘트로 즉시 처리
       showSuccess(
         action === 'approve' ? '휴가 취소가 승인되었습니다.' : '휴가 취소가 거부되었습니다.'
       );
       
       // 다른 탭/창에 연차가 업데이트되었음을 알림
-      if (action === 'approve' && selectedRequest?.leaveType === 'annual') {
+      const request = pendingCancellations.find(r => r._id === requestId);
+      if (action === 'approve' && request?.leaveType === 'annual') {
         localStorage.setItem('leaveUpdated', new Date().toISOString());
       }
       
-      handleCloseApprovalDialog();
       await loadData();
     } catch (error: any) {
       console.error('Error approving cancellation:', error);
@@ -539,9 +539,9 @@ const EmployeeLeaveManagement: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
+                              if (window.confirm('정말로 이 휴가 취소를 승인하시겠습니까?')) {
+                                handleCancellationApproval(request._id, 'approve');
+                              }
                             }}
                             color="success"
                           >
@@ -552,9 +552,9 @@ const EmployeeLeaveManagement: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
+                              if (window.confirm('정말로 이 휴가 취소를 거부하시겠습니까?')) {
+                                handleCancellationApproval(request._id, 'reject');
+                              }
                             }}
                             color="error"
                           >
