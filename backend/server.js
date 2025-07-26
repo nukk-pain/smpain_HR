@@ -38,7 +38,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 // MongoDB connection string with authentication
 const MONGO_URL = process.env.MONGODB_URL || (isDevelopment 
   ? 'mongodb://localhost:27017' 
-  : `mongodb://${process.env.MONGODB_USER || 'hr_app_user'}:${process.env.MONGODB_PASSWORD || 'your_password'}@localhost:27018`
+  : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
 );
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 

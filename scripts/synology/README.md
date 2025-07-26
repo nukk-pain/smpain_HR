@@ -53,12 +53,16 @@ node scripts/synology/resetDatabase.js
 모든 스크립트는 다음 연결 정보를 사용합니다:
 
 ```javascript
-// 시놀로지 Docker MongoDB
-const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu';
+// 시놀로지 Docker MongoDB (Replica Set)
+const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu';
 ```
 
 - **호스트**: localhost
-- **포트**: 27018 (Docker 포트 매핑)
+- **포트**: 
+  - Primary: 27018
+  - Secondary: 27019
+  - Arbiter: 27020
+- **Replica Set**: hrapp
 - **사용자**: hr_app_user
 - **비밀번호**: Hr2025Secure
 - **데이터베이스**: SM_nomu
@@ -86,12 +90,16 @@ const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSour
    - 시놀로지 DSM → 제어판 → 보안 → 방화벽
    - 포트 27018 허용 확인
 
-### Replica Set 사용 시
+### Replica Set 상태 확인
 
-Replica Set을 사용하는 경우 연결 문자열을 다음과 같이 수정:
+현재 모든 스크립트는 Replica Set 연결을 사용합니다:
 
-```javascript
-const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu';
+```bash
+# Replica Set 상태 확인
+docker exec mongo-hr-primary mongosh --eval "rs.status()"
+
+# 노드별 상태 확인
+docker ps | grep mongo-hr
 ```
 
 ## 📝 사용 예시

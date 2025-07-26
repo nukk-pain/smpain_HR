@@ -173,8 +173,8 @@ node scripts/resetDatabase.js
 # MongoDB connection (development)
 mongodb://localhost:27017/SM_nomu
 
-# MongoDB connection (production - Docker)
-mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu
+# MongoDB connection (production - Docker Replica Set)
+mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu
 ```
 
 ## High-Level Architecture

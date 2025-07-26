@@ -1,8 +1,8 @@
 const path = require('path');
 const { MongoClient } = require(path.join(__dirname, '../../backend/node_modules/mongodb'));
 
-// MongoDB 연결 설정 - 시놀로지 Docker 환경
-const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu';
+// MongoDB 연결 설정 - 시놀로지 Docker 환경 (Replica Set)
+const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu';
 const dbName = 'SM_nomu';
 
 async function checkDatabase() {
