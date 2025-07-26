@@ -53,19 +53,18 @@ node scripts/synology/resetDatabase.js
 모든 스크립트는 다음 연결 정보를 사용합니다:
 
 ```javascript
-// 시놀로지 Docker MongoDB (Replica Set)
-const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu';
+// 시놀로지 Docker MongoDB (Direct Primary 연결)
+const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu';
 ```
 
 - **호스트**: localhost
-- **포트**: 
-  - Primary: 27018
-  - Secondary: 27019
-  - Arbiter: 27020
-- **Replica Set**: hrapp
+- **포트**: 27018 (Primary 노드로 직접 연결)
+- **연결 방식**: Direct (단일 노드 연결)
 - **사용자**: hr_app_user
 - **비밀번호**: Hr2025Secure
 - **데이터베이스**: SM_nomu
+
+> **참고**: Replica Set은 Docker 내부에서 작동하지만, 외부 클라이언트는 Primary 노드(27018)로만 연결합니다.
 
 ## 🚨 문제 해결
 
@@ -92,7 +91,7 @@ const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,
 
 ### Replica Set 상태 확인
 
-현재 모든 스크립트는 Replica Set 연결을 사용합니다:
+현재 모든 스크립트는 Primary 노드로 직접 연결합니다:
 
 ```bash
 # Replica Set 상태 확인
