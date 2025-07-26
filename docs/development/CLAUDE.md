@@ -87,7 +87,7 @@ This is an HR management system with payroll functionality, built with Node.js E
 ## Development Guidelines
 
 ### Code and Documentation Best Practices
-- 변수나 함수를 만들 때에는 `docs/development/FUNCTIONS_VARIABLES.md` 파일에 어떤 기능을 하는 변수, 함수를 정리해줘. 그리고 새로운 기능을 추가할 때마다 그 md파일을 검토해서 기존에 같은 역할을 하는 경우 그것을 이용하도록 해줘.
+- 변수나 함수를 만들 때에는 root 폴더에 md파일을 하나 만들어서 그 파일에 어떤 기능을 하는 변수, 함수를 정리해줘. 그리고 새로운 기능을 추가할 때마다 그 md파일을 검토해서 기존에 같은 역할을 하는 경우 그것을 이용하도록 해줘.
 
 ### **CRITICAL: Field Name and API Consistency**
 **ALWAYS verify that frontend, backend, and MongoDB use consistent field names and API structures:**
@@ -250,10 +250,10 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - Pagination on all list endpoints
 
 ### Development Workflow
-1. Check docs/development/FUNCTIONS_VARIABLES.md before creating new functions
+1. Check FUNCTIONS_VARIABLES.md before creating new functions
 2. Follow TDD cycle for new features
 3. Separate structural and behavioral changes
-4. Test manually following docs/development/TEST_GUIDE.md
+4. Test manually following TEST_GUIDE.md
 5. Only commit when explicitly requested
 6. Update documentation for new features
 

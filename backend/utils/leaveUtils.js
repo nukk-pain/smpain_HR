@@ -6,8 +6,26 @@
  * @returns {number} Annual leave days entitlement
  */
 function calculateAnnualLeaveEntitlement(hireDate) {
+  // Handle null, undefined, or invalid hire dates
+  if (!hireDate || hireDate === null || hireDate === undefined) {
+    console.warn('calculateAnnualLeaveEntitlement: Invalid hire date provided:', hireDate);
+    return 0; // Return 0 for invalid dates instead of defaulting to max
+  }
+  
   const now = new Date();
   const hire = new Date(hireDate);
+  
+  // Check if hire date is valid
+  if (isNaN(hire.getTime())) {
+    console.warn('calculateAnnualLeaveEntitlement: Invalid hire date format:', hireDate);
+    return 0;
+  }
+  
+  // Check if hire date is in the future
+  if (hire > now) {
+    console.warn('calculateAnnualLeaveEntitlement: Hire date is in the future:', hireDate);
+    return 0;
+  }
   
   // Calculate years of service
   const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
@@ -44,10 +62,18 @@ function calculateAnnualLeaveEntitlement(hireDate) {
  * @returns {number} Years of service
  */
 function calculateYearsOfService(hireDate) {
+  // Handle null, undefined, or invalid hire dates
+  if (!hireDate || hireDate === null || hireDate === undefined) {
+    return 0;
+  }
+  
   const now = new Date();
   const hire = new Date(hireDate);
   
   if (isNaN(hire.getTime())) return 0;
+  
+  // Check if hire date is in the future
+  if (hire > now) return 0;
   
   return Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
 }

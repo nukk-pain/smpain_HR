@@ -1,5 +1,6 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
+const bcrypt = require('bcryptjs');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth, requirePermission, requireAdmin } = require('../middleware/permissions');
 const { successResponse, errorResponse, notFoundError, serverError } = require('../utils/responses');
@@ -179,6 +180,60 @@ function createUserRoutes(db) {
       res.json({
         success: true,
         message: `Fixed ${results.length} invalid employee IDs`,
+        results: results
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }));
+
+  // Fix leave balances based on correct calculation
+  router.post('/debug/fix-leave-balances', asyncHandler(async (req, res) => {
+    try {
+      const allUsers = await db.collection('users').find({}).toArray();
+      const results = [];
+
+      for (const user of allUsers) {
+        const hireDate = user.hireDate ? new Date(user.hireDate) : null;
+        const correctAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+        const correctYearsOfService = hireDate ? Math.floor((new Date() - new Date(hireDate)) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
+        
+        // Update if values are different
+        const needsUpdate = user.leaveBalance === undefined || 
+                           user.leaveBalance === null ||
+                           isNaN(user.leaveBalance);
+
+        if (needsUpdate || correctAnnualLeave !== (user.annualLeave || 0)) {
+          // Set initial leave balance to calculated annual leave if not set properly
+          const newLeaveBalance = needsUpdate ? correctAnnualLeave : user.leaveBalance;
+          
+          await db.collection('users').updateOne(
+            { _id: user._id },
+            { 
+              $set: { 
+                leaveBalance: newLeaveBalance,
+                // Don't store annualLeave in DB - calculate dynamically
+                updatedAt: new Date()
+              }
+            }
+          );
+          
+          results.push({
+            userId: user._id,
+            username: user.username,
+            name: user.name,
+            hireDate: user.hireDate,
+            oldLeaveBalance: user.leaveBalance,
+            newLeaveBalance: newLeaveBalance,
+            calculatedAnnualLeave: correctAnnualLeave,
+            yearsOfService: correctYearsOfService
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Fixed ${results.length} users' leave balances`,
         results: results
       });
     } catch (error) {

@@ -303,11 +303,17 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Leave request not found or cannot be modified' });
   }
   
+  // 기존 값 보존을 위한 안전한 업데이트 데이터 구성
+  const effectiveStartDate = startDate || leaveRequest.startDate;
+  const effectiveEndDate = endDate || leaveRequest.endDate;
+  const effectiveLeaveType = leaveType || leaveRequest.leaveType;
+  const effectivePersonalOffDays = personalOffDays.length > 0 ? personalOffDays : (leaveRequest.personalOffDays || []);
+  
   // Calculate days count using policy-based calculation with personal off days
-  const daysCount = await calculateBusinessDaysWithPolicy(db, startDate, endDate, personalOffDays);
+  const daysCount = await calculateBusinessDaysWithPolicy(db, effectiveStartDate, effectiveEndDate, effectivePersonalOffDays);
   
   // Check leave balance for annual leave (allow -3 days advance)
-  if (leaveType === 'annual') {
+  if (effectiveLeaveType === 'annual') {
     const currentYear = new Date().getFullYear();
     const user = await db.collection('users').findOne({ _id: userObjectId });
     
@@ -350,17 +356,24 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     }
   }
   
+  // 안전한 업데이트 데이터 구성 (기존 값 보존)
   const updateData = {
-    leaveType,
-    startDate,
-    endDate,
-    daysCount,
-    personalOffDays: personalOffDays || [],
-    actualLeaveDays: daysCount, // 실제 차감되는 연차일수 (개인 오프일 제외됨)
-    reason,
-    substituteEmployee: substituteEmployee || '',
     updatedAt: new Date()
   };
+  
+  // 제공된 필드만 업데이트
+  if (leaveType !== undefined) updateData.leaveType = effectiveLeaveType;
+  if (startDate !== undefined) updateData.startDate = effectiveStartDate;
+  if (endDate !== undefined) updateData.endDate = effectiveEndDate;
+  if (reason !== undefined) updateData.reason = reason;
+  if (substituteEmployee !== undefined) updateData.substituteEmployee = substituteEmployee;
+  if (personalOffDays && personalOffDays.length >= 0) updateData.personalOffDays = effectivePersonalOffDays;
+  
+  // 날짜가 변경된 경우 일수 재계산
+  if (startDate !== undefined || endDate !== undefined || (personalOffDays && personalOffDays.length >= 0)) {
+    updateData.daysCount = daysCount;
+    updateData.actualLeaveDays = daysCount;
+  }
   
   await db.collection('leaveRequests').updateOne(
     { _id: toObjectId(id) },
@@ -629,6 +642,70 @@ router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: '휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.'
+  });
+}));
+
+/**
+ * Approve or reject leave request (alternative endpoint)
+ * POST /api/leave/:id/approve
+ */
+router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
+  const db = getDb(req);
+  const { id } = req.params;
+  const { approved, note, rejectionReason } = req.body;
+  const approverId = req.session.user.id;
+  
+  // Convert to the format expected by the existing approval logic
+  const action = approved ? 'approve' : 'reject';
+  const comment = note || rejectionReason || '';
+  
+  // Reuse the existing approval logic
+  const approver = await db.collection('users').findOne({ _id: new ObjectId(approverId) });
+  
+  const updateData = {
+    status: action === 'approve' ? 'approved' : 'rejected',
+    approvedBy: new ObjectId(approverId),
+    approvedByName: approver.name,
+    approvedAt: new Date(),
+    approvalComment: comment,
+    rejectionReason: action === 'reject' ? comment : null,
+    updatedAt: new Date()
+  };
+  
+  const result = await db.collection('leaveRequests').updateOne(
+    { _id: toObjectId(id), status: 'pending' },
+    { $set: updateData }
+  );
+  
+  if (result.matchedCount === 0) {
+    return res.status(404).json({ 
+      success: false,
+      error: 'Leave request not found or already processed' 
+    });
+  }
+  
+  // 승인된 경우 연차 차감 (기존 로직과 동일)
+  if (action === 'approve') {
+    const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
+    if (leaveRequest && leaveRequest.leaveType === 'annual') {
+      const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
+      if (user) {
+        // leaveBalance 차감
+        await db.collection('users').updateOne(
+          { _id: new ObjectId(leaveRequest.userId) },
+          { 
+            $inc: { leaveBalance: -leaveRequest.actualLeaveDays }
+          }
+        );
+        console.log(`연차 승인 및 차감: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.actualLeaveDays}일`);
+      }
+    }
+  }
+  
+  res.json({
+    success: true,
+    message: approved ? 'Leave request approved' : 'Leave request rejected',
+    data: { ...updateData, _id: id }
   });
 }));
 
