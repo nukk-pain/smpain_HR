@@ -176,7 +176,7 @@ const requestLogger = (req, res, next) => {
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['http://192.168.0.30:3727', 'https://hr.smpain.synology.me', 'https://your-domain.com'] 
+    ? [process.env.FRONTEND_URL || 'https://hr.smpain.synology.me', 'http://192.168.0.30:3727'] 
     : ['http://localhost:3000', 'http://localhost:3727', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
