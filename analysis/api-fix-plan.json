@@ -1,0 +1,179 @@
+{
+  "summary": {
+    "totalFixes": 17,
+    "highPriority": 13,
+    "mediumPriority": 4,
+    "autoFixable": 6
+  },
+  "fixes": [
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "getUsers",
+      "solution": "Frontend API 서비스에서 '/users'를 '/users/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "createUser",
+      "solution": "Frontend API 서비스에서 '/users'를 '/users/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "getDepartments",
+      "solution": "Frontend API 서비스에서 '/departments'를 '/departments/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "createDepartment",
+      "solution": "Frontend API 서비스에서 '/departments'를 '/departments/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "getPositions",
+      "solution": "Frontend API 서비스에서 '/positions'를 '/positions/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "TRAILING_SLASH",
+      "priority": "HIGH",
+      "frontend": "createPosition",
+      "solution": "Frontend API 서비스에서 '/positions'를 '/positions/'로 수정",
+      "files": [
+        "frontend/src/services/api.ts"
+      ]
+    },
+    {
+      "type": "PARAMETER_NAME",
+      "priority": "MEDIUM",
+      "frontend": "getMonthlyPayments",
+      "solution": "파라미터 이름 통일: :year_month 사용",
+      "files": [
+        "frontend/src/services/api.ts",
+        "backend API 문서 업데이트"
+      ]
+    },
+    {
+      "type": "PARAMETER_NAME",
+      "priority": "MEDIUM",
+      "frontend": "getSalesData",
+      "solution": "파라미터 이름 통일: :year_month 사용",
+      "files": [
+        "frontend/src/services/api.ts",
+        "backend API 문서 업데이트"
+      ]
+    },
+    {
+      "type": "PARAMETER_NAME",
+      "priority": "MEDIUM",
+      "frontend": "getPayrollStats",
+      "solution": "파라미터 이름 통일: :yearMonth 사용",
+      "files": [
+        "frontend/src/services/api.ts",
+        "backend API 문서 업데이트"
+      ]
+    },
+    {
+      "type": "PARAMETER_NAME",
+      "priority": "MEDIUM",
+      "frontend": "getPayrollReport",
+      "solution": "파라미터 이름 통일: :year_month 사용",
+      "files": [
+        "frontend/src/services/api.ts",
+        "backend API 문서 업데이트"
+      ]
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "priority": "HIGH",
+      "frontend": "getOrganizationChart",
+      "solution": "백엔드 엔드포인트 구현: GET /api/organization-chart",
+      "files": [
+        "backend/routes/users.js 또는 해당 라우트 파일"
+      ],
+      "note": "server.js에 직접 정의되어 있을 수 있음"
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "priority": "HIGH",
+      "frontend": "getAvailablePermissions",
+      "solution": "백엔드 엔드포인트 구현: GET /api/permissions",
+      "files": [
+        "backend/routes/users.js 또는 해당 라우트 파일"
+      ],
+      "note": "server.js에 직접 정의되어 있을 수 있음"
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "priority": "HIGH",
+      "frontend": "activateUser",
+      "solution": "백엔드 엔드포인트 구현: POST /api/users/:id/activate",
+      "files": [
+        "backend/routes/users.js 또는 해당 라우트 파일"
+      ],
+      "note": "백엔드에 구현 필요"
+    },
+    {
+      "type": "MISSING_BACKEND",
+      "priority": "HIGH",
+      "frontend": "resetUserPassword",
+      "solution": "백엔드 엔드포인트 구현: POST /api/users/:id/reset-password",
+      "files": [
+        "backend/routes/users.js 또는 해당 라우트 파일"
+      ],
+      "note": "백엔드에 구현 필요"
+    },
+    {
+      "type": "LEAVE_API_CLEANUP",
+      "priority": "HIGH",
+      "issue": "createLeaveRequest: POST /api/leave vs POST /api/leave/",
+      "solution": "Backend 라우트를 POST /api/leave/로 통일",
+      "files": [
+        "backend/routes/leave/ 하위 파일들"
+      ]
+    },
+    {
+      "type": "LEAVE_API_CLEANUP",
+      "priority": "HIGH",
+      "issue": "getLeaveBalance: 실제 경로 확인 필요",
+      "solution": "GET /api/leave/balance/:userId? 엔드포인트 확인",
+      "files": [
+        "backend/routes/leave/ 하위 파일들"
+      ]
+    },
+    {
+      "type": "LEAVE_API_CLEANUP",
+      "priority": "HIGH",
+      "issue": "휴가 취소 관련 API 경로 불일치",
+      "solution": "leaveCancellation.js 라우트 경로 재정의 필요",
+      "files": [
+        "backend/routes/leave/ 하위 파일들"
+      ]
+    }
+  ],
+  "recommendations": [
+    "1. 경로 끝 슬래시 통일 (Backend 기준으로 통일)",
+    "2. 누락된 백엔드 엔드포인트 구현",
+    "3. 휴가 관련 API 라우트 정리",
+    "4. 파라미터 이름 표준화",
+    "5. 사용되지 않는 API 정리"
+  ],
+  "generatedAt": "2025-07-24T07:49:51.679Z"
+}

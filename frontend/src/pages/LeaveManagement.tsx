@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Tab,
-  Tabs,
   Card,
   CardContent,
   Dialog,
@@ -61,61 +59,57 @@ import { LeaveRequest, LeaveBalance, LeaveForm, LeaveApprovalForm } from '@/type
 import { useConfig, useConfigProps } from '@/hooks/useConfig';
 import { LeaveType, LeaveStatus } from '@/types/config';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`leave-tabpanel-${index}`}
-      aria-labelledby={`leave-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
   const { leave, date, message } = useConfig();
   const { getLeaveSelectProps, getStatusChipProps } = useConfigProps();
-  const [tabValue, setTabValue] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [formData, setFormData] = useState<LeaveForm>({
     leaveType: leave.types.ANNUAL as any,
     startDate: '',
     endDate: '',
     reason: '',
-    substituteEmployee: ''
+    substituteEmployee: '',
+    personalOffDays: []
   });
   
-  // Cancellation states
+  // Cancellation dialog states
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<LeaveRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [cancellationHistory, setCancellationHistory] = useState<LeaveRequest[]>([]);
 
   const apiService = new ApiService();
 
   useEffect(() => {
     loadData();
+    
+    // 페이지가 다시 포커스될 때 연차 잔여일수 업데이트
+    const handleFocus = () => {
+      loadLeaveBalance();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // 다른 탭에서 변경사항이 있을 때도 업데이트 (storage event)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'leaveUpdated') {
+        loadLeaveBalance();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const loadData = async () => {
@@ -123,8 +117,7 @@ const LeaveManagement: React.FC = () => {
       setLoading(true);
       await Promise.all([
         loadLeaveRequests(),
-        loadLeaveBalance(),
-        loadCancellationHistory()
+        loadLeaveBalance()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -153,18 +146,6 @@ const LeaveManagement: React.FC = () => {
   };
 
 
-  const loadCancellationHistory = async () => {
-    try {
-      const response = await apiService.getCancellationHistory();
-      setCancellationHistory(response.data || []);
-    } catch (error) {
-      console.error('Error loading cancellation history:', error);
-    }
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const handleOpenDialog = (request?: LeaveRequest) => {
     if (request) {
@@ -174,7 +155,8 @@ const LeaveManagement: React.FC = () => {
         startDate: request.startDate,
         endDate: request.endDate,
         reason: request.reason,
-        substituteEmployee: request.substituteEmployee || ''
+        substituteEmployee: request.substituteEmployee || '',
+        personalOffDays: request.personalOffDays || []
       });
     } else {
       setEditingRequest(null);
@@ -183,7 +165,8 @@ const LeaveManagement: React.FC = () => {
         startDate: '',
         endDate: '',
         reason: '',
-        substituteEmployee: ''
+        substituteEmployee: '',
+        personalOffDays: []
       });
     }
     setDialogOpen(true);
@@ -204,7 +187,8 @@ const LeaveManagement: React.FC = () => {
         showSuccess(message.getSuccessMessage('SAVE_SUCCESS'));
       }
       handleCloseDialog();
-      await loadData();
+      await loadLeaveRequests();
+      await loadLeaveBalance();
     } catch (error: any) {
       console.error('Error submitting leave request:', error);
       const errorMessage = error.response?.data?.error || '휴가 신청 중 오류가 발생했습니다.';
@@ -217,7 +201,8 @@ const LeaveManagement: React.FC = () => {
       try {
         await apiService.deleteLeaveRequest(id);
         showSuccess(message.getSuccessMessage('DELETE_SUCCESS'));
-        await loadData();
+        await loadLeaveRequests();
+      await loadLeaveBalance();
       } catch (error: any) {
         console.error('Error deleting leave request:', error);
         const errorMessage = error.response?.data?.error || '휴가 신청 취소 중 오류가 발생했습니다.';
@@ -266,7 +251,8 @@ const LeaveManagement: React.FC = () => {
       await apiService.cancelLeaveRequest(cancelRequest._id, cancelReason.trim());
       showSuccess('휴가 취소 신청이 완료되었습니다. 관리자 승인을 기다려주세요.');
       handleCloseCancelDialog();
-      await loadData();
+      await loadLeaveRequests();
+      await loadLeaveBalance();
     } catch (error: any) {
       console.error('Error canceling leave request:', error);
       const errorMessage = error.response?.data?.error || '취소 신청 중 오류가 발생했습니다.';
@@ -306,6 +292,16 @@ const LeaveManagement: React.FC = () => {
         return 'default';
     }
   };
+  
+  const getStatusDisplayLabel = (request: LeaveRequest): string => {
+    if (request.status === 'cancelled') {
+      return '취소됨';
+    }
+    if (request.cancellationRequested && request.cancellationStatus === 'pending') {
+      return '취소 대기';
+    }
+    return getStatusLabel(request.status);
+  };
 
   const safeFormatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-';
@@ -317,7 +313,24 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const calculateDays = (startDate: string, endDate: string): number => {
+  // 연도별로 필터링된 휴가 목록
+  const filteredLeaveRequests = leaveRequests.filter(request => {
+    const requestYear = new Date(request.startDate).getFullYear();
+    return requestYear === selectedYear;
+  });
+
+  // 사용 가능한 연도 목록 (입사일부터 현재까지)
+  const availableYears = (() => {
+    const currentYear = new Date().getFullYear();
+    const hireYear = user?.hireDate ? new Date(user.hireDate).getFullYear() : currentYear;
+    const years = [];
+    for (let year = currentYear; year >= hireYear; year--) {
+      years.push(year);
+    }
+    return years;
+  })();
+
+  const calculateDays = (startDate: string, endDate: string, personalOffDays: string[] = []): number => {
     if (!startDate || !endDate) return 0;
     try {
       const start = parseISO(startDate);
@@ -327,8 +340,13 @@ const LeaveManagement: React.FC = () => {
       let currentDate = new Date(start);
       
       while (currentDate <= end) {
+        const dateString = format(currentDate, 'yyyy-MM-dd');
         const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek === 0) { 
+        
+        // Check if it's a personal off day first
+        if (personalOffDays.includes(dateString)) {
+          // Personal off days don't count
+        } else if (dayOfWeek === 0) { 
           // 일요일 - 0일
         } else if (dayOfWeek === 6) { 
           // 토요일 - 0.5일
@@ -361,15 +379,31 @@ const LeaveManagement: React.FC = () => {
           <Typography variant="h4" component="h1" fontWeight={600}>
             휴가 관리
           </Typography>
-          {user?.role !== 'admin' && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <TextField
+              select
+              label="연도"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              size="small"
+              sx={{ minWidth: 100 }}
             >
-              휴가 신청
-            </Button>
-          )}
+              {availableYears.map(year => (
+                <MenuItem key={year} value={year}>
+                  {year}년
+                </MenuItem>
+              ))}
+            </TextField>
+            {user?.role !== 'admin' && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+              >
+                휴가 신청
+              </Button>
+            )}
+          </Stack>
         </Box>
 
         {/* 휴가 잔여일수 카드 - admin은 휴가가 없으므로 표시하지 않음 */}
@@ -380,7 +414,7 @@ const LeaveManagement: React.FC = () => {
                 📊 내 휴가 현황 ({leaveBalance.year}년)
               </Typography>
               <Grid container spacing={3}>
-                <Grid xs={12} md={6}>
+                <Grid item xs={12} md={6}>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Box flex={1}>
                       <Typography variant="body2" color="text.secondary">
@@ -397,7 +431,7 @@ const LeaveManagement: React.FC = () => {
                     </Box>
                   </Box>
                 </Grid>
-                <Grid xs={12} md={6}>
+                <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
                     <Grid xs={6}>
                       <Typography variant="body2" color="text.secondary">
@@ -431,22 +465,7 @@ const LeaveManagement: React.FC = () => {
         )}
 
         <Card>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label='내 휴가 신청' />
-              {user?.role !== 'admin' && (
-                <Tab
-                  label={
-                    <Badge badgeContent={cancellationHistory.length} color="info">
-                      취소 내역
-                    </Badge>
-                  }
-                />
-              )}
-            </Tabs>
-          </Box>
-
-          <TabPanel value={tabValue} index={0}>
+          <CardContent>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -461,7 +480,7 @@ const LeaveManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {leaveRequests.map((request) => (
+                  {filteredLeaveRequests.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -477,7 +496,7 @@ const LeaveManagement: React.FC = () => {
                       <TableCell>{request.reason}</TableCell>
                       <TableCell>
                         <Chip
-                          label={getStatusLabel(request.status)}
+                          label={getStatusDisplayLabel(request)}
                           color={getStatusColor(request.status) as any}
                           size="small"
                         />
@@ -532,11 +551,11 @@ const LeaveManagement: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {leaveRequests.length === 0 && (
+                  {filteredLeaveRequests.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} align="center">
                         <Typography color="text.secondary">
-                          휴가 신청 내역이 없습니다.
+                          {selectedYear}년 휴가 신청 내역이 없습니다.
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -544,89 +563,7 @@ const LeaveManagement: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </TabPanel>
-
-          {/* 취소 내역 탭 (일반 사용자용) */}
-          {user?.role !== 'admin' && (
-            <TabPanel value={tabValue} index={1}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>휴가 종류</TableCell>
-                      <TableCell>기간</TableCell>
-                      <TableCell>일수</TableCell>
-                      <TableCell>신청 사유</TableCell>
-                      <TableCell>취소 사유</TableCell>
-                      <TableCell>취소 상태</TableCell>
-                      <TableCell>취소 신청일</TableCell>
-                      <TableCell>처리일</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cancellationHistory.map((request) => (
-                      <TableRow key={request._id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {getLeaveTypeIcon(request.leaveType)}
-                            {getLeaveTypeLabel(request.leaveType)}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {request.startDate === request.endDate
-                            ? safeFormatDate(request.startDate)
-                            : `${safeFormatDate(request.startDate)} ~ ${safeFormatDate(request.endDate)}`
-                          }
-                        </TableCell>
-                        <TableCell>{request.daysCount}일</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.reason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {request.cancellationReason}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              request.cancellationStatus === 'pending' ? '대기' :
-                              request.cancellationStatus === 'approved' ? '승인됨' : '거부됨'
-                            }
-                            size="small"
-                            color={
-                              request.cancellationStatus === 'pending' ? 'warning' :
-                              request.cancellationStatus === 'approved' ? 'success' : 'error'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {safeFormatDate(request.cancellationRequestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          {request.cancellationApprovedAt 
-                            ? safeFormatDate(request.cancellationApprovedAt) 
-                            : '-'
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {cancellationHistory.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography color="text.secondary" sx={{ py: 4 }}>
-                            취소 신청 내역이 없습니다.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
-          )}
+          </CardContent>
 
         </Card>
 
@@ -637,29 +574,38 @@ const LeaveManagement: React.FC = () => {
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="휴가 종류"
-                  select
-                  value={formData.leaveType}
-                  onChange={(e) => setFormData({ ...formData, leaveType: e.target.value as any })}
-                >
-                  <MenuItem value={leave.types.ANNUAL}>연차</MenuItem>
-                  <MenuItem value={leave.types.FAMILY}>경조사</MenuItem>
-                  <MenuItem value={leave.types.PERSONAL}>개인휴가 (무급)</MenuItem>
-                </TextField>
+              {/* 첫 번째 줄: 휴가 종류, 대체 인력 */}
+              <Grid item xs={12}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="휴가 종류"
+                      select
+                      value={formData.leaveType}
+                      onChange={(e) => setFormData({ ...formData, leaveType: e.target.value as any })}
+                    >
+                      <MenuItem value={leave.types.ANNUAL}>연차</MenuItem>
+                      <MenuItem value={leave.types.FAMILY}>경조사</MenuItem>
+                      <MenuItem value={leave.types.PERSONAL}>개인휴가 (무급)</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="대체 인력 (선택사항)"
+                      value={formData.substituteEmployee}
+                      onChange={(e) => setFormData({ ...formData, substituteEmployee: e.target.value })}
+                      helperText="필요시 대체 인력을 입력하세요"
+                    />
+                  </Grid>
+                </Grid>
               </Grid>
-              <Grid xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="대체 인력 (선택사항)"
-                  value={formData.substituteEmployee}
-                  onChange={(e) => setFormData({ ...formData, substituteEmployee: e.target.value })}
-                  helperText="필요시 대체 인력을 입력하세요"
-                />
-              </Grid>
-              <Grid xs={12} md={6}>
+              
+              {/* 두 번째 줄: 시작일, 종료일 */}
+              <Grid item xs={12}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="시작일"
                   value={formData.startDate ? parseISO(formData.startDate) : null}
@@ -676,25 +622,85 @@ const LeaveManagement: React.FC = () => {
                   format="yyyy-MM-dd"
                 />
               </Grid>
-              <Grid xs={12} md={6}>
-                <DatePicker
-                  label="종료일"
-                  value={formData.endDate ? parseISO(formData.endDate) : null}
-                  onChange={(date) => {
-                    const dateString = date ? format(date, 'yyyy-MM-dd') : '';
-                    setFormData({ ...formData, endDate: dateString });
-                  }}
-                  slotProps={{ 
-                    textField: { 
-                      fullWidth: true,
-                      required: true
-                    } 
-                  }}
-                  format="yyyy-MM-dd"
-                  minDate={formData.startDate ? parseISO(formData.startDate) : undefined}
-                />
+                  <Grid item xs={12} sm={6}>
+                    <DatePicker
+                      label="종료일"
+                      value={formData.endDate ? parseISO(formData.endDate) : null}
+                      onChange={(date) => {
+                        const dateString = date ? format(date, 'yyyy-MM-dd') : '';
+                        setFormData({ ...formData, endDate: dateString });
+                      }}
+                      slotProps={{ 
+                        textField: { 
+                          fullWidth: true,
+                          required: true
+                        } 
+                      }}
+                      format="yyyy-MM-dd"
+                      minDate={formData.startDate ? parseISO(formData.startDate) : undefined}
+                    />
+                  </Grid>
+                </Grid>
               </Grid>
-              <Grid xs={12}>
+              
+              {/* 세 번째 줄: 개인 오프일 선택 (기간이 설정된 경우에만 표시) */}
+              {formData.startDate && formData.endDate && (
+                <Grid item xs={12}>
+                  <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      개인 오프일 선택 (선택사항)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      개인적으로 정해진 오프일이 휴가 기간에 포함된 경우 선택하세요. 이 날들은 연차에서 차감되지 않습니다.
+                    </Typography>
+                    <Grid container spacing={1}>
+                      {(() => {
+                        const dates = [];
+                        const start = parseISO(formData.startDate);
+                        const end = parseISO(formData.endDate);
+                        let current = new Date(start);
+                        
+                        while (current <= end) {
+                          dates.push(format(current, 'yyyy-MM-dd'));
+                          current.setDate(current.getDate() + 1);
+                        }
+                        
+                        return dates.map(dateStr => {
+                          const date = parseISO(dateStr);
+                          const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+                          const isSelected = formData.personalOffDays?.includes(dateStr);
+                          
+                          return (
+                            <Grid item key={dateStr}>
+                              <Chip
+                                label={`${format(date, 'MM/dd')} (${dayOfWeek})`}
+                                color={isSelected ? "primary" : "default"}
+                                variant={isSelected ? "filled" : "outlined"}
+                                onClick={() => {
+                                  const current = formData.personalOffDays || [];
+                                  const newOffDays = isSelected 
+                                    ? current.filter(d => d !== dateStr)
+                                    : [...current, dateStr];
+                                  setFormData({ ...formData, personalOffDays: newOffDays });
+                                }}
+                                sx={{ cursor: 'pointer' }}
+                              />
+                            </Grid>
+                          );
+                        });
+                      })()}
+                    </Grid>
+                    {formData.personalOffDays && formData.personalOffDays.length > 0 && (
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        선택된 개인 오프일: {formData.personalOffDays.length}일 (연차 차감 제외)
+                      </Alert>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+              
+              {/* 네 번째 줄: 신청 사유 */}
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="신청 사유"
@@ -705,14 +711,14 @@ const LeaveManagement: React.FC = () => {
                 />
               </Grid>
               {formData.startDate && formData.endDate && (
-                <Grid xs={12}>
+                <Grid item xs={12}>
                   <Alert severity="info">
-                    총 휴가 일수: {calculateDays(formData.startDate, formData.endDate)}일
-                    (일요일 제외, 토요일 0.5일 계산)
+                    총 휴가 일수: {calculateDays(formData.startDate, formData.endDate, formData.personalOffDays)}일
+                    (일요일 제외, 토요일 0.5일 계산, 개인 오프일 제외)
                   </Alert>
                   {formData.leaveType === 'annual' && leaveBalance && (
                     (() => {
-                      const requestedDays = calculateDays(formData.startDate, formData.endDate);
+                      const requestedDays = calculateDays(formData.startDate, formData.endDate, formData.personalOffDays);
                       const remainingAfterRequest = leaveBalance.remainingAnnualLeave - requestedDays;
                       
                       if (remainingAfterRequest < 0 && remainingAfterRequest >= -3) {

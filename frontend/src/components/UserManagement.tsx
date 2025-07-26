@@ -22,6 +22,8 @@ import {
   CardContent,
   Checkbox,
   FormControlLabel,
+  OutlinedInput,
+  ListItemText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,10 +43,12 @@ import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { User, UserForm, Department, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
+import { useAuth } from './AuthProvider';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-material.css';
 
 const UserManagement: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -80,6 +84,7 @@ const UserManagement: React.FC = () => {
     incentiveFormula: '',
     birthDate: '',
     phoneNumber: '',
+    visibleTeams: [],
   });
 
   // Username validation function
@@ -154,6 +159,7 @@ const UserManagement: React.FC = () => {
       incentiveFormula: '',
       birthDate: '',
       phoneNumber: '',
+      visibleTeams: [],
     });
     setIsDialogOpen(true);
   };
@@ -176,6 +182,7 @@ const UserManagement: React.FC = () => {
       incentiveFormula: user.incentiveFormula || '',
       birthDate: user.birthDate || '',
       phoneNumber: user.phoneNumber || '',
+      visibleTeams: user.visibleTeams || [],
     });
     setIsDialogOpen(true);
   };
@@ -233,9 +240,9 @@ const UserManagement: React.FC = () => {
         await apiService.updateUser(selectedUser._id, userForm);
         showNotification('success', 'Success', 'User updated successfully');
       } else {
-        // Remove employeeId from form data since it's auto-generated
-        const { employeeId, ...formDataWithoutEmployeeId } = userForm;
-        await apiService.createUser(formDataWithoutEmployeeId);
+        // Remove employeeId, birthDate, phoneNumber from form data since they're auto-generated or user-editable
+        const { employeeId, birthDate, phoneNumber, ...formDataWithoutPersonalInfo } = userForm;
+        await apiService.createUser(formDataWithoutPersonalInfo);
         showNotification('success', 'Success', 'User created successfully');
       }
       setIsDialogOpen(false);
@@ -613,32 +620,38 @@ const UserManagement: React.FC = () => {
                 required
                 placeholder="홍길동"
                 inputProps={{
-                  style: { imeMode: 'active' }
+                  style: { imeMode: 'active' },
+                  lang: 'ko',
+                  autoComplete: 'name'
                 }}
                 helperText="한글 이름을 입력하세요"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="생년월일 (Birth Date)"
-                type="date"
-                value={userForm.birthDate}
-                onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                helperText="YYYY-MM-DD 형식"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="전화번호 (Phone Number)"
-                value={userForm.phoneNumber}
-                onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
-                placeholder="010-1234-5678"
-                helperText="연락 가능한 전화번호를 입력하세요"
-              />
-            </Grid>
+            {isEditing && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="생년월일 (Birth Date)"
+                    type="date"
+                    value={userForm.birthDate}
+                    onChange={(e) => setUserForm({ ...userForm, birthDate: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="YYYY-MM-DD 형식"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="전화번호 (Phone Number)"
+                    value={userForm.phoneNumber}
+                    onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+                    placeholder="010-1234-5678"
+                    helperText="연락 가능한 전화번호를 입력하세요"
+                  />
+                </Grid>
+              </>
+            )}
             {isEditing && (
               <Grid item xs={12} md={6}>
                 <TextField
@@ -679,7 +692,6 @@ const UserManagement: React.FC = () => {
                     <MenuItem key={position._id} value={position.title}>
                       {position.title}
                       {position.department && ` (${position.department})`}
-                      {position.level && ` - Level ${position.level}`}
                     </MenuItem>
                   ))}
                 </Select>
@@ -759,6 +771,58 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
+            
+            {/* Team Visibility Settings - Only for admins editing managers */}
+            {currentUser?.role === 'admin' && isEditing && userForm.role === 'manager' && (
+              <>
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                    Team Leave Visibility Settings
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Select which departments this manager can view in the Team Leave Status page. 
+                    If no departments are selected, the manager cannot view any team leave information.
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Visible Teams</InputLabel>
+                    <Select
+                      multiple
+                      value={userForm.visibleTeams?.map(team => team.departmentName) || []}
+                      onChange={(e) => {
+                        const selectedDepartments = e.target.value as string[];
+                        const newVisibleTeams = selectedDepartments.map(deptName => {
+                          const dept = departments.find(d => d.name === deptName);
+                          return {
+                            departmentId: dept?._id || '',
+                            departmentName: deptName
+                          };
+                        });
+                        setUserForm({ ...userForm, visibleTeams: newVisibleTeams });
+                      }}
+                      input={<OutlinedInput label="Visible Teams" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => (
+                            <Chip key={value} label={value} size="small" />
+                          ))}
+                        </Box>
+                      )}
+                    >
+                      {departments.map((dept) => (
+                        <MenuItem key={dept._id} value={dept.name}>
+                          <Checkbox 
+                            checked={userForm.visibleTeams?.some(team => team.departmentName === dept.name) || false}
+                          />
+                          <ListItemText primary={dept.name} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>

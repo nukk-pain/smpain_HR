@@ -79,9 +79,6 @@ const UserProfile: React.FC = () => {
       return;
     }
     
-    console.log('UserInfo object:', userInfo);
-    console.log('UserInfo._id:', userInfo._id);
-    console.log('UserInfo.id:', userInfo.id);
     
     try {
       setLoading(true);
@@ -94,7 +91,6 @@ const UserProfile: React.FC = () => {
       };
 
       const userId = userInfo._id || userInfo.id;
-      console.log('Using userId:', userId);
       
       await apiService.updateUserProfile(userId, updateData);
       

@@ -46,8 +46,12 @@ class ApiService {
 
   // Generic HTTP methods
   async get<T>(url: string, params?: any): Promise<ApiResponse<T>> {
-    const response = await this.api.get(url, { params });
-    return response.data;
+    try {
+      const response = await this.api.get(url, { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async post<T>(url: string, data?: any): Promise<ApiResponse<T>> {
@@ -94,7 +98,7 @@ class ApiService {
     isActive?: boolean;
     search?: string;
   }) {
-    return this.get('/users', params);
+    return this.get('/users/', params);
   }
 
   async getUser(id: string) {
@@ -102,7 +106,7 @@ class ApiService {
   }
 
   async createUser(data: any) {
-    return this.post('/users', data);
+    return this.post('/users/', data);
   }
 
   async updateUser(id: string, data: any) {
@@ -140,7 +144,7 @@ class ApiService {
   }
 
   async createLeaveRequest(data: any) {
-    return this.post('/leave', data);
+    return this.post('/leave/', data);
   }
 
   async updateLeaveRequest(id: string, data: any) {
@@ -161,7 +165,7 @@ class ApiService {
   }
 
   async approveLeaveCancellation(id: string, action: 'approve' | 'reject', comment?: string) {
-    return this.post(`/leave/${id}/cancel/approve`, { action, comment });
+    return this.post(`/leave/${id}/approve`, { action, comment, type: 'cancellation' });
   }
 
   async getPendingCancellations() {
@@ -227,7 +231,7 @@ class ApiService {
   }
 
   async getSalesData(yearMonth: string) {
-    return this.get(`/payroll/sales/${yearMonth}`);
+    return this.get(`/sales/${yearMonth}`);
   }
 
   async calculateIncentive(userId: number, yearMonth: string, salesAmount: number) {
@@ -319,11 +323,11 @@ class ApiService {
 
   // Departments
   async getDepartments() {
-    return this.get('/departments');
+    return this.get('/departments/');
   }
 
   async createDepartment(data: any) {
-    return this.post('/departments', data);
+    return this.post('/departments/', data);
   }
 
   async updateDepartment(id: string, data: any) {
@@ -344,11 +348,15 @@ class ApiService {
 
   // Positions
   async getPositions() {
-    return this.get('/positions');
+    return this.get('/positions/');
+  }
+
+  async getPosition(id: string) {
+    return this.get(`/positions/${id}`);
   }
 
   async createPosition(data: any) {
-    return this.post('/positions', data);
+    return this.post('/positions/', data);
   }
 
   async updatePosition(id: string, data: any) {
@@ -357,6 +365,10 @@ class ApiService {
 
   async deletePosition(id: string) {
     return this.delete(`/positions/${id}`);
+  }
+
+  async getPositionsByDepartment(department: string) {
+    return this.get(`/positions/department/${department}`);
   }
 
   // Permissions Management

@@ -61,6 +61,7 @@ interface LeaveRequest {
   createdAt: string;
   daysCount: number;
   requestDetails?: string;
+  personalOffDays?: string[];
   cancellationRequested?: boolean;
   cancellationReason?: string;
   cancellationRequestedAt?: string;
@@ -122,7 +123,7 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const loadPendingRequests = async () => {
     try {
-      if (user?.role === 'admin') {
+      if (user?.role === 'admin' || user?.role === 'manager') {
         const response = await apiService.getPendingLeaveRequests();
         setPendingRequests(response.data || []);
       }
@@ -186,6 +187,12 @@ const EmployeeLeaveManagement: React.FC = () => {
       showSuccess(
         action === 'approve' ? '휴가가 승인되었습니다.' : '휴가가 거부되었습니다.'
       );
+      
+      // 다른 탭/창에 연차가 업데이트되었음을 알림
+      if (selectedRequest.leaveType === 'annual') {
+        localStorage.setItem('leaveUpdated', new Date().toISOString());
+      }
+      
       handleCloseApprovalDialog();
       await loadData();
     } catch (error: any) {
@@ -197,11 +204,17 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const handleCancellationApproval = async (requestId: string, action: 'approve' | 'reject') => {
     try {
-      await apiService.approveLeaveCancellation(requestId, action, approvalComment);
+      await apiService.approveLeaveCancellation(requestId, action, ''); // 빈 코멘트로 즉시 처리
       showSuccess(
         action === 'approve' ? '휴가 취소가 승인되었습니다.' : '휴가 취소가 거부되었습니다.'
       );
-      handleCloseApprovalDialog();
+      
+      // 다른 탭/창에 연차가 업데이트되었음을 알림
+      const request = pendingCancellations.find(r => r._id === requestId);
+      if (action === 'approve' && request?.leaveType === 'annual') {
+        localStorage.setItem('leaveUpdated', new Date().toISOString());
+      }
+      
       await loadData();
     } catch (error: any) {
       console.error('Error approving cancellation:', error);
@@ -373,6 +386,7 @@ const EmployeeLeaveManagement: React.FC = () => {
                     <TableCell>휴가 종류</TableCell>
                     <TableCell>기간</TableCell>
                     <TableCell>일수</TableCell>
+                    <TableCell>오프일</TableCell>
                     <TableCell>사유</TableCell>
                     <TableCell>신청일</TableCell>
                     <TableCell>작업</TableCell>
@@ -401,6 +415,16 @@ const EmployeeLeaveManagement: React.FC = () => {
                         {safeFormatDate(request.endDate)}
                       </TableCell>
                       <TableCell>{request.daysCount || 0}일</TableCell>
+                      <TableCell>
+                        {request.personalOffDays && request.personalOffDays.length > 0 ? (
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            {request.personalOffDays.map(date => {
+                              const formattedDate = new Date(date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                              return formattedDate;
+                            }).join(', ')}
+                          </Typography>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell>{request.reason || '-'}</TableCell>
                       <TableCell>
                         {safeFormatDate(request.createdAt)}
@@ -436,7 +460,7 @@ const EmployeeLeaveManagement: React.FC = () => {
                   ))}
                   {(!pendingRequests || pendingRequests.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={9} align="center">
                         <Typography color="text.secondary">
                           승인 대기 중인 휴가 신청이 없습니다.
                         </Typography>
@@ -515,9 +539,9 @@ const EmployeeLeaveManagement: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
+                              if (window.confirm('정말로 이 휴가 취소를 승인하시겠습니까?')) {
+                                handleCancellationApproval(request._id, 'approve');
+                              }
                             }}
                             color="success"
                           >
@@ -528,9 +552,9 @@ const EmployeeLeaveManagement: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              setSelectedRequest(request);
-                              setApprovalComment('');
-                              setApprovalDialogOpen(true);
+                              if (window.confirm('정말로 이 휴가 취소를 거부하시겠습니까?')) {
+                                handleCancellationApproval(request._id, 'reject');
+                              }
                             }}
                             color="error"
                           >

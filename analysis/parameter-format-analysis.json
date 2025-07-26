@@ -1,0 +1,406 @@
+{
+  "parameters": {
+    "total": 51,
+    "breakdown": {
+      "snake_case": 10,
+      "camelCase": 8,
+      "other": 33
+    }
+  },
+  "fieldUsage": {
+    "snake_case": 6,
+    "camelCase": 18,
+    "conflicts": 6
+  },
+  "patterns": {
+    "camelCase": [
+      {
+        "endpoint": "/api/bonus/user/:userId",
+        "param": "userId",
+        "file": "routes/bonus.js"
+      },
+      {
+        "endpoint": "/api/leave/:userId?",
+        "param": "userId",
+        "file": "routes/leave/leaveBalance.js"
+      },
+      {
+        "endpoint": "/api/leave/:employeeId/log",
+        "param": "employeeId",
+        "file": "routes/leave/leaveCalendar.js"
+      },
+      {
+        "endpoint": "/api/payroll/employee/:userId",
+        "param": "userId",
+        "file": "routes/payroll.js"
+      },
+      {
+        "endpoint": "/api/payroll/stats/:yearMonth",
+        "param": "yearMonth",
+        "file": "routes/payroll.js"
+      },
+      {
+        "endpoint": "/api/reports/payslip/:userId/:year_month/excel",
+        "param": "userId",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/sales/user/:userId",
+        "param": "userId",
+        "file": "routes/sales.js"
+      },
+      {
+        "endpoint": "/api/sales/stats/:yearMonth",
+        "param": "yearMonth",
+        "file": "routes/sales.js"
+      }
+    ],
+    "snake_case": [
+      {
+        "endpoint": "/api/bonus/:year_month",
+        "param": "year_month",
+        "file": "routes/bonus.js"
+      },
+      {
+        "endpoint": "/api/payroll/monthly/:year_month",
+        "param": "year_month",
+        "file": "routes/payroll.js"
+      },
+      {
+        "endpoint": "/api/reports/payroll/:year_month",
+        "param": "year_month",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/reports/payroll/:year_month/excel",
+        "param": "year_month",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/reports/comparison/:upload_id/:year_month/excel",
+        "param": "upload_id",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/reports/comparison/:upload_id/:year_month/excel",
+        "param": "year_month",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/reports/payslip/:userId/:year_month/excel",
+        "param": "year_month",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/reports/leave/:year_month",
+        "param": "year_month",
+        "file": "routes/reports.js"
+      },
+      {
+        "endpoint": "/api/sales/:year_month",
+        "param": "year_month",
+        "file": "routes/sales.js"
+      },
+      {
+        "endpoint": "/api/payroll-upload/:id/compare/:year_month",
+        "param": "year_month",
+        "file": "routes/upload.js"
+      }
+    ],
+    "mixed": [],
+    "other": [
+      {
+        "endpoint": "/api/admin/leave/employee/:id",
+        "param": "id",
+        "file": "routes/admin.js"
+      },
+      {
+        "endpoint": "/api/bonus/:id",
+        "param": "id",
+        "file": "routes/bonus.js"
+      },
+      {
+        "endpoint": "/api/bonus/:id",
+        "param": "id",
+        "file": "routes/bonus.js"
+      },
+      {
+        "endpoint": "/api/departments/:id",
+        "param": "id",
+        "file": "routes/departments.js"
+      },
+      {
+        "endpoint": "/api/departments/:id",
+        "param": "id",
+        "file": "routes/departments.js"
+      },
+      {
+        "endpoint": "/api/departments/:name/employees",
+        "param": "name",
+        "file": "routes/departments.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveApproval.js"
+      },
+      {
+        "endpoint": "/api/leave/carry-over/:year",
+        "param": "year",
+        "file": "routes/leave/leaveBalance-old.js"
+      },
+      {
+        "endpoint": "/api/leave/:month",
+        "param": "month",
+        "file": "routes/leave/leaveCalendar.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveExceptions.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveExceptions.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveRequests.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveRequests.js"
+      },
+      {
+        "endpoint": "/api/leave/:id",
+        "param": "id",
+        "file": "routes/leave/leaveRequests.js"
+      },
+      {
+        "endpoint": "/api/leave/:id/approve",
+        "param": "id",
+        "file": "routes/leave/leaveRequests.js"
+      },
+      {
+        "endpoint": "/api/leave/:id/cancel",
+        "param": "id",
+        "file": "routes/leave/leaveRequests.js"
+      },
+      {
+        "endpoint": "/api/payroll/monthly/:id",
+        "param": "id",
+        "file": "routes/payroll.js"
+      },
+      {
+        "endpoint": "/api/payroll/monthly/:id",
+        "param": "id",
+        "file": "routes/payroll.js"
+      },
+      {
+        "endpoint": "/api/positions/:id",
+        "param": "id",
+        "file": "routes/positions.js"
+      },
+      {
+        "endpoint": "/api/positions/:id",
+        "param": "id",
+        "file": "routes/positions.js"
+      },
+      {
+        "endpoint": "/api/positions/:id",
+        "param": "id",
+        "file": "routes/positions.js"
+      },
+      {
+        "endpoint": "/api/positions/department/:department",
+        "param": "department",
+        "file": "routes/positions.js"
+      },
+      {
+        "endpoint": "/api/sales/:id",
+        "param": "id",
+        "file": "routes/sales.js"
+      },
+      {
+        "endpoint": "/api/sales/:id",
+        "param": "id",
+        "file": "routes/sales.js"
+      },
+      {
+        "endpoint": "/api/payroll-upload/:id/preview",
+        "param": "id",
+        "file": "routes/upload.js"
+      },
+      {
+        "endpoint": "/api/payroll-upload/:id/compare/:year_month",
+        "param": "id",
+        "file": "routes/upload.js"
+      },
+      {
+        "endpoint": "/api/payroll-upload/:id/process",
+        "param": "id",
+        "file": "routes/upload.js"
+      },
+      {
+        "endpoint": "/api/users/:id",
+        "param": "id",
+        "file": "routes/users.js"
+      },
+      {
+        "endpoint": "/api/users/profile/:id",
+        "param": "id",
+        "file": "routes/users.js"
+      },
+      {
+        "endpoint": "/api/users/:id",
+        "param": "id",
+        "file": "routes/users.js"
+      },
+      {
+        "endpoint": "/api/users/:id",
+        "param": "id",
+        "file": "routes/users.js"
+      },
+      {
+        "endpoint": "/api/users/:id/permissions",
+        "param": "id",
+        "file": "routes/users.js"
+      },
+      {
+        "endpoint": "/api/users/:id/permissions",
+        "param": "id",
+        "file": "routes/users.js"
+      }
+    ]
+  },
+  "conflicts": [
+    {
+      "snake": "user_id",
+      "camel": "userId",
+      "snakeFiles": [
+        "bonus.js",
+        "payroll.js",
+        "sales.js"
+      ],
+      "camelFiles": [
+        "admin.js",
+        "auth.js",
+        "bonus.js",
+        "leaveApproval.js",
+        "leaveBalance.js",
+        "leaveCalendar.js",
+        "leaveCancellation.js",
+        "leaveRequests.js",
+        "leaveCalculations.js",
+        "leaveHelpers.js",
+        "payroll.js",
+        "reports.js",
+        "sales.js",
+        "upload.js",
+        "users.js"
+      ]
+    },
+    {
+      "snake": "year_month",
+      "camel": "yearMonth",
+      "snakeFiles": [
+        "bonus.js",
+        "payroll.js",
+        "reports.js",
+        "sales.js",
+        "upload.js"
+      ],
+      "camelFiles": [
+        "admin.js",
+        "bonus.js",
+        "payroll.js",
+        "reports.js",
+        "sales.js",
+        "upload.js"
+      ]
+    },
+    {
+      "snake": "created_at",
+      "camel": "createdAt",
+      "snakeFiles": [
+        "bonus.js",
+        "sales.js"
+      ],
+      "camelFiles": [
+        "admin.js",
+        "bonus.js",
+        "departments.js",
+        "leaveApproval.js",
+        "leaveBalance.js",
+        "leaveCalendar.js",
+        "leaveExceptions.js",
+        "leaveRequests.js",
+        "leaveCalculations.js",
+        "payroll.js",
+        "positions.js",
+        "sales.js",
+        "upload.js",
+        "users.js"
+      ]
+    },
+    {
+      "snake": "updated_at",
+      "camel": "updatedAt",
+      "snakeFiles": [
+        "sales.js"
+      ],
+      "camelFiles": [
+        "admin.js",
+        "auth.js",
+        "bonus.js",
+        "departments.js",
+        "leaveApproval.js",
+        "leaveCancellation.js",
+        "leaveExceptions.js",
+        "leaveRequests.js",
+        "payroll.js",
+        "positions.js",
+        "sales.js",
+        "upload.js",
+        "users.js"
+      ]
+    },
+    {
+      "snake": "base_salary",
+      "camel": "baseSalary",
+      "snakeFiles": [
+        "payroll.js"
+      ],
+      "camelFiles": [
+        "payroll.js",
+        "positions.js",
+        "reports.js",
+        "upload.js",
+        "users.js"
+      ]
+    },
+    {
+      "snake": "sales_amount",
+      "camel": "salesAmount",
+      "snakeFiles": [
+        "payroll.js",
+        "sales.js"
+      ],
+      "camelFiles": [
+        "payroll.js",
+        "reports.js",
+        "sales.js"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Create field name conversion utilities",
+    "Standardize URL parameters to camelCase",
+    "Document naming conventions",
+    "Add ESLint rules for consistency"
+  ],
+  "generatedAt": "2025-07-24T09:24:37.462Z"
+}

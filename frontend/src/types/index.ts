@@ -20,6 +20,10 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   permissions?: string[];
+  visibleTeams?: {
+    departmentId: string;
+    departmentName: string;
+  }[];
   
   // Calculated fields
   yearsOfService?: number;
@@ -71,6 +75,8 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   daysCount: number;
+  personalOffDays?: string[]; // Array of YYYY-MM-DD format dates
+  actualLeaveDays?: number; // Actual leave days excluding personal off days
   reason: string;
   substituteEmployee?: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -216,6 +222,10 @@ export interface UserForm {
   incentiveFormula?: string;
   birthDate?: string;
   phoneNumber?: string;
+  visibleTeams?: {
+    departmentId: string;
+    departmentName: string;
+  }[];
 }
 
 export interface LeaveForm {
@@ -224,6 +234,7 @@ export interface LeaveForm {
   endDate: string;
   reason: string;
   substituteEmployee?: string;
+  personalOffDays?: string[]; // Array of YYYY-MM-DD format dates
 }
 
 export interface LeaveApprovalForm {
@@ -342,7 +353,6 @@ export interface Position {
   title: string;
   description?: string;
   department?: string;
-  level?: number;
   responsibilities?: string[];
   requirements?: string[];
   employeeCount?: number;

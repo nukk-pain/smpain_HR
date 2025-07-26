@@ -1,42 +1,15 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
-const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
-const { userSchemas, createValidator } = require('../middleware/validation');
+const bcrypt = require('bcryptjs');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { requireAuth, requirePermission, requireAdmin } = require('../middleware/permissions');
+const { successResponse, errorResponse, notFoundError, serverError } = require('../utils/responses');
+const { userRepository } = require('../repositories');
+const { userSchemas, validate } = require('../validation/schemas');
+const { formatDateForDisplay, calculateAge } = require('../utils/dateUtils');
 
-// Helper function to calculate annual leave entitlement (consistent with leave.js)
-const calculateAnnualLeaveEntitlement = (hireDate) => {
-  const now = new Date();
-  const hire = new Date(hireDate);
-  
-  // Calculate years of service
-  const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
-  
-  if (yearsOfService === 0) {
-    // For employees with less than 1 year: 1 day per completed month from hire date
-    // 근로기준법: 1개월 개근 시 1일의 유급휴가
-    let monthsPassed = 0;
-    let checkDate = new Date(hire);
-    
-    // Count completed months from hire date
-    while (true) {
-      // Move to the same day next month
-      checkDate.setMonth(checkDate.getMonth() + 1);
-      
-      // If this date hasn't passed yet, break
-      if (checkDate > now) {
-        break;
-      }
-      
-      monthsPassed++;
-    }
-    
-    return Math.min(monthsPassed, 11); // Maximum 11 days in first year
-  } else {
-    // For 1+ year employees: 15 + (years - 1), max 25 days
-    return Math.min(15 + (yearsOfService - 1), 25);
-  }
-};
+// Import shared utility function
+const { calculateAnnualLeaveEntitlement } = require('../utils/leaveUtils');
 
 const router = express.Router();
 
@@ -92,8 +65,12 @@ function createUserRoutes(db) {
     }
   }
 
-  // Debug endpoint to check current user permissions
-  router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
+  // Debug endpoints - only available in development
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (!isProduction) {
+    // Debug endpoint to check current user permissions
+    router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
     try {
       let currentUser = null;
       
@@ -210,6 +187,61 @@ function createUserRoutes(db) {
     }
   }));
 
+  // Fix leave balances based on correct calculation
+  router.post('/debug/fix-leave-balances', asyncHandler(async (req, res) => {
+    try {
+      const allUsers = await db.collection('users').find({}).toArray();
+      const results = [];
+
+      for (const user of allUsers) {
+        const hireDate = user.hireDate ? new Date(user.hireDate) : null;
+        const correctAnnualLeave = calculateAnnualLeaveEntitlement(hireDate);
+        const correctYearsOfService = hireDate ? Math.floor((new Date() - new Date(hireDate)) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
+        
+        // Update if values are different
+        const needsUpdate = user.leaveBalance === undefined || 
+                           user.leaveBalance === null ||
+                           isNaN(user.leaveBalance);
+
+        if (needsUpdate || correctAnnualLeave !== (user.annualLeave || 0)) {
+          // Set initial leave balance to calculated annual leave if not set properly
+          const newLeaveBalance = needsUpdate ? correctAnnualLeave : user.leaveBalance;
+          
+          await db.collection('users').updateOne(
+            { _id: user._id },
+            { 
+              $set: { 
+                leaveBalance: newLeaveBalance,
+                // Don't store annualLeave in DB - calculate dynamically
+                updatedAt: new Date()
+              }
+            }
+          );
+          
+          results.push({
+            userId: user._id,
+            username: user.username,
+            name: user.name,
+            hireDate: user.hireDate,
+            oldLeaveBalance: user.leaveBalance,
+            newLeaveBalance: newLeaveBalance,
+            calculatedAnnualLeave: correctAnnualLeave,
+            yearsOfService: correctYearsOfService
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Fixed ${results.length} users' leave balances`,
+        results: results
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }));
+  } // End of debug endpoints protection
+
   // Get all users
   router.get('/', requireAuth, requirePermission(PERMISSIONS.USERS_VIEW), asyncHandler(async (req, res) => {
     const users = await db.collection('users').find({}).toArray();
@@ -295,6 +327,10 @@ function createUserRoutes(db) {
       admin: ['leave:view', 'leave:manage', 'users:view', 'users:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions']
     };
     
+    // Calculate initial leave balance for new user
+    const userHireDate = hireDate ? new Date(hireDate) : new Date();
+    const initialLeaveBalance = calculateAnnualLeaveEntitlement(userHireDate);
+    
     const newUser = {
       username,
       password: hashedPassword,
@@ -313,6 +349,8 @@ function createUserRoutes(db) {
       phoneNumber: phoneNumber || null,
       isActive: true,
       permissions: DEFAULT_PERMISSIONS[role] || [],
+      visibleTeams: [], // Empty by default - managers need explicit permission
+      leaveBalance: initialLeaveBalance, // Initialize with calculated leave balance
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -367,7 +405,7 @@ function createUserRoutes(db) {
   // Update user (admin/manager function)
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber } = req.body;
+    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;
     
     const updateData = {
       username,
@@ -386,6 +424,17 @@ function createUserRoutes(db) {
       isActive: isActive !== undefined ? isActive : true,
       updatedAt: new Date()
     };
+    
+    // Only admins can modify visibleTeams
+    if (req.session.user.role === 'admin' && visibleTeams !== undefined) {
+      // Validate visibleTeams structure
+      if (Array.isArray(visibleTeams)) {
+        updateData.visibleTeams = visibleTeams.map(team => ({
+          departmentId: team.departmentId ? new ObjectId(team.departmentId) : null,
+          departmentName: team.departmentName || ''
+        }));
+      }
+    }
     
     const result = await db.collection('users').updateOne(
       { _id: new ObjectId(id) },
@@ -454,6 +503,51 @@ function createUserRoutes(db) {
     res.json({
       success: true,
       message: 'Permissions updated successfully'
+    });
+  }));
+
+  // Activate user
+  router.post('/:id/activate', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { isActive: true, updatedAt: new Date() } }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'User activated successfully'
+    });
+  }));
+
+  // Reset user password
+  router.post('/:id/reset-password', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { password: hashedPassword, updatedAt: new Date() } }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
     });
   }));
 

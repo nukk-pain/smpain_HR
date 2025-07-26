@@ -1,13 +1,10 @@
-const { MongoClient } = require('mongodb');
+const { connectToDatabase } = require('./utils/database');
 
 async function checkDatabase() {
-  const client = new MongoClient('mongodb://localhost:27017');
   
   try {
-    await client.connect();
+    const { db } = await connectToDatabase();
     console.log('✅ Connected to MongoDB');
-    
-    const db = client.db('SM_nomu');
     
     // Check users collection
     console.log('\n📊 Users Collection:');
@@ -49,9 +46,13 @@ async function checkDatabase() {
     
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-  } finally {
-    await client.close();
+  } catch (error) {
+    console.error('❌ Database check failed:', error);
+    process.exit(1);
   }
 }
 
-checkDatabase();
+checkDatabase().then(() => {
+  console.log('\n✅ Database check completed');
+  process.exit(0);
+});

@@ -84,11 +84,52 @@ router.get('/:month', requireAuth, asyncHandler(async (req, res) => {
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { department, year = new Date().getFullYear() } = req.query;
+  const currentUser = req.session.user;
   
-  // Get all users excluding admin
+  // Check if user has permission to view team leave status
+  if (currentUser.role === 'user') {
+    return res.status(403).json({ error: 'Access denied. Only managers and admins can view team leave status.' });
+  }
+  
+  // Get current user's full data to check visibleTeams
+  const fullUserData = await db.collection('users').findOne({ _id: new ObjectId(currentUser.id) });
+  
+  // Determine which departments the user can see
+  let allowedDepartments = [];
+  
+  if (currentUser.role === 'admin') {
+    // Admins can see all departments
+    allowedDepartments = null; // null means all departments
+  } else if (currentUser.role === 'manager') {
+    // Managers can only see departments in their visibleTeams array
+    if (fullUserData.visibleTeams && Array.isArray(fullUserData.visibleTeams) && fullUserData.visibleTeams.length > 0) {
+      allowedDepartments = fullUserData.visibleTeams.map(team => team.departmentName);
+    } else {
+      // No access if visibleTeams is empty or undefined
+      return res.json({
+        success: true,
+        data: {
+          members: [],
+          departments: []
+        }
+      });
+    }
+  }
+  
+  // Build user query
   let userQuery = { role: { $ne: 'admin' } };
+  
+  // Apply department filter
   if (department && department !== 'all') {
     userQuery.department = department;
+  }
+  
+  // Apply visibleTeams restrictions for managers
+  if (allowedDepartments !== null && allowedDepartments.length > 0) {
+    userQuery.department = { $in: allowedDepartments };
+  } else if (currentUser.role === 'manager' && allowedDepartments !== null) {
+    // Manager with empty allowedDepartments should see nothing
+    userQuery._id = { $in: [] }; // This will match no documents
   }
   
   const users = await db.collection('users').find(userQuery).toArray();
@@ -107,7 +148,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     return map;
   }, {});
   
-  // Calculate leave balance for each user
+  // Get leave balance for each user from DB (consistent with personal dashboard)
   const members = await Promise.all(users.map(async (user) => {
     const userLeaveRequests = leaveRequests.filter(req => 
       req.userId && req.userId.toString() === user._id.toString()
@@ -119,16 +160,10 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     const carryOverLeave = await getCarryOverLeave(db, user._id, year);
     const totalAnnualLeave = baseAnnualLeave + carryOverLeave;
     
-    // Calculate used and pending leave
-    const usedAnnualLeave = userLeaveRequests
-      .filter(req => req.leaveType === 'annual' && req.status === 'approved')
-      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
-    
-    const pendingAnnualLeave = userLeaveRequests
-      .filter(req => req.leaveType === 'annual' && req.status === 'pending')
-      .reduce((sum, req) => sum + (req.daysCount || 0), 0);
-    
-    const remainingAnnualLeave = totalAnnualLeave - usedAnnualLeave;
+    // Use DB stored values (consistent with personal dashboard)
+    const remainingAnnualLeave = user.leaveBalance || 0;
+    const usedAnnualLeave = Math.max(0, totalAnnualLeave - remainingAnnualLeave);
+    const pendingAnnualLeave = 0; // Already deducted from leaveBalance when requested
     
     // Get recent and upcoming leaves
     const now = new Date();
