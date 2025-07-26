@@ -44,6 +44,10 @@ const MONGO_URL = process.env.MONGODB_URL || (isDevelopment
 );
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
+const SESSION_NAME = process.env.SESSION_NAME || 'connect.sid';
+const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000; // 24시간
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3727';
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 10;
 
 let db;
 
@@ -129,7 +133,7 @@ async function initializeData() {
     const adminUser = await db.collection('users').findOne({ username: 'admin' });
 
     if (!adminUser) {
-      const hashedPassword = bcrypt.hashSync('admin', 10);
+      const hashedPassword = bcrypt.hashSync('admin', BCRYPT_ROUNDS);
       await db.collection('users').insertOne({
         username: 'admin',
         password: hashedPassword,
@@ -185,6 +189,7 @@ app.use(securityHeaders);
 
 // Session configuration with MongoDB store
 app.use(session({
+  name: SESSION_NAME,
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -195,9 +200,9 @@ app.use(session({
     touchAfter: 24 * 3600 // lazy session update
   }),
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: SESSION_MAX_AGE
   }
 }));
 
