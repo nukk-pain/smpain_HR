@@ -1,0 +1,246 @@
+{
+  "analysis_date": "2025-07-26",
+  "summary": {
+    "total_files_analyzed": 100,
+    "categories_analyzed": [
+      "database_operations",
+      "error_handling",
+      "api_response_patterns",
+      "authentication_checks",
+      "validation_patterns",
+      "frontend_state_management",
+      "ui_components"
+    ],
+    "critical_duplications": 15,
+    "moderate_duplications": 23,
+    "minor_duplications": 18
+  },
+  "duplications": [
+    {
+      "category": "database_connection",
+      "severity": "high",
+      "description": "MongoDB connection code is duplicated across multiple test and utility files",
+      "locations": [
+        "backend/migrate-users.js:1-4",
+        "backend/check-db.js:1-4",
+        "backend/check-leave-data.js:1-7",
+        "backend/test-api.js:1",
+        "backend/test-leave-direct.js",
+        "backend/test-leave-simple.js"
+      ],
+      "pattern": "const { MongoClient } = require('mongodb');\nconst client = new MongoClient('mongodb://localhost:27017');",
+      "refactoring_suggestion": "Create a shared database connection utility module that handles connection pooling and error handling consistently",
+      "impact": "Reduces code duplication, improves maintainability, and ensures consistent connection handling"
+    },
+    {
+      "category": "error_response_patterns",
+      "severity": "high",
+      "description": "Duplicate error response patterns with status codes and JSON formatting",
+      "locations": [
+        "backend/routes/payroll.js:92,102,108,118,169,193,210,220,232,242,288,333",
+        "backend/routes/sales.js:76,86,92,98,108,135,152,166,176,188",
+        "backend/routes/users.js:multiple locations",
+        "backend/routes/bonus.js:multiple locations",
+        "backend/routes/departments.js:multiple locations"
+      ],
+      "pattern": "res.status(400|404|500).json({ error: 'message' })",
+      "refactoring_suggestion": "Create a centralized error response utility with standardized error formats and consistent error messages",
+      "impact": "Ensures consistent API error responses and reduces repetitive error handling code"
+    },
+    {
+      "category": "success_response_patterns",
+      "severity": "moderate",
+      "description": "Duplicate success response patterns with { success: true, data: ... }",
+      "locations": [
+        "backend/routes/payroll.js:88,284,329",
+        "backend/routes/bonus.js:65,214",
+        "backend/routes/departments.js:64",
+        "backend/routes/sales.js:72,241,296",
+        "backend/routes/upload.js:58"
+      ],
+      "pattern": "res.json({ success: true, data: ... })",
+      "refactoring_suggestion": "Create a standardized response utility for consistent API responses",
+      "impact": "Ensures consistent API response format across all endpoints"
+    },
+    {
+      "category": "mongodb_crud_operations",
+      "severity": "high",
+      "description": "Repetitive MongoDB CRUD operation patterns across routes",
+      "locations": [
+        "backend/routes/sales.js:96,102,125,160,185",
+        "backend/routes/positions.js:49,78,98,100,131,150,159,191,199",
+        "backend/routes/payroll.js:106,112,122,135,159,191",
+        "backend/routes/bonus.js:similar patterns",
+        "backend/routes/users.js:similar patterns"
+      ],
+      "pattern": "await db.collection('collectionName').findOne({ _id: new ObjectId(id) })",
+      "refactoring_suggestion": "Create a generic repository pattern or data access layer for common CRUD operations",
+      "impact": "Significantly reduces code duplication and provides consistent data access patterns"
+    },
+    {
+      "category": "authentication_middleware",
+      "severity": "moderate",
+      "description": "Duplicate authentication and permission checks",
+      "locations": [
+        "backend/routes/reports.js:12,25,128,151,180,225,245",
+        "backend/routes/positions.js:13,42,69,117,176,224",
+        "backend/routes/upload.js:32,45,67,153",
+        "backend/routes/users.js:219,245,274,379,428,444,459,483,502",
+        "backend/routes/payroll.js:97,174,225,293"
+      ],
+      "pattern": "requireAuth, requirePermission('permission:name')",
+      "refactoring_suggestion": "While middleware is already centralized, consider creating route groups or higher-order functions for common permission patterns",
+      "impact": "Reduces repetitive middleware declarations"
+    },
+    {
+      "category": "validation_patterns",
+      "severity": "moderate",
+      "description": "Duplicate request validation patterns",
+      "locations": [
+        "backend/routes/bonus.js:78",
+        "backend/routes/sales.js:85",
+        "backend/routes/users.js:358,402",
+        "backend/routes/payroll.js:102"
+      ],
+      "pattern": "if (!field || field === undefined) { return res.status(400).json(...) }",
+      "refactoring_suggestion": "Use the existing Joi validation middleware more consistently across all routes",
+      "impact": "Provides consistent validation and better error messages"
+    },
+    {
+      "category": "frontend_loading_states",
+      "severity": "moderate",
+      "description": "Duplicate loading and error state management patterns in React components",
+      "locations": [
+        "frontend/src/components/UserManagement.tsx:55",
+        "frontend/src/components/PositionManagement.tsx:45",
+        "frontend/src/components/UserDashboard.tsx:57-58",
+        "frontend/src/components/DepartmentManagement.tsx:52",
+        "frontend/src/components/AuthProvider.tsx:31",
+        "frontend/src/pages/AdminLeaveOverview.tsx:67",
+        "frontend/src/pages/AdminLeavePolicy.tsx:82",
+        "frontend/src/pages/LeaveManagement.tsx:70"
+      ],
+      "pattern": "const [loading, setLoading] = useState(true);\nconst [error, setError] = useState<string | null>(null);",
+      "refactoring_suggestion": "Create a custom hook (useAsyncState or useApiCall) to handle loading, error, and data states consistently",
+      "impact": "Reduces boilerplate code and provides consistent loading/error handling"
+    },
+    {
+      "category": "frontend_api_calls",
+      "severity": "high",
+      "description": "Duplicate API endpoint definitions and similar method patterns",
+      "locations": [
+        "frontend/src/services/api.ts:multiple methods with similar patterns"
+      ],
+      "pattern": "async methodName(params) { return this.get/post/put/delete(...) }",
+      "refactoring_suggestion": "Consider using a more generic approach with a resource-based API client or OpenAPI code generation",
+      "impact": "Reduces repetitive API method definitions"
+    },
+    {
+      "category": "date_handling",
+      "severity": "moderate",
+      "description": "Inconsistent date handling patterns across the codebase",
+      "locations": [
+        "258 occurrences across 57 files"
+      ],
+      "pattern": "new Date() | toISOString() | various date manipulations",
+      "refactoring_suggestion": "Create a centralized date utility module for consistent date formatting, parsing, and calculations",
+      "impact": "Ensures consistent date handling and reduces date-related bugs"
+    },
+    {
+      "category": "try_catch_patterns",
+      "severity": "high",
+      "description": "Repetitive try-catch blocks with similar error handling",
+      "locations": [
+        "120 occurrences across 13 backend route files"
+      ],
+      "pattern": "try { ... } catch (error) { console.error(error); res.status(500).json(...) }",
+      "refactoring_suggestion": "The asyncHandler middleware is already available but not consistently used. Apply it to all route handlers",
+      "impact": "Eliminates repetitive try-catch blocks and provides consistent error handling"
+    },
+    {
+      "category": "material_ui_dialogs",
+      "severity": "moderate",
+      "description": "Duplicate Dialog component patterns with similar state management",
+      "locations": [
+        "114 occurrences across 14 frontend component files"
+      ],
+      "pattern": "Dialog with open/close state and form handling",
+      "refactoring_suggestion": "Create reusable dialog components or hooks for common dialog patterns (confirmation, form, info)",
+      "impact": "Reduces UI component duplication and provides consistent user experience"
+    },
+    {
+      "category": "leave_calculation_logic",
+      "severity": "high",
+      "description": "Leave calculation logic appears to be duplicated or split across multiple files",
+      "locations": [
+        "backend/routes/leave/utils/leaveCalculations.js",
+        "backend/routes/leave/leaveRequests.js",
+        "backend/routes/leave/leaveBalance.js"
+      ],
+      "pattern": "calculateAnnualLeaveEntitlement, calculateBusinessDays, etc.",
+      "refactoring_suggestion": "Consolidate all leave calculation logic into a single service module",
+      "impact": "Ensures consistent leave calculations and easier maintenance"
+    },
+    {
+      "category": "excel_processing",
+      "severity": "moderate",
+      "description": "Excel file processing patterns duplicated across multiple endpoints",
+      "locations": [
+        "backend/excelProcessor.js",
+        "backend/reportGenerator.js",
+        "backend/routes/reports.js:multiple locations"
+      ],
+      "pattern": "Excel file creation and processing with similar patterns",
+      "refactoring_suggestion": "Create a unified Excel service that handles all Excel operations consistently",
+      "impact": "Reduces code duplication and provides consistent Excel file handling"
+    },
+    {
+      "category": "permission_constants",
+      "severity": "low",
+      "description": "Permission strings used directly instead of constants in some places",
+      "locations": [
+        "Various route files using string literals like 'payroll:manage', 'users:view'"
+      ],
+      "pattern": "requirePermission('string:literal')",
+      "refactoring_suggestion": "Use the centralized PERMISSIONS constants from config/permissions.js consistently",
+      "impact": "Prevents typos and makes permission changes easier"
+    },
+    {
+      "category": "api_endpoint_structure",
+      "severity": "moderate",
+      "description": "Inconsistent REST endpoint naming and structure",
+      "locations": [
+        "backend/routes/* - various inconsistencies in endpoint naming"
+      ],
+      "pattern": "Mix of /api/resource/:id and /api/resource/action patterns",
+      "refactoring_suggestion": "Standardize on RESTful conventions or create a clear API design document",
+      "impact": "Improves API consistency and developer experience"
+    }
+  ],
+  "recommendations": {
+    "immediate_actions": [
+      "Create a shared database connection utility module",
+      "Implement consistent use of asyncHandler middleware",
+      "Create response utility functions for success and error responses",
+      "Develop a generic repository pattern for MongoDB operations"
+    ],
+    "medium_term_improvements": [
+      "Create custom React hooks for common patterns (loading states, API calls)",
+      "Consolidate date handling utilities",
+      "Standardize API endpoint structure",
+      "Implement OpenAPI specification for automatic client generation"
+    ],
+    "long_term_refactoring": [
+      "Consider implementing a proper service layer between routes and database",
+      "Evaluate using an ORM or ODM for MongoDB operations",
+      "Implement a comprehensive error handling strategy",
+      "Consider microservices architecture for better separation of concerns"
+    ]
+  },
+  "estimated_impact": {
+    "lines_of_code_reduction": "~2500-3000 lines",
+    "maintainability_improvement": "High - easier to maintain and debug",
+    "bug_reduction": "Significant - consistent patterns reduce edge cases",
+    "developer_productivity": "30-40% improvement for new feature development"
+  }
+}

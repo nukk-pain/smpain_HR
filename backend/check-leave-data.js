@@ -1,16 +1,10 @@
-const { MongoClient } = require('mongodb');
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'SM_nomu';
+const { connectToDatabase } = require('./utils/database');
 
 async function checkLeaveData() {
-  const client = new MongoClient(url);
   
   try {
-    await client.connect();
+    const { db } = await connectToDatabase();
     console.log('✅ MongoDB 연결 성공');
-    
-    const db = client.db(dbName);
     
     // 1. 사용자별 잔여 연차 현황
     console.log('\n=== 사용자별 잔여 연차 현황 ===');
@@ -51,10 +45,13 @@ async function checkLeaveData() {
     
   } catch (error) {
     console.error('❌ 오류 발생:', error);
-  } finally {
-    await client.close();
-    console.log('\n👋 MongoDB 연결 종료');
+  } catch (error) {
+    console.error('❌ 오류 발생:', error);
+    process.exit(1);
   }
 }
 
-checkLeaveData();
+checkLeaveData().then(() => {
+  console.log('\n✅ Leave data check completed');
+  process.exit(0);
+});

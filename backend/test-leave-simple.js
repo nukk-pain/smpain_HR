@@ -1,16 +1,10 @@
-const { MongoClient } = require('mongodb');
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'SM_nomu';
+const { connectToDatabase } = require('./utils/database');
 
 async function testLeaveSystemSimple() {
-  const client = new MongoClient(url);
   
   try {
-    await client.connect();
+    const { db } = await connectToDatabase();
     console.log('✅ MongoDB 연결 성공');
-    
-    const db = client.db(dbName);
     
     // 1. 테스트 사용자 신홍재 찾기
     const testUser = await db.collection('users').findOne({ name: '신홍재' });

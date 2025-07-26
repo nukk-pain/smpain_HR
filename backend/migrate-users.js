@@ -1,13 +1,9 @@
-const { MongoClient } = require('mongodb');
+const { connectToDatabase } = require('./utils/database');
 
 async function migrateUsers() {
-  const client = new MongoClient('mongodb://localhost:27017');
-  
   try {
-    await client.connect();
+    const { db } = await connectToDatabase();
     console.log('✅ Connected to MongoDB');
-    
-    const db = client.db('SM_nomu');
     
     // Update admin user
     await db.collection('users').updateOne(
@@ -123,9 +119,11 @@ async function migrateUsers() {
     
   } catch (error) {
     console.error('❌ Migration failed:', error);
-  } finally {
-    await client.close();
+    process.exit(1);
   }
 }
 
-migrateUsers();
+migrateUsers().then(() => {
+  console.log('\n✅ Migration completed');
+  process.exit(0);
+});

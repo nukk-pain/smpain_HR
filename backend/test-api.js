@@ -1,19 +1,13 @@
-const { MongoClient } = require('mongodb');
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'SM_nomu';
+const { connectToDatabase } = require('./utils/database');
 
 async function testPositionAPI() {
-  const client = new MongoClient(url);
   
   try {
     console.log('🔍 Testing Position API logic...');
     
     // MongoDB 연결
-    await client.connect();
+    const { db } = await connectToDatabase();
     console.log('✅ MongoDB 연결 성공');
-    
-    const db = client.db(dbName);
     
     // 1. 직접 MongoDB 쿼리 (API와 동일한 쿼리)
     console.log('\n📊 Direct MongoDB Query:');
@@ -84,10 +78,11 @@ async function testPositionAPI() {
     
   } catch (error) {
     console.error('❌ 오류 발생:', error);
-  } finally {
-    await client.close();
-    console.log('\n👋 MongoDB 연결 종료');
+    process.exit(1);
   }
 }
 
-testPositionAPI();
+testPositionAPI().then(() => {
+  console.log('\n✅ Test API completed');
+  process.exit(0);
+});

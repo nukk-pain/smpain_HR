@@ -1,42 +1,14 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
-const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
-const { userSchemas, createValidator } = require('../middleware/validation');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { requireAuth, requirePermission, requireAdmin } = require('../middleware/permissions');
+const { successResponse, errorResponse, notFoundError, serverError } = require('../utils/responses');
+const { userRepository } = require('../repositories');
+const { userSchemas, validate } = require('../validation/schemas');
+const { formatDateForDisplay, calculateAge } = require('../utils/dateUtils');
 
-// Helper function to calculate annual leave entitlement (consistent with leave.js)
-const calculateAnnualLeaveEntitlement = (hireDate) => {
-  const now = new Date();
-  const hire = new Date(hireDate);
-  
-  // Calculate years of service
-  const yearsOfService = Math.floor((now - hire) / (1000 * 60 * 60 * 24 * 365.25));
-  
-  if (yearsOfService === 0) {
-    // For employees with less than 1 year: 1 day per completed month from hire date
-    // 근로기준법: 1개월 개근 시 1일의 유급휴가
-    let monthsPassed = 0;
-    let checkDate = new Date(hire);
-    
-    // Count completed months from hire date
-    while (true) {
-      // Move to the same day next month
-      checkDate.setMonth(checkDate.getMonth() + 1);
-      
-      // If this date hasn't passed yet, break
-      if (checkDate > now) {
-        break;
-      }
-      
-      monthsPassed++;
-    }
-    
-    return Math.min(monthsPassed, 11); // Maximum 11 days in first year
-  } else {
-    // For 1+ year employees: 15 + (years - 1), max 25 days
-    return Math.min(15 + (yearsOfService - 1), 25);
-  }
-};
+// Import shared utility function
+const { calculateAnnualLeaveEntitlement } = require('../utils/leaveUtils');
 
 const router = express.Router();
 
