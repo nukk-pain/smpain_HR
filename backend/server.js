@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
@@ -30,7 +32,7 @@ const {
 } = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = 5455;
+const PORT = process.env.PORT || 5455;
 
 // MongoDB connection setup
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -38,9 +40,10 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 // MongoDB connection string with authentication
 const MONGO_URL = process.env.MONGODB_URL || (isDevelopment 
   ? 'mongodb://localhost:27017' 
-  : `mongodb://${process.env.MONGODB_USER || 'hr_app_user'}:${process.env.MONGODB_PASSWORD || 'your_password'}@localhost:27018`
+  : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
 );
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
 
 let db;
 
@@ -182,7 +185,7 @@ app.use(securityHeaders);
 
 // Session configuration with MongoDB store
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-here',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
