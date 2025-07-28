@@ -11,7 +11,8 @@ module.exports = {
         MONGODB_USER: 'hr_app_user',
         MONGODB_PASSWORD: 'Hr2025Secure',
         DB_NAME: 'SM_nomu',
-        SESSION_SECRET: 'hr-synology-secret-2025'
+        SESSION_SECRET: 'hr-synology-secret-2025',
+        FRONTEND_URL: 'https://hr.smpain.synology.me'
       },
       instances: 1,
       autorestart: true,

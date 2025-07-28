@@ -175,9 +175,26 @@ const requestLogger = (req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://hr.smpain.synology.me', 'http://192.168.0.30:3727'] 
-    : ['http://localhost:3000', 'http://localhost:3727', 'http://localhost:5173'],
+  origin: function(origin, callback) {
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? [
+          'https://hr.smpain.synology.me',
+          'https://hrbackend.smpain.synology.me',
+          'http://192.168.0.30:3727',
+          process.env.FRONTEND_URL
+        ].filter(Boolean)
+      : ['http://localhost:3000', 'http://localhost:3727', 'http://localhost:5173'];
+    
+    // Allow requests with no origin (like mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
