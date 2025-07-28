@@ -182,6 +182,29 @@ async function updateExistingUsersPermissions() {
 
 // Middleware setup
 app.use(cors(corsOptions));
+
+// Force CORS headers for production (in case reverse proxy strips them)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = ['https://hr.smpain.synology.me', 'https://hrbackend.smpain.synology.me'];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    }
+    
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.sendStatus(204);
+    }
+    
+    next();
+  });
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
