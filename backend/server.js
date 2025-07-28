@@ -235,7 +235,9 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS in production
     httpOnly: true,
-    maxAge: SESSION_MAX_AGE
+    maxAge: SESSION_MAX_AGE,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-site cookies with secure
+    domain: undefined // Let browser handle domain
   }
 }));
 
