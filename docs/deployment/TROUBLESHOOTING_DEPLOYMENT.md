@@ -1,5 +1,30 @@
 # Deployment Troubleshooting Guide
 
+## CORS Policy Error
+
+### Problem
+"Access to XMLHttpRequest at 'https://hrbackend.smpain.synology.me/api/auth/login' from origin 'https://hr.smpain.synology.me' has been blocked by CORS policy"
+
+### Solution
+This error means the backend is not sending proper CORS headers. Common causes:
+
+1. **Backend not running or not receiving requests**
+   - The reverse proxy might be returning errors before reaching the Express app
+   - Check if backend is actually running: `pm2 status`
+
+2. **Reverse Proxy not forwarding headers**
+   - Synology's reverse proxy might strip CORS headers
+   - See `nginx-reverse-proxy.conf` for proper configuration
+
+3. **Test CORS directly**
+   ```bash
+   # Test from server
+   curl -I https://hrbackend.smpain.synology.me/api/cors-test \
+     -H "Origin: https://hr.smpain.synology.me"
+   
+   # Should see Access-Control-Allow-Origin header
+   ```
+
 ## 502 Bad Gateway Error on Login
 
 ### Problem
