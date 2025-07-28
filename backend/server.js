@@ -48,6 +48,11 @@ const MONGO_URL = process.env.MONGODB_URL || (isDevelopment
   : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
 );
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
+
+// Debug logging
+console.log('🔍 Environment:', process.env.NODE_ENV);
+console.log('🔍 MONGODB_URL from env:', process.env.MONGODB_URL);
+console.log('🔍 Using MONGO_URL:', MONGO_URL);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
 const SESSION_NAME = process.env.SESSION_NAME || 'connect.sid';
 const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000; // 24시간
