@@ -179,8 +179,10 @@ const corsOptions = {
     const allowedOrigins = process.env.NODE_ENV === 'production' 
       ? [
           'https://hr.smpain.synology.me',
+          'http://hr.smpain.synology.me',
           'https://hrbackend.smpain.synology.me',
           'http://192.168.0.30:3727',
+          'http://192.168.0.30:8090', // Nginx Proxy Manager
           process.env.FRONTEND_URL
         ].filter(Boolean)
       : ['http://localhost:3000', 'http://localhost:3727', 'http://localhost:5173'];
