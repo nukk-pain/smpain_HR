@@ -3,7 +3,7 @@ const { MongoClient } = require(path.join(__dirname, '../../backend/node_modules
 const bcrypt = require(path.join(__dirname, '../../backend/node_modules/bcryptjs'));
 
 // MongoDB 연결 설정 - 시놀로지 Docker 환경 (단일 노드 연결)
-const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu';
+const url = 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu&directConnection=true';
 const dbName = 'SM_nomu';
 
 async function createAdminUser() {
