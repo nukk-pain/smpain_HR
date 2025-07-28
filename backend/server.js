@@ -220,6 +220,17 @@ app.get('/api/health', (_, res) => {
   });
 });
 
+// CORS test endpoint
+app.options('/api/cors-test', cors(corsOptions));
+app.get('/api/cors-test', cors(corsOptions), (req, res) => {
+  res.json({
+    success: true,
+    message: 'CORS is working',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Available permissions endpoint
 app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PERMISSIONS), (_, res) => {
   const availablePermissions = [
