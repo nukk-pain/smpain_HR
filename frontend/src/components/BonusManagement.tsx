@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Grid,
   Table,
   TableBody,
   TableCell,
@@ -28,6 +27,7 @@ import {
   Tooltip,
   Stack,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Add,
   Edit,

@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useContext, createContext, ReactNode } from 'react';
-import { api } from '../services/api';
+import { useState, useCallback, useEffect, useContext, ReactNode } from 'react';
+import { apiService } from '../services/api';
+import { useAuth } from '../components/AuthProvider';
 
 export interface User {
   _id: string;
@@ -34,15 +35,8 @@ interface AuthContextType extends AuthState {
   canViewPayroll: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+// This file provides additional auth-related hooks
+// The main useAuth hook is exported from components/AuthProvider.tsx
 
 // Custom hook for auth state management
 export function useAuthState() {
@@ -79,7 +73,7 @@ export function useAuthState() {
     clearError();
 
     try {
-      const response = await api.post('/auth/login', { username, password });
+      const response = await apiService.post('/auth/login', { username, password });
       
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
@@ -99,7 +93,7 @@ export function useAuthState() {
     setLoading(true);
     
     try {
-      await api.post('/auth/logout');
+      await apiService.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -112,7 +106,7 @@ export function useAuthState() {
     setLoading(true);
     
     try {
-      const response = await api.get('/auth/check');
+      const response = await apiService.get('/auth/check');
       
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
@@ -158,26 +152,6 @@ export function useAuthState() {
     canApproveLeave,
     canViewPayroll,
   };
-}
-
-// AuthProvider component
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const auth = useAuthState();
-
-  // Check authentication on mount
-  useEffect(() => {
-    auth.checkAuth();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={auth}>
-      {children}
-    </AuthContext.Provider>
-  );
 }
 
 // Hook for protected routes

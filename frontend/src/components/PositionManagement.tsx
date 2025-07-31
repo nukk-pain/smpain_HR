@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   List,
   ListItem,
   ListItemText,
@@ -20,6 +19,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Work as WorkIcon,
   Add as AddIcon,

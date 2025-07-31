@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   TextField,
   Button,
   Avatar,
@@ -17,6 +16,7 @@ import {
   MenuItem,
   Chip
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Person as PersonIcon,
   Save as SaveIcon,
@@ -90,7 +90,7 @@ const UserProfile: React.FC = () => {
         phoneNumber: formData.phoneNumber
       };
 
-      const userId = userInfo._id || userInfo.id;
+      const userId = userInfo._id;
       
       await apiService.updateUserProfile(userId, updateData);
       

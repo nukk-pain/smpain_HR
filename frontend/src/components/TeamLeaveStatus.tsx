@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -34,6 +33,7 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Person,
   BeachAccess,

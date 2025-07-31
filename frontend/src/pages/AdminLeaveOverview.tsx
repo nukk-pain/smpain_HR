@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Table,
   TableBody,
   TableCell,
@@ -24,6 +23,7 @@ import {
   Tooltip,
   Stack
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Search as SearchIcon,
   Download as DownloadIcon,

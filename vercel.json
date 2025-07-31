@@ -6,7 +6,6 @@
   "installCommand": "cd frontend && npm install",
   "devCommand": "cd frontend && npm run dev",
   "framework": null,
-  "functions": {},
   "routes": [
     {
       "src": "/assets/(.*)",

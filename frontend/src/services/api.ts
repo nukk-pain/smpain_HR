@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { ApiResponse } from '../types';
+import { ApiResponse, AuthResponse } from '../types';
 
 class ApiService {
   private api: AxiosInstance;
@@ -79,16 +79,18 @@ class ApiService {
   }
 
   // Authentication
-  async login(username: string, password: string) {
-    return this.post('/auth/login', { username, password });
+  async login(username: string, password: string): Promise<AuthResponse> {
+    const response = await this.api.post('/auth/login', { username, password });
+    return response.data;
   }
 
-  async logout() {
+  async logout(): Promise<ApiResponse<any>> {
     return this.post('/auth/logout');
   }
 
-  async getCurrentUser() {
-    return this.get('/auth/me');
+  async getCurrentUser(): Promise<AuthResponse> {
+    const response = await this.api.get('/auth/me');
+    return response.data;
   }
 
   // Users

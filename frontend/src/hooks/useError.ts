@@ -48,15 +48,15 @@ export function useError(initialErrors: ErrorState = {}) {
     return errors[key] || null;
   }, [errors]);
 
-  const hasAnyError = useCallback(): boolean => {
+  const hasAnyError = useCallback((): boolean => {
     return Object.values(errors).some(error => error !== null);
   }, [errors]);
 
-  const getAllErrors = useCallback(): string[] => {
+  const getAllErrors = useCallback((): string[] => {
     return Object.values(errors).filter(error => error !== null) as string[];
   }, [errors]);
 
-  const getErrorKeys = useCallback(): string[] => {
+  const getErrorKeys = useCallback((): string[] => {
     return Object.keys(errors).filter(key => errors[key] !== null);
   }, [errors]);
 

@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   TextField,
   Button,
   Alert,
@@ -32,6 +31,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Calculate,
   Person,

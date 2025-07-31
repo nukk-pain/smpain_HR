@@ -11,7 +11,6 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  Grid,
   Chip,
   Table,
   TableBody,
@@ -30,6 +29,7 @@ import {
   CircularProgress,
   Stack
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -433,7 +433,7 @@ const LeaveManagement: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
-                    <Grid xs={6}>
+                    <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">
                         잔여 연차
                       </Typography>
@@ -449,7 +449,7 @@ const LeaveManagement: React.FC = () => {
                         </Typography>
                       )}
                     </Grid>
-                    <Grid xs={6}>
+                    <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">
                         대기중
                       </Typography>
@@ -671,7 +671,7 @@ const LeaveManagement: React.FC = () => {
                           const isSelected = formData.personalOffDays?.includes(dateStr);
                           
                           return (
-                            <Grid item key={dateStr}>
+                            <Grid key={dateStr}>
                               <Chip
                                 label={`${format(date, 'MM/dd')} (${dayOfWeek})`}
                                 color={isSelected ? "primary" : "default"}

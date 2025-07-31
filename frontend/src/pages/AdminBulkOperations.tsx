@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   FormControl,
   InputLabel,
@@ -31,6 +30,7 @@ import {
   AccordionDetails,
   LinearProgress
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,

@@ -170,6 +170,16 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   success: boolean;
+  error?: string;
+  permissions?: string[];
+}
+
+// Authentication specific response type
+export interface AuthResponse {
+  authenticated: boolean;
+  user?: User;
+  success?: boolean;
+  message?: string;
 }
 
 export interface PaginatedResponse<T> {

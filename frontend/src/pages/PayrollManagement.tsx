@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   Button,
   TextField,
   MenuItem,
@@ -14,6 +13,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material'
+import Grid from '@mui/material/Grid2'
 import {
   Add,
   TrendingUp,

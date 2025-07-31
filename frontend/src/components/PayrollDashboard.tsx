@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   Paper,
   Chip,
   LinearProgress,
@@ -22,6 +21,7 @@ import {
   TableRow,
   TableCell,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   TrendingUp,
   People,

@@ -147,27 +147,27 @@ export class ApiClient {
   // Generic HTTP methods
   async get<T = any>(url: string, config?: ApiRequestConfig): Promise<T> {
     const response = await this.client.get<ApiResponse<T>>(url, config);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   async post<T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
     const response = await this.client.post<ApiResponse<T>>(url, data, config);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   async put<T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
     const response = await this.client.put<ApiResponse<T>>(url, data, config);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   async patch<T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> {
     const response = await this.client.patch<ApiResponse<T>>(url, data, config);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   async delete<T = any>(url: string, config?: ApiRequestConfig): Promise<T> {
     const response = await this.client.delete<ApiResponse<T>>(url, config);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   // File upload method
@@ -181,7 +181,7 @@ export class ApiClient {
     };
 
     const response = await this.client.post<ApiResponse<T>>(url, formData, uploadConfig);
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as T;
   }
 
   // Paginated requests
@@ -194,7 +194,7 @@ export class ApiClient {
     const response = await this.client.get<ApiResponse<PaginatedResponse<T>>>(url, {
       params: { page, limit, ...params }
     });
-    return response.data.data || response.data;
+    return (response.data.data || response.data) as PaginatedResponse<T>;
   }
 
   // Bulk operations

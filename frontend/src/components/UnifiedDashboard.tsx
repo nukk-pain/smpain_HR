@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   Paper,
   Alert,
   CircularProgress,
@@ -25,6 +24,7 @@ import {
   Tooltip,
   Stack,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   TrendingUp,
   People,

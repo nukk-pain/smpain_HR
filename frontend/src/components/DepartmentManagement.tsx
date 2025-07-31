@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   List,
   ListItem,
   ListItemText,
@@ -28,6 +27,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import { Grid } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
