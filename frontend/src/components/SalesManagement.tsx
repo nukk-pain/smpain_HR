@@ -332,10 +332,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
           </Button>
         </Stack>
       </Box>
-
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 매출"
             value={totals.totalSales}
@@ -343,7 +347,12 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 목표"
             value={totals.totalTarget}
@@ -351,7 +360,12 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
             color="info"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 인센티브"
             value={totals.totalIncentive}
@@ -359,7 +373,12 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="평균 달성률"
             value={totals.avgAchievementRate}
@@ -369,7 +388,6 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
           />
         </Grid>
       </Grid>
-
       {/* Sales Data Table */}
       <TableContainer component={Paper}>
         <Table>
@@ -458,7 +476,6 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
           </TableBody>
         </Table>
       </TableContainer>
-
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -466,7 +483,11 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>직원 선택</InputLabel>
                 <Select
@@ -482,7 +503,11 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="매출 금액"
@@ -492,7 +517,11 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                 InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="목표 금액"
@@ -502,7 +531,11 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                 InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="달성률"
@@ -514,7 +547,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                 helperText="매출 금액과 목표 금액을 기준으로 자동 계산됩니다"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="비고"
@@ -534,19 +567,18 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Incentive Simulation Dialog */}
       <Dialog open={simulationOpen} onClose={() => setSimulationOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>인센티브 계산 결과</DialogTitle>
         <DialogContent>
           {simulation && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Alert severity="success" sx={{ mb: 2 }}>
                   인센티브가 성공적으로 계산되었습니다!
                 </Alert>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Typography variant="body2" color="text.secondary">
                   매출 금액
                 </Typography>
@@ -554,7 +586,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                   {simulation.sales_amount.toLocaleString()}원
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Typography variant="body2" color="text.secondary">
                   달성률
                 </Typography>
@@ -562,7 +594,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                   {simulation.achievement_rate.toFixed(1)}%
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Typography variant="body2" color="text.secondary">
                   인센티브 금액
                 </Typography>
@@ -570,7 +602,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                   {simulation.incentive_amount.toLocaleString()}원
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Typography variant="body2" color="text.secondary">
                   보너스 등급
                 </Typography>
@@ -578,7 +610,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
                   {simulation.bonus_tier}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="body2" color="text.secondary">
                   총 커미션

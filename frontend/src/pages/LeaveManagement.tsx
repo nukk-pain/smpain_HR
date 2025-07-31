@@ -414,7 +414,11 @@ const LeaveManagement: React.FC = () => {
                 📊 내 휴가 현황 ({leaveBalance.year}년)
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Box flex={1}>
                       <Typography variant="body2" color="text.secondary">
@@ -431,9 +435,13 @@ const LeaveManagement: React.FC = () => {
                     </Box>
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Typography variant="body2" color="text.secondary">
                         잔여 연차
                       </Typography>
@@ -449,7 +457,7 @@ const LeaveManagement: React.FC = () => {
                         </Typography>
                       )}
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Typography variant="body2" color="text.secondary">
                         대기중
                       </Typography>
@@ -575,9 +583,13 @@ const LeaveManagement: React.FC = () => {
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               {/* 첫 번째 줄: 휴가 종류, 대체 인력 */}
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      sm: 6
+                    }}>
                     <TextField
                       fullWidth
                       label="휴가 종류"
@@ -590,7 +602,11 @@ const LeaveManagement: React.FC = () => {
                       <MenuItem value={leave.types.PERSONAL}>개인휴가 (무급)</MenuItem>
                     </TextField>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      sm: 6
+                    }}>
                     <TextField
                       fullWidth
                       label="대체 인력 (선택사항)"
@@ -603,9 +619,13 @@ const LeaveManagement: React.FC = () => {
               </Grid>
               
               {/* 두 번째 줄: 시작일, 종료일 */}
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      sm: 6
+                    }}>
                 <DatePicker
                   label="시작일"
                   value={formData.startDate ? parseISO(formData.startDate) : null}
@@ -622,7 +642,11 @@ const LeaveManagement: React.FC = () => {
                   format="yyyy-MM-dd"
                 />
               </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid
+                    size={{
+                      xs: 12,
+                      sm: 6
+                    }}>
                     <DatePicker
                       label="종료일"
                       value={formData.endDate ? parseISO(formData.endDate) : null}
@@ -645,7 +669,7 @@ const LeaveManagement: React.FC = () => {
               
               {/* 세 번째 줄: 개인 오프일 선택 (기간이 설정된 경우에만 표시) */}
               {formData.startDate && formData.endDate && (
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       개인 오프일 선택 (선택사항)
@@ -700,7 +724,7 @@ const LeaveManagement: React.FC = () => {
               )}
               
               {/* 네 번째 줄: 신청 사유 */}
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   fullWidth
                   label="신청 사유"
@@ -711,7 +735,7 @@ const LeaveManagement: React.FC = () => {
                 />
               </Grid>
               {formData.startDate && formData.endDate && (
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Alert severity="info">
                     총 휴가 일수: {calculateDays(formData.startDate, formData.endDate, formData.personalOffDays)}일
                     (일요일 제외, 토요일 0.5일 계산, 개인 오프일 제외)

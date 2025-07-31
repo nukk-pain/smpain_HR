@@ -259,7 +259,6 @@ const AdminBulkOperations: React.FC = () => {
           </Button>
         </Box>
       </Box>
-
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -267,7 +266,12 @@ const AdminBulkOperations: React.FC = () => {
             필터 설정
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <FormControl fullWidth size="small">
                 <InputLabel>부서</InputLabel>
                 <Select
@@ -282,7 +286,12 @@ const AdminBulkOperations: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <FormControl fullWidth size="small">
                 <InputLabel>휴가 유형</InputLabel>
                 <Select
@@ -298,7 +307,12 @@ const AdminBulkOperations: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <TextField
                 fullWidth
                 size="small"
@@ -309,7 +323,12 @@ const AdminBulkOperations: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <TextField
                 fullWidth
                 size="small"
@@ -323,7 +342,6 @@ const AdminBulkOperations: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
-
       {/* Action Buttons */}
       {selectedRequests.length > 0 && (
         <Card sx={{ mb: 3, bgcolor: 'primary.50' }}>
@@ -360,7 +378,6 @@ const AdminBulkOperations: React.FC = () => {
           </CardContent>
         </Card>
       )}
-
       {/* Pending Requests Table */}
       <Card>
         <CardContent>
@@ -434,7 +451,6 @@ const AdminBulkOperations: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Last Result Summary */}
       {lastResult && (
         <Card sx={{ mt: 3 }}>
@@ -443,7 +459,11 @@ const AdminBulkOperations: React.FC = () => {
               마지막 처리 결과
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2" color="success.main">
                   성공: {lastResult.successful.length}건
                 </Typography>
@@ -458,7 +478,11 @@ const AdminBulkOperations: React.FC = () => {
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2" color="error.main">
                   실패: {lastResult.failed.length}건
                 </Typography>
@@ -477,7 +501,6 @@ const AdminBulkOperations: React.FC = () => {
           </CardContent>
         </Card>
       )}
-
       {/* Bulk Action Dialog */}
       <Dialog open={bulkActionDialog} onClose={() => setBulkActionDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -509,7 +532,6 @@ const AdminBulkOperations: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Carry-over Dialog */}
       <Dialog open={carryOverDialog} onClose={() => setCarryOverDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>

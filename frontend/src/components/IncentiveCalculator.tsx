@@ -313,10 +313,13 @@ const IncentiveCalculator: React.FC = () => {
           )}
         </Stack>
       </Box>
-
       <Grid container spacing={3}>
         {/* Employee Selection */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -366,7 +369,11 @@ const IncentiveCalculator: React.FC = () => {
         </Grid>
 
         {/* Formula Editor */}
-        <Grid item xs={12} md={8}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 8
+          }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -469,7 +476,11 @@ const IncentiveCalculator: React.FC = () => {
         </Grid>
 
         {/* Variables */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -477,7 +488,12 @@ const IncentiveCalculator: React.FC = () => {
               </Typography>
               <Grid container spacing={2}>
                 {Object.entries(variables).map(([varName, value]) => (
-                  <Grid item xs={12} sm={6} key={varName}>
+                  <Grid
+                    key={varName}
+                    size={{
+                      xs: 12,
+                      sm: 6
+                    }}>
                     <TextField
                       fullWidth
                       label={varName.replace(/_/g, ' ').toUpperCase()}
@@ -511,7 +527,11 @@ const IncentiveCalculator: React.FC = () => {
         </Grid>
 
         {/* Test Calculator */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -585,7 +605,7 @@ const IncentiveCalculator: React.FC = () => {
 
         {/* Simulation Results */}
         {simulationResults.length > 0 && (
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -634,7 +654,6 @@ const IncentiveCalculator: React.FC = () => {
           </Grid>
         )}
       </Grid>
-
       {/* Help Dialog */}
       <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>인센티브 계산기 도움말</DialogTitle>

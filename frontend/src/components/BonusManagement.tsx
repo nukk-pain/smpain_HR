@@ -280,10 +280,14 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
           </Button>
         </Stack>
       </Box>
-
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 금액"
             value={totals.total}
@@ -291,7 +295,12 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="상여금 총계"
             value={totals.bonusTotal}
@@ -299,7 +308,12 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="포상금 총계"
             value={totals.awardTotal}
@@ -307,7 +321,12 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="승인된 금액"
             value={totals.approvedTotal}
@@ -316,7 +335,6 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
           />
         </Grid>
       </Grid>
-
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -350,7 +368,6 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
           </Typography>
         </Box>
       </Paper>
-
       {/* Bonuses Table */}
       <TableContainer component={Paper}>
         <Table>
@@ -433,7 +450,6 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
           </TableBody>
         </Table>
       </TableContainer>
-
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -441,7 +457,11 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>직원 선택</InputLabel>
                 <Select
@@ -457,7 +477,11 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>유형</InputLabel>
                 <Select
@@ -470,7 +494,11 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="금액"
@@ -480,7 +508,11 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
                 InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="지급일"
@@ -490,7 +522,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="사유"

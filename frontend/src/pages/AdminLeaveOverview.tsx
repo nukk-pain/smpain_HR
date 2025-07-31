@@ -208,10 +208,13 @@ const AdminLeaveOverview: React.FC = () => {
           엑셀 다운로드
         </Button>
       </Box>
-
       {/* 통계 카드 */}
       <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" gap={2}>
@@ -228,7 +231,11 @@ const AdminLeaveOverview: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" gap={2}>
@@ -245,7 +252,11 @@ const AdminLeaveOverview: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" gap={2}>
@@ -263,12 +274,15 @@ const AdminLeaveOverview: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
-
       {/* 필터 및 검색 */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 4
+              }}>
               <TextField
                 fullWidth
                 placeholder="이름 또는 부서 검색"
@@ -283,7 +297,11 @@ const AdminLeaveOverview: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 2
+              }}>
               <TextField
                 fullWidth
                 select
@@ -299,7 +317,11 @@ const AdminLeaveOverview: React.FC = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 2
+              }}>
               <TextField
                 fullWidth
                 select
@@ -313,7 +335,11 @@ const AdminLeaveOverview: React.FC = () => {
                 <MenuItem value="low">정상</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 2
+              }}>
               <TextField
                 fullWidth
                 select
@@ -330,7 +356,6 @@ const AdminLeaveOverview: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
-
       {/* 직원 목록 테이블 */}
       <Card>
         <CardContent>
@@ -430,7 +455,6 @@ const AdminLeaveOverview: React.FC = () => {
           </TableContainer>
         </CardContent>
       </Card>
-
       {/* 연차 조정 다이얼로그 */}
       {selectedEmployee && (
         <LeaveAdjustmentDialog

@@ -151,10 +151,14 @@ const UserDashboard: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
         👋 {user?.name}님의 대시보드
       </Typography>
-
       <Grid container spacing={3}>
         {/* 개인 정보 카드 */}
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6,
+            lg: 3
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -172,7 +176,12 @@ const UserDashboard: React.FC = () => {
         </Grid>
 
         {/* 휴가 현황 */}
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6,
+            lg: 3
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -194,7 +203,12 @@ const UserDashboard: React.FC = () => {
 
         {/* 급여 정보 - Admin만 표시 */}
         {user?.role === 'admin' && (
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+              lg: 3
+            }}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
@@ -216,7 +230,12 @@ const UserDashboard: React.FC = () => {
         )}
 
         {/* 대기중인 신청 */}
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6,
+            lg: 3
+          }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -234,7 +253,7 @@ const UserDashboard: React.FC = () => {
         </Grid>
 
         {/* 최근 휴가 신청 내역 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -285,7 +304,7 @@ const UserDashboard: React.FC = () => {
         </Grid>
 
         {/* 빠른 액션 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

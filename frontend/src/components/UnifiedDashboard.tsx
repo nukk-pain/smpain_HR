@@ -362,7 +362,11 @@ const UnifiedDashboard: React.FC = () => {
             시스템 상태
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="textSecondary">
                   데이터베이스 상태
@@ -382,7 +386,11 @@ const UnifiedDashboard: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="textSecondary">
                   시스템 부하
@@ -465,12 +473,16 @@ const UnifiedDashboard: React.FC = () => {
           </Button>
         </Stack>
       </Box>
-
       {/* Key Metrics */}
       {stats && (
         <>
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <StatCard
                 title="총 직원 수"
                 value={stats.users.total}
@@ -481,7 +493,12 @@ const UnifiedDashboard: React.FC = () => {
             </Grid>
             {hasPayrollPermission && (
               <>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <StatCard
                     title="월 총 급여"
                     value={`${stats.payroll.currentMonth.totalPayroll.toLocaleString()}원`}
@@ -490,7 +507,12 @@ const UnifiedDashboard: React.FC = () => {
                     color="success"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <StatCard
                     title="총 인센티브"
                     value={`${stats.payroll.currentMonth.totalIncentive.toLocaleString()}원`}
@@ -498,7 +520,12 @@ const UnifiedDashboard: React.FC = () => {
                     color="warning"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 3
+                  }}>
                   <StatCard
                     title="상여금/포상금"
                     value={`${stats.payroll.currentMonth.totalBonus.toLocaleString()}원`}
@@ -512,7 +539,7 @@ const UnifiedDashboard: React.FC = () => {
 
           {/* Quick Actions */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -520,7 +547,13 @@ const UnifiedDashboard: React.FC = () => {
                   </Typography>
                   <Grid container spacing={2}>
                     {getQuickActions().map((action, index) => (
-                      <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Grid
+                        key={index}
+                        size={{
+                          xs: 12,
+                          sm: 6,
+                          md: 3
+                        }}>
                         <Paper
                           sx={{
                             p: 2,
@@ -556,10 +589,18 @@ const UnifiedDashboard: React.FC = () => {
 
           {/* System Health and Alerts */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <SystemHealthIndicator />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -603,7 +644,11 @@ const UnifiedDashboard: React.FC = () => {
 
           {/* Performance Overview */}
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -611,7 +656,7 @@ const UnifiedDashboard: React.FC = () => {
                   </Typography>
                   <Grid container spacing={1}>
                     {Object.entries(stats.users.byDepartment).map(([dept, count]) => (
-                      <Grid item xs={6} key={dept}>
+                      <Grid key={dept} size={6}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
                           <Typography variant="body2">{dept}</Typography>
                           <Typography variant="body2" fontWeight="bold">{count}명</Typography>
@@ -622,7 +667,11 @@ const UnifiedDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -630,7 +679,7 @@ const UnifiedDashboard: React.FC = () => {
                   </Typography>
                   <Grid container spacing={1}>
                     {Object.entries(stats.users.byRole).map(([role, count]) => (
-                      <Grid item xs={6} key={role}>
+                      <Grid key={role} size={6}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
                           <Typography variant="body2">
                             {role === 'admin' ? '관리자' : 

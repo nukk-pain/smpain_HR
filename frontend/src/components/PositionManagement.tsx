@@ -159,9 +159,8 @@ const PositionManagement: React.FC = () => {
           Add Position
         </Button>
       </Box>
-
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -238,13 +237,12 @@ const PositionManagement: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
-
       {/* Add/Edit Position Dialog */}
       <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{isEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Position Title"
@@ -253,7 +251,7 @@ const PositionManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Department (Optional)"
@@ -261,7 +259,7 @@ const PositionManagement: React.FC = () => {
                 onChange={(e) => setNewPosition({ ...newPosition, department: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Description"
@@ -272,7 +270,11 @@ const PositionManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <TextField
                 fullWidth
                 label="Key Responsibilities (one per line)"
@@ -283,7 +285,11 @@ const PositionManagement: React.FC = () => {
                 placeholder="Manage team members&#10;Oversee project deliverables&#10;Report to upper management"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6
+              }}>
               <TextField
                 fullWidth
                 label="Requirements (one per line)"

@@ -240,10 +240,14 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           </Button>
         </Box>
       </Box>
-
       {/* Overview Stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 직원 수"
             value={stats.totalEmployees}
@@ -253,7 +257,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             format="number"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 급여"
             value={stats.totalPayroll}
@@ -262,7 +271,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             growth={growthRates?.payrollGrowth}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="총 인센티브"
             value={stats.totalIncentive}
@@ -271,7 +285,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             growth={growthRates?.incentiveGrowth}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="평균 급여"
             value={stats.totalEmployees > 0 ? stats.totalPayroll / stats.totalEmployees : 0}
@@ -280,10 +299,14 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           />
         </Grid>
       </Grid>
-
       {/* Breakdown Stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="기본급"
             value={stats.totalBaseSalary}
@@ -291,7 +314,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="상여금"
             value={stats.totalBonus}
@@ -299,7 +327,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             color="secondary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="포상금"
             value={stats.totalAward}
@@ -307,7 +340,12 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <StatCard
             title="인센티브 비율"
             value={stats.totalPayroll > 0 ? (stats.totalIncentive / stats.totalPayroll) * 100 : 0}
@@ -317,12 +355,15 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           />
         </Grid>
       </Grid>
-
       {/* Content based on selected view */}
       {selectedView === 'overview' && (
         <Grid container spacing={3}>
           {/* Department Stats */}
-          <Grid item xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -355,7 +396,11 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           </Grid>
 
           {/* Top Performers */}
-          <Grid item xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -400,11 +445,16 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           </Grid>
         </Grid>
       )}
-
       {selectedView === 'department' && (
         <Grid container spacing={3}>
           {stats.departmentStats?.map((dept) => (
-            <Grid item xs={12} md={6} lg={4} key={dept.department}>
+            <Grid
+              key={dept.department}
+              size={{
+                xs: 12,
+                md: 6,
+                lg: 4
+              }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -448,10 +498,9 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
           ))}
         </Grid>
       )}
-
       {selectedView === 'trends' && (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>

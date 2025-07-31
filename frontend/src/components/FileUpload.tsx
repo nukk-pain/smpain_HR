@@ -177,10 +177,13 @@ const FileUpload: React.FC = () => {
       <Typography variant="h4" sx={{ mb: 3 }}>
         Excel File Upload & Processing
       </Typography>
-
       <Grid container spacing={3}>
         {/* Upload Section */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -254,7 +257,11 @@ const FileUpload: React.FC = () => {
         </Grid>
 
         {/* Upload Result */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
@@ -268,7 +275,7 @@ const FileUpload: React.FC = () => {
                   </Alert>
 
                   <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                         <Typography variant="h4" color="primary">
                           {uploadResult.totalRows}
@@ -276,7 +283,7 @@ const FileUpload: React.FC = () => {
                         <Typography variant="body2">Total Rows</Typography>
                       </Box>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={6}>
                       <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                         <Typography variant="h4" color="success.main">
                           {uploadResult.validRows}
@@ -343,7 +350,7 @@ const FileUpload: React.FC = () => {
 
         {/* Comparison Results */}
         {comparisonResult && (
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2 }}>
@@ -351,7 +358,11 @@ const FileUpload: React.FC = () => {
                 </Typography>
 
                 <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6} sm={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
                     <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#e8f5e8', borderRadius: 1 }}>
                       <Typography variant="h4" color="success.main">
                         {comparisonResult.matches}
@@ -359,7 +370,11 @@ const FileUpload: React.FC = () => {
                       <Typography variant="body2">Matches</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
                     <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#fff3e0', borderRadius: 1 }}>
                       <Typography variant="h4" color="warning.main">
                         {comparisonResult.differences}
@@ -367,7 +382,11 @@ const FileUpload: React.FC = () => {
                       <Typography variant="body2">Differences</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
                     <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#ffebee', borderRadius: 1 }}>
                       <Typography variant="h4" color="error.main">
                         {comparisonResult.notFound}
@@ -375,7 +394,11 @@ const FileUpload: React.FC = () => {
                       <Typography variant="body2">Not Found</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
                     <Box sx={{ textAlign: 'center', p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                       <Typography variant="h4">
                         {comparisonResult.invalid}
@@ -395,7 +418,6 @@ const FileUpload: React.FC = () => {
           </Grid>
         )}
       </Grid>
-
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Upload Preview</DialogTitle>
@@ -437,7 +459,6 @@ const FileUpload: React.FC = () => {
           <Button onClick={() => setIsPreviewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
       {/* Comparison Dialog */}
       <Dialog open={isComparisonOpen} onClose={() => setIsComparisonOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Data Comparison</DialogTitle>

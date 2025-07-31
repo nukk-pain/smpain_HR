@@ -483,11 +483,14 @@ const UserManagement: React.FC = () => {
           Add User
         </Button>
       </Box>
-
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 4
+              }}>
               <TextField
                 fullWidth
                 label="Search users..."
@@ -502,7 +505,11 @@ const UserManagement: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Department</InputLabel>
                 <Select
@@ -519,7 +526,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -533,7 +544,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 2
+              }}>
               <Button
                 fullWidth
                 variant="outlined"
@@ -546,7 +561,6 @@ const UserManagement: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
-
       <Card>
         <CardContent>
           {loading ? (
@@ -569,7 +583,6 @@ const UserManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Add/Edit User Dialog */}
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -577,7 +590,11 @@ const UserManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="Username"
@@ -600,7 +617,11 @@ const UserManagement: React.FC = () => {
               />
             </Grid>
             {!isEditing && (
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <TextField
                   fullWidth
                   label="Password"
@@ -611,7 +632,11 @@ const UserManagement: React.FC = () => {
                 />
               </Grid>
             )}
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="이름 (Full Name)"
@@ -629,7 +654,11 @@ const UserManagement: React.FC = () => {
             </Grid>
             {isEditing && (
               <>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="생년월일 (Birth Date)"
@@ -640,7 +669,11 @@ const UserManagement: React.FC = () => {
                     helperText="YYYY-MM-DD 형식"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="전화번호 (Phone Number)"
@@ -653,7 +686,11 @@ const UserManagement: React.FC = () => {
               </>
             )}
             {isEditing && (
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <TextField
                   fullWidth
                   label="Employee ID"
@@ -663,7 +700,11 @@ const UserManagement: React.FC = () => {
                 />
               </Grid>
             )}
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Department</InputLabel>
                 <Select
@@ -679,7 +720,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Position</InputLabel>
                 <Select
@@ -697,7 +742,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Role</InputLabel>
                 <Select
@@ -711,7 +760,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Contract Type</InputLabel>
                 <Select
@@ -724,7 +777,11 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="Hire Date"
@@ -734,7 +791,11 @@ const UserManagement: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="Base Salary"
@@ -743,7 +804,7 @@ const UserManagement: React.FC = () => {
                 onChange={(e) => setUserForm({ ...userForm, baseSalary: parseInt(e.target.value) || 0 })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Account Number"
@@ -751,7 +812,7 @@ const UserManagement: React.FC = () => {
                 onChange={(e) => setUserForm({ ...userForm, accountNumber: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth>
                 <InputLabel>Incentive Formula</InputLabel>
                 <Select
@@ -775,7 +836,7 @@ const UserManagement: React.FC = () => {
             {/* Team Visibility Settings - Only for admins editing managers */}
             {currentUser?.role === 'admin' && isEditing && userForm.role === 'manager' && (
               <>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
                     Team Leave Visibility Settings
                   </Typography>
@@ -784,7 +845,7 @@ const UserManagement: React.FC = () => {
                     If no departments are selected, the manager cannot view any team leave information.
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <FormControl fullWidth>
                     <InputLabel>Visible Teams</InputLabel>
                     <Select
@@ -832,66 +893,113 @@ const UserManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* View User Dialog */}
       <Dialog open={isViewDialogOpen} onClose={() => setIsViewDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>User Details</DialogTitle>
         <DialogContent>
           {selectedUser && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Employee ID</Typography>
                 <Typography variant="body1">{selectedUser.employeeId}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Name</Typography>
                 <Typography variant="body1">{selectedUser.name}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Username</Typography>
                 <Typography variant="body1">{selectedUser.username}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Birth Date</Typography>
                 <Typography variant="body1">{selectedUser.birthDate || 'Not provided'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Phone Number</Typography>
                 <Typography variant="body1">{selectedUser.phoneNumber || 'Not provided'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Department</Typography>
                 <Typography variant="body1">{selectedUser.department}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Position</Typography>
                 <Typography variant="body1">{selectedUser.position}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Role</Typography>
                 <Typography variant="body1">{selectedUser.role}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Contract Type</Typography>
                 <Typography variant="body1">{selectedUser.contractType}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Hire Date</Typography>
                 <Typography variant="body1">{selectedUser.hireDateFormatted}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Years of Service</Typography>
                 <Typography variant="body1">{selectedUser.yearsOfService}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Typography variant="subtitle2">Annual Leave</Typography>
                 <Typography variant="body1">{selectedUser.annualLeave} days</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Typography variant="subtitle2">Account Number</Typography>
                 <Typography variant="body1">{selectedUser.accountNumber}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Typography variant="subtitle2">Incentive Formula</Typography>
                 <Typography variant="body1">{selectedUser.incentiveFormula}</Typography>
               </Grid>
@@ -902,7 +1010,6 @@ const UserManagement: React.FC = () => {
           <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
       {/* Permanent Delete User Confirmation Dialog */}
       <Dialog open={permanentDeleteConfirmOpen} onClose={() => setPermanentDeleteConfirmOpen(false)}>
         <DialogTitle sx={{ color: 'error.main' }}>
@@ -945,7 +1052,6 @@ const UserManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Permissions Management Dialog */}
       <Dialog open={permissionsDialogOpen} onClose={() => setPermissionsDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>

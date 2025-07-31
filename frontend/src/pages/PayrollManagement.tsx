@@ -13,7 +13,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material'
-import Grid from '@mui/material/Grid2'
+import { Grid } from '@mui/material'
 import {
   Add,
   TrendingUp,
@@ -164,14 +164,14 @@ const PayrollManagement: React.FC = () => {
       {/* Statistics Cards */}
       {dashboardStats && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
               title="총 직원 수"
               value={dashboardStats.total_employees}
               icon={<People fontSize="large" />}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
               title="당월 총 급여"
               value={dashboardStats.total_payroll}
@@ -179,7 +179,7 @@ const PayrollManagement: React.FC = () => {
               color="success"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
               title="대기 중인 업로드"
               value={dashboardStats.pending_uploads}
@@ -187,7 +187,7 @@ const PayrollManagement: React.FC = () => {
               color="warning"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
               title="현재 월"
               value={dashboardStats.current_month}

@@ -270,12 +270,15 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
           )}
         </Box>
       </Box>
-
       {viewMode === 'team' ? (
         <>
           {/* Team Overview Cards */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -295,7 +298,11 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -315,7 +322,11 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -335,7 +346,11 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 3
+              }}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -454,7 +469,13 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
           {/* Department Statistics */}
           <Grid container spacing={3}>
             {departmentStats.map((dept) => (
-              <Grid item xs={12} md={6} lg={4} key={dept.department}>
+              <Grid
+                key={dept.department}
+                size={{
+                  xs: 12,
+                  md: 6,
+                  lg: 4
+                }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
@@ -508,7 +529,6 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
           </Grid>
         </>
       )}
-
       {/* Member Detail Dialog */}
       <Dialog
         open={detailDialogOpen}
@@ -523,7 +543,11 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
           {selectedMember && (
             <Box>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <Typography variant="h6" gutterBottom>
                     기본 정보
                   </Typography>
@@ -555,7 +579,11 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                   </Box>
                 </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <Typography variant="h6" gutterBottom>
                     최근 휴가 내역
                   </Typography>
@@ -632,7 +660,6 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
           <Button onClick={handleCloseDetail}>닫기</Button>
         </DialogActions>
       </Dialog>
-
       {/* Employee Leave Log Dialog */}
       <Dialog
         open={employeeDetailOpen}
@@ -657,19 +684,19 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
                     휴가 잔여 현황
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                       <Typography variant="body2" color="text.secondary">총 연차</Typography>
                       <Typography variant="h6">{employeeLeaveLog.balance?.totalAnnualLeave || 0}일</Typography>
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                       <Typography variant="body2" color="text.secondary">사용 연차</Typography>
                       <Typography variant="h6">{employeeLeaveLog.balance?.usedAnnualLeave || 0}일</Typography>
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                       <Typography variant="body2" color="text.secondary">잔여 연차</Typography>
                       <Typography variant="h6">{employeeLeaveLog.balance?.remainingAnnualLeave || 0}일</Typography>
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                       <Typography variant="body2" color="text.secondary">대기중</Typography>
                       <Typography variant="h6">{employeeLeaveLog.balance?.pendingAnnualLeave || 0}일</Typography>
                     </Grid>

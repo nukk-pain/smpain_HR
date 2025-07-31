@@ -173,7 +173,6 @@ const UserProfile: React.FC = () => {
           </Box>
         )}
       </Box>
-
       {/* Profile Summary Card */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -198,7 +197,6 @@ const UserProfile: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
-
       {/* Personal Information */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -208,7 +206,11 @@ const UserProfile: React.FC = () => {
           <Divider sx={{ mb: 3 }} />
           
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="이름"
@@ -220,7 +222,11 @@ const UserProfile: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="생년월일"
@@ -231,7 +237,11 @@ const UserProfile: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="전화번호"
@@ -244,7 +254,6 @@ const UserProfile: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
-
       {/* Work Information */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -254,7 +263,11 @@ const UserProfile: React.FC = () => {
           <Divider sx={{ mb: 3 }} />
           
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="부서"
@@ -262,7 +275,11 @@ const UserProfile: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="직급"
@@ -270,7 +287,11 @@ const UserProfile: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="입사일"
@@ -278,7 +299,11 @@ const UserProfile: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="근무 형태"
@@ -286,7 +311,11 @@ const UserProfile: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="근속년수"
@@ -294,7 +323,11 @@ const UserProfile: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <TextField
                 fullWidth
                 label="연차"
@@ -305,7 +338,6 @@ const UserProfile: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
-
       {editing && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2">

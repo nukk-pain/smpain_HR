@@ -310,7 +310,6 @@ const DepartmentManagement: React.FC = () => {
           )}
         </Box>
       </Box>
-
       <Card sx={{ mb: 3 }}>
         <Tabs 
           value={activeTab} 
@@ -331,12 +330,15 @@ const DepartmentManagement: React.FC = () => {
           />
         </Tabs>
       </Card>
-
       {activeTab === 0 && (
         <Box sx={{ mt: 3 }}>
           <Grid container spacing={3}>
             {/* Departments Overview */}
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -408,7 +410,11 @@ const DepartmentManagement: React.FC = () => {
         </Grid>
 
         {/* Organization Summary */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -417,7 +423,7 @@ const DepartmentManagement: React.FC = () => {
               </Box>
               {organizationChart && (
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={6}>
                     <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                       <Typography variant="h4" color="primary">
                         {organizationChart.summary.totalEmployees}
@@ -425,7 +431,7 @@ const DepartmentManagement: React.FC = () => {
                       <Typography variant="body2">Total Employees</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={6}>
                     <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                       <Typography variant="h4" color="primary">
                         {organizationChart.summary.totalDepartments}
@@ -433,7 +439,7 @@ const DepartmentManagement: React.FC = () => {
                       <Typography variant="body2">Departments</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={6}>
                     <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                       <Typography variant="h4" color="warning.main">
                         {organizationChart.summary.managersCount}
@@ -441,7 +447,7 @@ const DepartmentManagement: React.FC = () => {
                       <Typography variant="body2">Managers</Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={6}>
                     <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                       <Typography variant="h4" color="error.main">
                         {organizationChart.summary.adminCount}
@@ -456,7 +462,7 @@ const DepartmentManagement: React.FC = () => {
         </Grid>
 
         {/* Organization Chart */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>Organization Chart</Typography>
@@ -473,12 +479,11 @@ const DepartmentManagement: React.FC = () => {
           </Grid>
         </Box>
       )}
-
       {activeTab === 1 && (
         <Box sx={{ mt: 3 }}>
           <Grid container spacing={3}>
             {/* Positions Overview */}
-            <Grid item xs={12}>
+            <Grid size={12}>
             <Card>
               <CardContent>
                 {(() => {
@@ -551,7 +556,6 @@ const DepartmentManagement: React.FC = () => {
           </Grid>
         </Box>
       )}
-
       {/* Add Department Dialog */}
       <Dialog open={isDeptDialogOpen} onClose={() => {
         setIsDeptDialogOpen(false);
@@ -562,7 +566,7 @@ const DepartmentManagement: React.FC = () => {
         <DialogTitle>{isEditMode ? 'Edit Department' : 'Add New Department'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Department Name"
@@ -571,7 +575,7 @@ const DepartmentManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Description"
@@ -581,7 +585,7 @@ const DepartmentManagement: React.FC = () => {
                 rows={3}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth>
                 <InputLabel>Manager</InputLabel>
                 <Select
@@ -607,7 +611,6 @@ const DepartmentManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Department Employees Dialog */}
       <Dialog open={isEmployeeDialogOpen} onClose={() => setIsEmployeeDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -617,7 +620,7 @@ const DepartmentManagement: React.FC = () => {
           {selectedDepartment && (
             <Box>
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={3}>
+                <Grid size={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                     <Typography variant="h6" color="primary">
                       {selectedDepartment.summary.totalEmployees}
@@ -625,7 +628,7 @@ const DepartmentManagement: React.FC = () => {
                     <Typography variant="body2">Total</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                     <Typography variant="h6" color="warning.main">
                       {selectedDepartment.summary.managers}
@@ -633,7 +636,7 @@ const DepartmentManagement: React.FC = () => {
                     <Typography variant="body2">Managers</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                     <Typography variant="h6" color="success.main">
                       {selectedDepartment.summary.regular}
@@ -641,7 +644,7 @@ const DepartmentManagement: React.FC = () => {
                     <Typography variant="body2">Regular</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                     <Typography variant="h6" color="info.main">
                       {selectedDepartment.summary.contract}
@@ -691,7 +694,6 @@ const DepartmentManagement: React.FC = () => {
           <Button onClick={() => setIsEmployeeDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
@@ -710,7 +712,6 @@ const DepartmentManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Add/Edit Position Dialog */}
       <Dialog open={isPositionDialogOpen} onClose={() => {
         setIsPositionDialogOpen(false);
@@ -721,7 +722,7 @@ const DepartmentManagement: React.FC = () => {
         <DialogTitle>{isPositionEditMode ? 'Edit Position' : 'Add New Position'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Position Name"
@@ -730,7 +731,7 @@ const DepartmentManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Description"
@@ -740,7 +741,11 @@ const DepartmentManagement: React.FC = () => {
                 rows={3}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <FormControl fullWidth>
                 <InputLabel>Department</InputLabel>
                 <Select
@@ -766,7 +771,6 @@ const DepartmentManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Position Delete Confirmation Dialog */}
       <Dialog open={positionDeleteConfirmOpen} onClose={() => setPositionDeleteConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>

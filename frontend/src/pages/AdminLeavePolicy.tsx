@@ -223,23 +223,25 @@ const AdminLeavePolicy: React.FC = () => {
           </Button>
         </Box>
       </Box>
-
       {hasChanges && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           변경사항이 있습니다. 저장 버튼을 클릭하여 정책을 저장하세요.
         </Alert>
       )}
-
       <Grid container spacing={3}>
         {/* 연차 계산 규칙 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🗓️ 연차 계산 규칙</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 3
+                  }}>
                   <TextField
                     fullWidth
                     label="1년차 기본 연차"
@@ -250,7 +252,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="신입사원 기본 연차"
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 3
+                  }}>
                   <TextField
                     fullWidth
                     label="2년차 이상 기본"
@@ -261,7 +267,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="2년차부터 기본 연차"
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 3
+                  }}>
                   <TextField
                     fullWidth
                     label="최대 연차"
@@ -272,7 +282,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="연차 상한선"
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 3
+                  }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -289,14 +303,18 @@ const AdminLeavePolicy: React.FC = () => {
         </Grid>
 
         {/* 특별 규칙 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">⏰ 특별 규칙</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <TextField
                     fullWidth
                     label="토요일 휴가 계산"
@@ -307,7 +325,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="토요일 휴가시 차감 일수"
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <TextField
                     fullWidth
                     label="일요일 휴가 계산"
@@ -318,7 +340,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="일요일 휴가시 차감 일수"
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <TextField
                     fullWidth
                     label="공휴일 휴가 계산"
@@ -335,19 +361,23 @@ const AdminLeavePolicy: React.FC = () => {
         </Grid>
 
         {/* 휴가 종류별 설정 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🏷️ 휴가 종류별 설정</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <Typography variant="subtitle1" gutterBottom>
                     연차 휴가
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         label="사전 신청 일수"
@@ -358,7 +388,7 @@ const AdminLeavePolicy: React.FC = () => {
                         helperText="몇 일 전에 신청해야 하는지"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         label="최대 연속 일수"
@@ -372,12 +402,16 @@ const AdminLeavePolicy: React.FC = () => {
                   </Grid>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <Typography variant="subtitle1" gutterBottom>
                     경조사 휴가
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -388,7 +422,7 @@ const AdminLeavePolicy: React.FC = () => {
                         label="부서장 승인 필수"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -402,12 +436,16 @@ const AdminLeavePolicy: React.FC = () => {
                   </Grid>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 4
+                  }}>
                   <Typography variant="subtitle1" gutterBottom>
                     개인 휴가
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         label="연간 한도"
@@ -418,7 +456,7 @@ const AdminLeavePolicy: React.FC = () => {
                         helperText="연간 사용 가능한 개인휴가 일수"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -437,14 +475,18 @@ const AdminLeavePolicy: React.FC = () => {
         </Grid>
 
         {/* 업무 규칙 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">💼 업무 규칙</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="최소 사전 신청 일수"
@@ -455,7 +497,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="휴가 신청 최소 사전 통보 일수"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="최대 동시 신청 건수"
@@ -472,14 +518,18 @@ const AdminLeavePolicy: React.FC = () => {
         </Grid>
 
         {/* 이월 규칙 */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🔄 이월 규칙</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="최대 이월 가능 일수"
@@ -490,7 +540,11 @@ const AdminLeavePolicy: React.FC = () => {
                     helperText="전년도에서 이월 가능한 최대 일수"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     label="이월 사용 마감일"
@@ -505,7 +559,6 @@ const AdminLeavePolicy: React.FC = () => {
           </Accordion>
         </Grid>
       </Grid>
-
       {/* 정책 적용 현황 */}
       <Card sx={{ mt: 3 }}>
         <CardContent>
@@ -513,12 +566,20 @@ const AdminLeavePolicy: React.FC = () => {
             📋 정책 적용 현황
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <Typography variant="body2" color="text.secondary">
                 마지막 업데이트: {new Date(policy.updatedAt).toLocaleString('ko-KR')}
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6
+              }}>
               <Typography variant="body2" color="text.secondary">
                 업데이트한 사람: {policy.updatedBy}
               </Typography>

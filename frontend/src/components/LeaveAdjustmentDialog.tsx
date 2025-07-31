@@ -226,13 +226,17 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
         {employeeDetails && employeeDetails.leaveInfo ? (
           <Grid container spacing={3} sx={{ mt: 1 }}>
             {/* 현재 연차 현황 */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="h6" gutterBottom>
                 현재 연차 현황
               </Typography>
               <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       기본 연차
                     </Typography>
@@ -243,7 +247,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       ({employeeDetails?.employee?.yearsOfService || 0}년차)
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       이월 연차
                     </Typography>
@@ -251,7 +259,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       0일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       조정 연차
                     </Typography>
@@ -259,7 +271,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       {employeeDetails?.adjustments?.length || 0}건
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       총 연차
                     </Typography>
@@ -267,7 +283,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       사용 연차
                     </Typography>
@@ -275,7 +295,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       {employeeDetails?.leaveInfo?.totalUsedThisYear || 0}일
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      md: 3
+                    }}>
                     <Typography variant="body2" color="text.secondary">
                       잔여 연차
                     </Typography>
@@ -287,17 +311,21 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
               </Box>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Divider />
             </Grid>
 
             {/* 조정 옵션 */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="h6" gutterBottom>
                 🔧 조정 옵션
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     select
@@ -311,7 +339,11 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                     <MenuItem value="cancel_usage">사용 취소</MenuItem>
                   </TextField>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -321,7 +353,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                     inputProps={{ min: 0, max: 50 }}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <TextField
                     fullWidth
                     label="조정 사유"
@@ -337,7 +369,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
 
             {/* 미리보기 */}
             {amount > 0 && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Alert severity="info">
                   <Typography variant="body2">
                     <strong>조정 미리보기:</strong><br />
@@ -351,7 +383,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
 
             {/* 조정 히스토리 */}
             {(employeeDetails?.adjustments?.length || 0) > 0 && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Typography variant="h6" gutterBottom>
                   조정 히스토리
                 </Typography>
