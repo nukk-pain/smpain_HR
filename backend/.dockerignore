@@ -1,0 +1,60 @@
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+logs
+*.log
+server.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+temp
+uploads/*
+!uploads/.gitkeep
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Test files
+test/
+coverage/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# PM2
+ecosystem.config.js
+
+# Build artifacts
+dist/
+build/

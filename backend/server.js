@@ -1,8 +1,20 @@
-// Load environment variables based on NODE_ENV
+// Load environment variables based on NODE_ENV and environment
 if (process.env.NODE_ENV === 'production') {
-  require('dotenv').config({ path: '.env.production' });
+  // Check if running in Cloud Run (Google Cloud sets this)
+  if (process.env.K_SERVICE) {
+    require('dotenv').config({ path: '.env.cloudrun' });
+    console.log('🌐 Loading Cloud Run configuration');
+  } else {
+    require('dotenv').config({ path: '.env.production' });
+    console.log('🏢 Loading production configuration');
+  }
 } else {
-  require('dotenv').config();
+  // Try .env.development first, then fall back to .env
+  const result = require('dotenv').config({ path: '.env.development' });
+  if (result.error) {
+    require('dotenv').config();
+  }
+  console.log('🔧 Loading development configuration');
 }
 
 const express = require('express');
@@ -37,13 +49,14 @@ const {
 } = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 5455;
+const PORT = process.env.PORT || 8080;
 
 // MongoDB connection setup
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // MongoDB connection string with authentication
-const MONGO_URL = process.env.MONGODB_URL || (isDevelopment 
+// For Atlas, use MONGODB_URI environment variable
+const MONGO_URL = process.env.MONGODB_URI || process.env.MONGODB_URL || (isDevelopment 
   ? 'mongodb://localhost:27017' 
   : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
 );
@@ -51,7 +64,9 @@ const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 
 // Debug logging
 console.log('🔍 Environment:', process.env.NODE_ENV);
+console.log('🔍 MONGODB_URI from env:', process.env.MONGODB_URI?.replace(/:[^:]*@/, ':****@'));
 console.log('🔍 MONGODB_URL from env:', process.env.MONGODB_URL);
+console.log('🔍 Using connection string:', (process.env.MONGODB_URI || process.env.MONGODB_URL || 'fallback')?.replace(/:[^:]*@/, ':****@'));
 console.log('🔍 Using MONGO_URL:', MONGO_URL);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
 const SESSION_NAME = process.env.SESSION_NAME || 'connect.sid';
@@ -115,11 +130,21 @@ const requirePermission = (permission) => {
 
 // Connect to MongoDB
 async function connectDB() {
+  console.log('🚀 Starting MongoDB connection...');
   try {
-    const client = new MongoClient(MONGO_URL);
+    // MongoDB Atlas connection options
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    };
+    
+    const client = new MongoClient(MONGO_URL, connectionOptions);
     await client.connect();
     db = client.db(DB_NAME);
-    console.log(`✅ Connected to MongoDB at ${MONGO_URL}`);
+    
+    // Mask password in connection string for logging
+    const maskedUrl = MONGO_URL.replace(/:[^:]*@/, ':****@');
+    console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
     console.log(`📊 Using database: ${DB_NAME}`);
 
     // Initialize sample data
@@ -467,6 +492,16 @@ async function initializeRoutes() {
   app.use('/api/reports', createReportsRoutes(db));
   app.use('/api/admin', createAdminRoutes(db));
 
+  // Health check endpoint for Cloud Run
+  app.get('/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
   // Error handling middleware
   app.use(errorHandler);
 
@@ -506,7 +541,7 @@ async function startServer() {
   await ensureAdminPermissions();
   await initializeRoutes();
 
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📍 Environment: ${isDevelopment ? 'Development' : 'Production'}`);
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
@@ -514,17 +549,44 @@ async function startServer() {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('🛑 Server shutting down...');
-  process.exit(0);
-});
+let server;
 
-process.on('SIGTERM', () => {
-  console.log('🛑 Server shutting down...');
-  process.exit(0);
-});
+const gracefulShutdown = (signal) => {
+  console.log(`🛑 ${signal} received. Starting graceful shutdown...`);
+  
+  if (server) {
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+      
+      // Close database connection if available
+      if (global.db && global.db.close) {
+        global.db.close(() => {
+          console.log('✅ Database connection closed');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
+    
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.log('⚠️ Forcing shutdown...');
+      process.exit(1);
+    }, 10000);
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Start the application
-startServer().catch(console.error);
+console.log('🏁 Starting server application...');
+startServer().catch(error => {
+  console.error('💥 Server startup failed:', error);
+  process.exit(1);
+});
 
 module.exports = app;

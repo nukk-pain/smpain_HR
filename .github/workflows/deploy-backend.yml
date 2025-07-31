@@ -1,0 +1,159 @@
+# GitHub Actions workflow for deploying HR Backend to Google Cloud Run
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'backend/**', 'cloudbuild.yaml' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'backend/**' ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-northeast3
+  SERVICE_NAME: hr-backend
+
+jobs:
+  # Test job (runs on PRs and pushes)
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd backend
+        npm ci
+        
+    - name: Run tests (if available)
+      run: |
+        cd backend
+        # npm test (uncomment when tests are added)
+        echo "Tests would run here"
+        
+    - name: Build Docker image for testing
+      run: |
+        docker build -t hr-backend-test ./backend
+        
+    - name: Test Docker container
+      run: |
+        # Start container
+        docker run -d -p 8080:8080 \
+          -e MONGODB_URI="mongodb://localhost:27017/test" \
+          -e SESSION_SECRET="test-secret" \
+          --name test-container hr-backend-test
+        
+        # Wait for startup
+        sleep 10
+        
+        # Test health endpoint
+        curl -f http://localhost:8080/health || exit 1
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container
+
+  # Deploy job (runs only on main branch)
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+        
+    - name: Configure Docker for Google Cloud
+      run: |
+        gcloud auth configure-docker
+        
+    - name: Submit build to Cloud Build
+      run: |
+        gcloud builds submit \
+          --config cloudbuild.yaml \
+          --substitutions _REGION=$REGION,_SERVICE_NAME=$SERVICE_NAME
+          
+    - name: Get service URL
+      id: get-url
+      run: |
+        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
+          --region=$REGION \
+          --format='value(status.url)')
+        echo "service-url=$SERVICE_URL" >> $GITHUB_OUTPUT
+        
+    - name: Test deployed service
+      run: |
+        # Wait for deployment to be ready
+        sleep 30
+        
+        # Test health endpoint
+        curl -f ${{ steps.get-url.outputs.service-url }}/health
+        
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ Deployment successful!"
+        echo "🌐 Service URL: ${{ steps.get-url.outputs.service-url }}"
+        
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        exit 1
+
+  # Staging deployment (for develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+        
+    - name: Configure Docker for Google Cloud
+      run: |
+        gcloud auth configure-docker
+        
+    - name: Deploy to staging
+      run: |
+        # Build and deploy to staging service
+        gcloud builds submit \
+          --config cloudbuild.yaml \
+          --substitutions _REGION=$REGION,_SERVICE_NAME=hr-backend-staging
+        
+    - name: Test staging deployment
+      run: |
+        # Get staging URL and test
+        STAGING_URL=$(gcloud run services describe hr-backend-staging \
+          --region=$REGION \
+          --format='value(status.url)')
+        
+        sleep 30
+        curl -f $STAGING_URL/health

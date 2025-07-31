@@ -178,6 +178,11 @@ const corsOptions = {
   origin: function(origin, callback) {
     const allowedOrigins = process.env.NODE_ENV === 'production' 
       ? [
+          // Vercel deployments
+          'https://hr-frontend.vercel.app',
+          'https://hr-frontend-git-main.vercel.app',
+          /^https:\/\/hr-frontend-.*\.vercel\.app$/,
+          // Legacy origins
           'https://hr.smpain.synology.me',
           'http://hr.smpain.synology.me',
           'https://hrbackend.smpain.synology.me',
@@ -185,12 +190,26 @@ const corsOptions = {
           'http://192.168.0.30:8090', // Nginx Proxy Manager
           process.env.FRONTEND_URL
         ].filter(Boolean)
-      : ['http://localhost:3000', 'http://localhost:3727', 'http://localhost:5173'];
+      : [
+          // Development origins
+          'http://localhost:3000', 
+          'http://localhost:3727', 
+          'http://localhost:5173',
+          'http://localhost:8080'
+        ];
     
     // Allow requests with no origin (like mobile apps, Postman)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin matches any allowed origin (including regex patterns)
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -199,7 +218,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
 };
 
 // Security headers middleware

@@ -15,7 +15,7 @@ export default defineConfig({
     port: 3727,
     proxy: {
       '/api': {
-        target: 'http://192.168.0.30:5455',
+        target: process.env.VITE_API_URL || 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       }
@@ -58,11 +58,11 @@ export default defineConfig({
     },
     
     // Optimization settings
-    target: 'es2015',
+    target: 'es2020',
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.log in production
+        drop_console: process.env.NODE_ENV === 'production', // Remove console.log in production only
         drop_debugger: true
       }
     },

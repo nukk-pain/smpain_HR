@@ -47,7 +47,9 @@ export class ApiClient {
   private defaultTimeout: number = 10000;
 
   constructor(baseURL?: string) {
-    this.baseURL = baseURL || (import.meta as any).env.VITE_API_BASE_URL || '/api';
+    // Use environment variable or fallback to local development
+    const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:8080';
+    this.baseURL = baseURL || `${apiUrl}/api`;
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -71,14 +73,14 @@ export class ApiClient {
         }
 
         // Add request logging in development
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
         }
 
         return config;
       },
       (error) => {
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.error('❌ Request Error:', error);
         }
         return Promise.reject(error);
@@ -88,7 +90,7 @@ export class ApiClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.log(`✅ API Response: ${response.status} ${response.config.url}`);
         }
         return response;
@@ -96,7 +98,7 @@ export class ApiClient {
       (error) => {
         const { response, request, message } = error;
 
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.error('❌ API Error:', {
             url: error.config?.url,
             status: response?.status,
