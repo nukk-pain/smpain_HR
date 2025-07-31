@@ -176,12 +176,20 @@ const requestLogger = (req, res, next) => {
 // CORS configuration
 const corsOptions = {
   origin: function(origin, callback) {
+    // ALLOWED_ORIGINS 환경변수가 있으면 사용, 없으면 기본값 사용
+    const customOrigins = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+      : [];
+    
     const allowedOrigins = process.env.NODE_ENV === 'production' 
       ? [
-          // Vercel deployments
+          ...customOrigins,
+          // Vercel deployments - 모든 Vercel preview URL 허용
+          /^https:\/\/.*\.vercel\.app$/,
+          /^https:\/\/.*-.*\.vercel\.app$/,
+          // Production URLs
           'https://hr-frontend.vercel.app',
           'https://hr-frontend-git-main.vercel.app',
-          /^https:\/\/hr-frontend-.*\.vercel\.app$/,
           // Legacy origins
           'https://hr.smpain.synology.me',
           'http://hr.smpain.synology.me',

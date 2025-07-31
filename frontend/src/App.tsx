@@ -5,7 +5,8 @@ import { AuthProvider, useAuth } from './components/AuthProvider'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import PayrollManagement from './pages/PayrollManagement'
+// Lazy load PayrollManagement to reduce bundle size
+const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
 import LeaveManagement from './pages/LeaveManagement'
 import EmployeeLeaveManagement from './pages/EmployeeLeaveManagement'
 import LeaveCalendarPage from './pages/LeaveCalendarPage'
@@ -76,7 +77,9 @@ const AppContent: React.FC = () => {
         
         <Route path="payroll" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <PayrollManagement />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <PayrollManagement />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         

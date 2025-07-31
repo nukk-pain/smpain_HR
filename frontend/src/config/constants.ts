@@ -237,32 +237,60 @@ export const STORAGE_KEYS = {
 // 환경 변수 타입
 export type Environment = 'development' | 'production' | 'test';
 
-// 환경별 설정
+// 환경별 설정 - Vite 환경변수 우선 사용
 export const ENV_CONFIG = {
   development: {
-    API_URL: SERVER_CONFIG.BACKEND_URL,
+    API_URL: import.meta.env.VITE_API_URL || SERVER_CONFIG.BACKEND_URL,
     DEBUG: true,
     LOG_LEVEL: 'debug',
   },
   production: {
-    API_URL: '/api', // 역방향 프록시 사용시 상대 경로
+    API_URL: import.meta.env.VITE_API_URL || '/api', // Vite 환경변수 우선
     DEBUG: false,
     LOG_LEVEL: 'error',
   },
   test: {
-    API_URL: 'http://localhost:5444',
+    API_URL: import.meta.env.VITE_API_URL || 'http://localhost:5444',
     DEBUG: true,
     LOG_LEVEL: 'info',
   },
 } as const;
 
-// 현재 환경 감지
+// 현재 환경 감지 - Vite 환경변수 사용
 export const getCurrentEnvironment = (): Environment => {
-  return (process.env.NODE_ENV as Environment) || 'development';
+  // Vite에서는 import.meta.env.MODE 사용
+  const mode = import.meta.env.MODE;
+  const nodeEnv = import.meta.env.NODE_ENV;
+  
+  // production 모드 확인
+  if (mode === 'production' || nodeEnv === 'production' || import.meta.env.PROD) {
+    return 'production';
+  }
+  
+  // test 모드 확인
+  if (mode === 'test' || nodeEnv === 'test') {
+    return 'test';
+  }
+  
+  // 기본값: development
+  return 'development';
 };
 
 // 현재 환경 설정 가져오기
 export const getEnvConfig = () => {
   const env = getCurrentEnvironment();
-  return ENV_CONFIG[env];
+  const config = ENV_CONFIG[env];
+  
+  // 디버깅용 로그 (프로덕션 포함 - 임시)
+  console.log('🔧 Config Debug:', {
+    currentEnv: env,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    MODE: import.meta.env.MODE,
+    NODE_ENV: import.meta.env.NODE_ENV,
+    PROD: import.meta.env.PROD,
+    DEV: import.meta.env.DEV,
+    resolvedApiUrl: config.API_URL
+  });
+  
+  return config;
 };

@@ -56,8 +56,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // MongoDB connection string with authentication
 // For Atlas, use MONGODB_URI environment variable
-const MONGO_URL = process.env.MONGODB_URI || process.env.MONGODB_URL || (isDevelopment 
-  ? 'mongodb://localhost:27017' 
+const MONGO_URL = process.env.MONGODB_URI || process.env.MONGODB_URL || (isDevelopment
+  ? 'mongodb://localhost:27017'
   : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
 );
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
@@ -98,8 +98,8 @@ const DEFAULT_PERMISSIONS = {
   manager: ['leave:view', 'leave:manage', 'users:view'],
   admin: [
     'users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
-    'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage', 
-    'reports:view', 'files:view', 'files:manage', 'departments:view', 
+    'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
+    'reports:view', 'files:view', 'files:manage', 'departments:view',
     'departments:manage', 'admin:permissions'
   ]
 };
@@ -137,11 +137,11 @@ async function connectDB() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     };
-    
+
     const client = new MongoClient(MONGO_URL, connectionOptions);
     await client.connect();
     db = client.db(DB_NAME);
-    
+
     // Mask password in connection string for logging
     const maskedUrl = MONGO_URL.replace(/:[^:]*@/, ':****@');
     console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
@@ -223,19 +223,19 @@ if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     const allowedOrigins = ['https://hr.smpain.synology.me', 'https://hrbackend.smpain.synology.me'];
-    
+
     if (allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     }
-    
+
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Max-Age', '86400');
       return res.sendStatus(204);
     }
-    
+
     next();
   });
 }
@@ -273,6 +273,9 @@ app.get('/api/health', (_, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
+    deployedAt: process.env.DEPLOYED_AT || new Date().toISOString(),
+    buildId: process.env.BUILD_ID || 'unknown',
+    version: '2025.07.31-cors-fix',
     environment: isDevelopment ? 'development' : 'production',
     database: 'MongoDB',
     dbUrl: MONGO_URL,
@@ -494,8 +497,8 @@ async function initializeRoutes() {
 
   // Health check endpoint for Cloud Run
   app.get('/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'healthy', 
+    res.status(200).json({
+      status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development'
@@ -518,13 +521,13 @@ async function ensureAdminPermissions() {
   try {
     const result = await db.collection('users').updateOne(
       { username: 'admin' },
-      { 
-        $set: { 
-          permissions: DEFAULT_PERMISSIONS.admin 
+      {
+        $set: {
+          permissions: DEFAULT_PERMISSIONS.admin
         }
       }
     );
-    
+
     if (result.modifiedCount > 0) {
       console.log('✅ Admin permissions updated');
     } else {
@@ -553,11 +556,11 @@ let server;
 
 const gracefulShutdown = (signal) => {
   console.log(`🛑 ${signal} received. Starting graceful shutdown...`);
-  
+
   if (server) {
     server.close(() => {
       console.log('✅ HTTP server closed');
-      
+
       // Close database connection if available
       if (global.db && global.db.close) {
         global.db.close(() => {
@@ -568,7 +571,7 @@ const gracefulShutdown = (signal) => {
         process.exit(0);
       }
     });
-    
+
     // Force shutdown after 10 seconds
     setTimeout(() => {
       console.log('⚠️ Forcing shutdown...');

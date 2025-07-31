@@ -1,12 +1,47 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ApiResponse, AuthResponse } from '../types';
+import { getApiUrl } from '../config/env';
 
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
+    // 프로덕션에서 환경변수가 안 되면 하드코딩 사용
+    let apiUrl = '/api'; // 기본값
+    
+    // 환경변수 확인
+    const directApiUrl = import.meta.env.VITE_API_URL;
+    const configApiUrl = getApiUrl();
+    
+    // Vercel 도메인에서는 하드코딩된 백엔드 URL 사용
+    if (window.location.hostname.includes('vercel.app')) {
+      apiUrl = 'https://hr-backend-429401177957.asia-northeast3.run.app/api';
+    } else if (directApiUrl) {
+      apiUrl = directApiUrl;
+    } else if (configApiUrl && configApiUrl !== '/api') {
+      apiUrl = configApiUrl;
+    }
+    
+    // 강제 디버깅 (alert 사용)
+    if (window.location.hostname.includes('vercel.app')) {
+      const debugInfo = `
+        Environment Check:
+        - Direct Env: ${directApiUrl || 'undefined'}
+        - Config Sys: ${configApiUrl || 'undefined'}  
+        - Final URL: ${apiUrl}
+        - MODE: ${import.meta.env.MODE || 'undefined'}
+        - PROD: ${import.meta.env.PROD || 'undefined'}
+      `;
+      console.log('🌐 API Service Debug:', debugInfo);
+      // 첫 로드시 한번만 alert (localStorage로 제어)
+      if (!localStorage.getItem('debug-shown')) {
+        alert(debugInfo);
+        localStorage.setItem('debug-shown', 'true');
+      }
+    }
+    
     this.api = axios.create({
-      baseURL: (import.meta as any).env.VITE_API_BASE_URL || '/api',
+      baseURL: apiUrl,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -80,6 +115,18 @@ class ApiService {
 
   // Authentication
   async login(username: string, password: string): Promise<AuthResponse> {
+    console.log('🔐 Login attempt:', {
+      baseURL: this.api.defaults.baseURL,
+      url: '/auth/login',
+      fullURL: `${this.api.defaults.baseURL}/auth/login`,
+      method: 'POST'
+    });
+    
+    // 강제 alert으로 디버깅
+    if (window.location.hostname.includes('vercel.app')) {
+      alert(`Login URL: ${this.api.defaults.baseURL}/auth/login`);
+    }
+    
     const response = await this.api.post('/auth/login', { username, password });
     return response.data;
   }
