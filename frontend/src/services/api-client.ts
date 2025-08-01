@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import { getValidToken, removeToken } from '../utils/tokenManager';
 
 // Base types
 export interface ApiResponse<T = any> {
@@ -68,7 +69,7 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true,
+      // Removed withCredentials since we're using JWT tokens instead of cookies
     });
 
     this.setupInterceptors();
@@ -78,6 +79,15 @@ export class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
+        // Add JWT token to Authorization header
+        const token = getValidToken();
+        if (token && !(config as any).skipAuth) {
+          if (!config.headers) {
+            config.headers = {};
+          }
+          (config.headers as any).Authorization = `Bearer ${token}`;
+        }
+
         // Add timestamp to prevent caching
         if (config.method === 'get') {
           config.params = { ...config.params, _t: Date.now() };
@@ -86,6 +96,9 @@ export class ApiClient {
         // Add request logging in development
         if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+          if (token) {
+            console.log('🔑 Authorization header added');
+          }
         }
 
         return config;
@@ -124,7 +137,9 @@ export class ApiClient {
 
           switch (status) {
             case 401:
-              // Unauthorized - redirect to login
+              // Unauthorized - clear token and redirect to login
+              console.log('🔄 401 error - clearing token and redirecting to login');
+              removeToken();
               if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
                 window.location.href = '/login';
               }

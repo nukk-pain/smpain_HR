@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User, AuthState } from '../types'
 import apiService from '../services/api'
+import { storeToken, getValidToken, clearAuth, getUserFromToken } from '../utils/tokenManager'
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<boolean>
@@ -73,15 +74,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
+      // First check if we have a valid token
+      const token = getValidToken()
+      
+      if (!token) {
+        // No valid token, user is not authenticated
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+        })
+        setLoading(false)
+        return
+      }
+
+      // We have a valid token, verify with server and get user info
       const response = await apiService.getCurrentUser()
       if (response.authenticated && response.user) {
         setAuthState({
           isAuthenticated: true,
           user: response.user as User,
         })
+      } else {
+        // Server rejected the token, clear it
+        clearAuth()
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+        })
       }
     } catch (error) {
-      // User is not authenticated or session expired
+      // Token verification failed, clear it
+      console.error('Auth check failed:', error)
+      clearAuth()
       setAuthState({
         isAuthenticated: false,
         user: null,
@@ -94,7 +118,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await apiService.login(username, password)
-      if (response.success && response.user) {
+      if (response.success && response.token && response.user) {
+        // Store the JWT token
+        storeToken(response.token)
+        
         // After successful login, get complete user info including calculated fields
         const userResponse = await apiService.getCurrentUser()
         if (userResponse.authenticated && userResponse.user) {
@@ -119,10 +146,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     try {
+      // With JWT, server-side logout is not necessary (tokens are stateless)
+      // But we still call it for any server-side cleanup
       await apiService.logout()
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
+      // Clear JWT token from client storage
+      clearAuth()
       setAuthState({
         isAuthenticated: false,
         user: null,

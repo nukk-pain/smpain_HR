@@ -10,23 +10,23 @@
 
 ## 구현 계획
 
-### Phase 1: 백엔드 JWT 구현 (예상 시간: 1시간)
+### Phase 1: 백엔드 JWT 구현 ✅ 완료
 
-#### 1.1 필요한 패키지 설치
+#### 1.1 필요한 패키지 설치 ✅
 ```bash
 cd backend
 npm install jsonwebtoken
 npm install --save-dev @types/jsonwebtoken
 ```
 
-#### 1.2 JWT 유틸리티 생성
-- `backend/utils/jwt.js` 파일 생성
-- 토큰 생성 함수: `generateToken(user)`
-- 토큰 검증 함수: `verifyToken(token)`
-- 토큰 만료 시간: 24시간
+#### 1.2 JWT 유틸리티 생성 ✅
+- `backend/utils/jwt.js` 파일 생성 ✅
+- 토큰 생성 함수: `generateToken(user)` ✅
+- 토큰 검증 함수: `verifyToken(token)` ✅
+- 토큰 만료 시간: 24시간 ✅
 
-#### 1.3 로그인 엔드포인트 수정
-- `/api/auth/login`에서 세션 대신 JWT 토큰 반환
+#### 1.3 로그인 엔드포인트 수정 ✅
+- `/api/auth/login`에서 세션 대신 JWT 토큰 반환 ✅
 - 응답 형식:
   ```json
   {
@@ -36,44 +36,57 @@ npm install --save-dev @types/jsonwebtoken
   }
   ```
 
-#### 1.4 인증 미들웨어 수정
-- 기존 `requireAuth` 미들웨어를 JWT 검증으로 변경
-- `Authorization: Bearer <token>` 헤더에서 토큰 추출
-- 토큰 검증 후 `req.user`에 사용자 정보 저장
+#### 1.4 인증 미들웨어 수정 ✅
+- 기존 `requireAuth` 미들웨어를 JWT 검증으로 변경 ✅
+- `Authorization: Bearer <token>` 헤더에서 토큰 추출 ✅
+- 토큰 검증 후 `req.user`에 사용자 정보 저장 ✅
 
-#### 1.5 기타 엔드포인트 수정
-- `/api/auth/me`: JWT 토큰 기반으로 사용자 정보 반환
-- `/api/auth/logout`: 클라이언트 측에서 토큰 삭제 (서버 작업 불필요)
+#### 1.5 기타 엔드포인트 수정 ✅
+- `/api/auth/me`: JWT 토큰 기반으로 사용자 정보 반환 ✅
+- `/api/auth/logout`: 클라이언트 측에서 토큰 삭제 (서버 작업 불필요) ✅
+- `server.js`의 requirePermission 함수 JWT 기반으로 수정 ✅
+- `middleware/permissions.js` 파일 JWT 기반으로 수정 ✅
 
-### Phase 2: 프론트엔드 토큰 관리 (예상 시간: 1시간)
+### Phase 2: 프론트엔드 토큰 관리 ✅ 완료
 
-#### 2.1 토큰 저장소 구현
-- `frontend/src/utils/tokenManager.ts` 생성
-- localStorage에 토큰 저장/조회/삭제
-- 토큰 만료 확인 로직
+#### 2.1 토큰 저장소 구현 ✅
+- `frontend/src/utils/tokenManager.ts` 생성 ✅
+- localStorage에 토큰 저장/조회/삭제 ✅
+- 토큰 만료 확인 로직 ✅
 
-#### 2.2 API 서비스 수정
-- `frontend/src/services/api.ts` 수정
-- axios interceptor에서 모든 요청에 Authorization 헤더 추가
-- 401 응답 시 토큰 삭제 및 로그인 페이지로 리다이렉트
+#### 2.2 API 서비스 수정 ✅
+- `frontend/src/services/api-client.ts` 수정 ✅
+- axios interceptor에서 모든 요청에 Authorization 헤더 추가 ✅
+- 401 응답 시 토큰 삭제 및 로그인 페이지로 리다이렉트 ✅
+- withCredentials 제거 (쿠키 대신 JWT 사용) ✅
 
-#### 2.3 AuthProvider 수정
-- 로그인 시 토큰 저장
-- 페이지 로드 시 토큰 확인
-- 로그아웃 시 토큰 삭제
+#### 2.3 AuthProvider 수정 ✅
+- 로그인 시 토큰 저장 ✅
+- 페이지 로드 시 토큰 확인 ✅
+- 로그아웃 시 토큰 삭제 ✅
+- JWT 기반 인증 상태 체크 ✅
 
-### Phase 3: 테스트 및 정리 (예상 시간: 30분)
+### Phase 3: 테스트 및 정리 🔄 진행중
 
-#### 3.1 기능 테스트
-- 로그인/로그아웃 테스트
-- 페이지 새로고침 후 인증 상태 유지
-- API 호출 시 인증 확인
-- 토큰 만료 처리
+#### 3.1 기능 테스트 🔄
+- 로그인/로그아웃 테스트 (배포 후 테스트 예정)
+- 페이지 새로고침 후 인증 상태 유지 (배포 후 테스트 예정)
+- API 호출 시 인증 확인 (배포 후 테스트 예정)
+- 토큰 만료 처리 (배포 후 테스트 예정)
 
-#### 3.2 세션 관련 코드 정리
-- MongoDB 세션 스토어 제거
-- express-session 미들웨어 제거
-- 불필요한 세션 관련 코드 정리
+#### 3.2 세션 관련 코드 정리 ⏸️
+- MongoDB 세션 스토어 제거 (JWT 테스트 완료 후)
+- express-session 미들웨어 제거 (JWT 테스트 완료 후)
+- 불필요한 세션 관련 코드 정리 (JWT 테스트 완료 후)
+
+#### 3.3 배포 필요사항
+**백엔드 배포 (Google Cloud Run):**
+- JWT 변경사항이 포함된 백엔드 코드 배포 필요
+- 환경변수 확인: JWT_SECRET 설정 필요
+
+**프론트엔드 배포 (Vercel):**
+- JWT 토큰 관리가 포함된 프론트엔드 코드 배포 필요
+- AuthProvider, API client, tokenManager 변경사항 반영 필요
 
 ### Phase 4: 보안 강화 (선택 사항)
 
