@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { AgGridReact } from 'ag-grid-react'
-import { ColDef, GridReadyEvent, CellValueChangedEvent } from 'ag-grid-community'
-import { Box, Paper, Button, IconButton, Tooltip } from '@mui/material'
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid'
+import { Box, Paper, Button, IconButton, Tooltip, TextField } from '@mui/material'
 import { Edit, Save, Cancel, Download } from '@mui/icons-material'
 import { MonthlyPayment, User } from '@/types'
 import apiService from '@/services/api'
 import { useNotification } from './NotificationProvider'
-import 'ag-grid-community/styles/ag-grid.css'
-import 'ag-grid-community/styles/ag-theme-alpine.css'
 
 interface PayrollGridProps {
   yearMonth: string
@@ -15,6 +12,7 @@ interface PayrollGridProps {
 }
 
 interface PayrollRowData extends MonthlyPayment {
+  id: string // MUI DataGrid requires an id field
   employeeName: string
   department: string
   isEditing?: boolean
@@ -32,56 +30,57 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     return `${Number(params.value).toLocaleString()}원`
   }
 
-  // Editable cell renderer
-  const EditableCellRenderer = (props: any) => {
-    const [value, setValue] = useState(props.value || 0)
-    const isEditing = editingRows.has(props.node.data.id)
+  // Editable cell renderer for MUI DataGrid
+  const EditableCellRenderer = (params: GridRenderCellParams) => {
+    const [value, setValue] = useState(params.value || 0)
+    const isEditing = editingRows.has(params.row.id)
 
     useEffect(() => {
-      setValue(props.value || 0)
-    }, [props.value])
+      setValue(params.value || 0)
+    }, [params.value])
 
     if (!isEditing) {
-      return currencyFormatter(props)
+      return currencyFormatter({ value: params.value })
     }
 
     return (
-      <input
+      <TextField
         type="number"
         value={value}
         onChange={(e) => setValue(Number(e.target.value))}
         onBlur={() => {
-          props.node.setDataValue(props.colDef.field, value)
+          // Update the row data
+          const updatedRows = rowData.map(row => 
+            row.id === params.row.id 
+              ? { ...row, [params.field]: value }
+              : row
+          )
+          setRowData(updatedRows)
         }}
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          outline: 'none',
-          padding: '4px',
-        }}
+        size="small"
+        sx={{ width: '100%' }}
       />
     )
   }
 
-  // Action cell renderer
-  const ActionCellRenderer = (props: any) => {
-    const isEditing = editingRows.has(props.data.id)
+  // Action cell renderer for MUI DataGrid
+  const ActionCellRenderer = (params: GridRenderCellParams) => {
+    const isEditing = editingRows.has(params.row.id)
 
     const handleEdit = () => {
-      setEditingRows(prev => new Set(prev).add(props.data.id))
+      setEditingRows(prev => new Set(prev).add(params.row.id))
     }
 
     const handleSave = async () => {
       try {
         await apiService.updatePayroll({
-          employee_id: props.data.employee_id,
+          employee_id: params.row.employee_id,
           year_month: yearMonth,
-          base_salary: props.data.base_salary,
+          base_salary: params.row.base_salary,
         })
         setEditingRows(prev => {
           const newSet = new Set(prev)
-          newSet.delete(props.data.id)
+          newSet.delete(params.row.id)
           return newSet
         })
         showSuccess('급여 정보가 저장되었습니다')
@@ -94,7 +93,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     const handleCancel = () => {
       setEditingRows(prev => {
         const newSet = new Set(prev)
-        newSet.delete(props.data.id)
+        newSet.delete(params.row.id)
         return newSet
       })
       // Refresh data to reset changes
@@ -127,112 +126,124 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     )
   }
 
-  // Column definitions
-  const columnDefs: ColDef[] = useMemo(() => [
+  // Column definitions for MUI DataGrid
+  const columns: GridColDef[] = useMemo(() => [
     {
-      headerName: '직원명',
       field: 'employeeName',
+      headerName: '직원명',
       width: 120,
-      pinned: 'left',
-      cellStyle: { fontWeight: 'bold' }
+      renderCell: (params) => (
+        <Box sx={{ fontWeight: 'bold' }}>{params.value}</Box>
+      )
     },
     {
-      headerName: '부서',
       field: 'department',
+      headerName: '부서',
       width: 100,
     },
     {
-      headerName: '기본급',
       field: 'base_salary',
+      headerName: '기본급',
       width: 130,
-      type: 'numericColumn',
-      cellRenderer: EditableCellRenderer,
-      editable: false, // Handled by custom renderer
+      type: 'number',
+      renderCell: EditableCellRenderer,
     },
     {
-      headerName: '인센티브',
       field: 'incentive',
+      headerName: '인센티브',
       width: 130,
-      type: 'numericColumn',
-      valueFormatter: currencyFormatter,
-      cellStyle: { backgroundColor: '#e3f2fd' }
+      type: 'number',
+      valueFormatter: (params) => currencyFormatter({ value: params.value }),
+      renderCell: (params) => (
+        <Box sx={{ backgroundColor: '#e3f2fd', width: '100%', p: 1 }}>
+          {currencyFormatter({ value: params.value })}
+        </Box>
+      )
     },
     {
-      headerName: '상여금',
       field: 'bonus_total',
+      headerName: '상여금',
       width: 120,
-      type: 'numericColumn',
-      valueFormatter: currencyFormatter,
-      cellStyle: { backgroundColor: '#f3e5f5' }
+      type: 'number',
+      renderCell: (params) => (
+        <Box sx={{ backgroundColor: '#f3e5f5', width: '100%', p: 1 }}>
+          {currencyFormatter({ value: params.value })}
+        </Box>
+      )
     },
     {
-      headerName: '포상금',
       field: 'award_total',
+      headerName: '포상금',
       width: 120,
-      type: 'numericColumn',
-      valueFormatter: currencyFormatter,
-      cellStyle: { backgroundColor: '#e8f5e8' }
+      type: 'number',
+      renderCell: (params) => (
+        <Box sx={{ backgroundColor: '#e8f5e8', width: '100%', p: 1 }}>
+          {currencyFormatter({ value: params.value })}
+        </Box>
+      )
     },
     {
-      headerName: '총액',
       field: 'input_total',
+      headerName: '총액',
       width: 140,
-      type: 'numericColumn',
-      valueFormatter: currencyFormatter,
-      cellStyle: { 
-        backgroundColor: '#fff3e0',
-        fontWeight: 'bold',
-        color: '#e65100'
-      }
+      type: 'number',
+      renderCell: (params) => (
+        <Box sx={{ 
+          backgroundColor: '#fff3e0',
+          fontWeight: 'bold',
+          color: '#e65100',
+          width: '100%',
+          p: 1
+        }}>
+          {currencyFormatter({ value: params.value })}
+        </Box>
+      )
     },
     {
-      headerName: '실제 지급액',
       field: 'actual_payment',
+      headerName: '실제 지급액',
       width: 140,
-      type: 'numericColumn',
-      valueFormatter: currencyFormatter,
-      cellStyle: (params) => {
-        if (params.value == null) return { color: '#999' }
-        return { backgroundColor: '#f1f8e9' }
-      }
+      type: 'number',
+      renderCell: (params) => (
+        <Box sx={{ 
+          backgroundColor: params.value == null ? 'transparent' : '#f1f8e9',
+          color: params.value == null ? '#999' : 'inherit',
+          width: '100%',
+          p: 1
+        }}>
+          {currencyFormatter({ value: params.value })}
+        </Box>
+      )
     },
     {
-      headerName: '차이',
       field: 'difference',
+      headerName: '차이',
       width: 120,
-      type: 'numericColumn',
-      valueFormatter: (params) => {
-        if (params.value == null) return '-'
+      type: 'number',
+      renderCell: (params) => {
+        if (params.value == null) return <Box sx={{ color: '#999' }}>-</Box>
         const value = Number(params.value)
         const formatted = `${Math.abs(value).toLocaleString()}원`
-        return value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : '0원'
-      },
-      cellStyle: (params) => {
-        if (params.value == null) return { color: '#999' }
-        const value = Number(params.value)
-        if (value > 0) return { color: '#2e7d32', fontWeight: 'bold' }
-        if (value < 0) return { color: '#d32f2f', fontWeight: 'bold' }
-        return { color: '#666' }
+        const displayValue = value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : '0원'
+        const color = value > 0 ? '#2e7d32' : value < 0 ? '#d32f2f' : '#666'
+        
+        return (
+          <Box sx={{ color, fontWeight: 'bold' }}>
+            {displayValue}
+          </Box>
+        )
       }
     },
     {
-      headerName: '작업',
       field: 'actions',
+      headerName: '작업',
       width: 100,
-      cellRenderer: ActionCellRenderer,
+      renderCell: ActionCellRenderer,
       sortable: false,
-      filter: false,
-      pinned: 'right'
+      filterable: false,
     }
   ], [editingRows])
 
-  // Default column definition
-  const defaultColDef: ColDef = {
-    sortable: true,
-    filter: true,
-    resizable: true,
-    flex: 0,
-  }
 
   // Load payroll data
   const loadData = useCallback(async () => {
@@ -240,8 +251,9 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     try {
       const response = await apiService.getMonthlyPayments(yearMonth)
       if (response.success && response.data) {
-        const transformedData: PayrollRowData[] = response.data.map((payment: MonthlyPayment) => ({
+        const transformedData: PayrollRowData[] = response.data.map((payment: MonthlyPayment, index: number) => ({
           ...payment,
+          id: payment._id || `row-${index}`, // MUI DataGrid requires unique id
           employeeName: payment.employee?.full_name || payment.employee?.username || 'Unknown',
           department: payment.employee?.department || '-',
         }))
@@ -268,10 +280,6 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     loadData()
   }, [loadData])
 
-  // Grid ready event
-  const onGridReady = (params: GridReadyEvent) => {
-    params.api.sizeColumnsToFit()
-  }
 
   // Export to Excel
   const handleExportExcel = () => {
@@ -336,19 +344,26 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
             </Box>
           </Box>
         ) : (
-          <AgGridReact
-            rowData={rowData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            onGridReady={onGridReady}
+          <DataGrid
+            rows={rowData}
+            columns={columns}
             loading={loading}
-            pagination={true}
-            paginationPageSize={20}
-            domLayout="normal"
-            suppressRowClickSelection={true}
-            rowSelection="multiple"
-            animateRows={true}
-            suppressCellFocus={true}
+            pageSizeOptions={[10, 20, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 20 } },
+            }}
+            checkboxSelection
+            disableRowSelectionOnClick
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell': {
+                borderBottom: '1px solid #e0e0e0',
+              },
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: '#f5f5f5',
+                borderBottom: '2px solid #e0e0e0',
+              },
+            }}
           />
         )}
       </Box>

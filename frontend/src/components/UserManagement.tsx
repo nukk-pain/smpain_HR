@@ -39,13 +39,13 @@ import {
   Security as PermissionsIcon,
 } from '@mui/icons-material';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
+import { ColDef, GridApi, GridReadyEvent } from '@ag-grid-community/core';
 import { User, UserForm, Department, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { useAuth } from './AuthProvider';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+import '@ag-grid-community/styles/ag-grid.css';
+import '@ag-grid-community/styles/ag-theme-material.css';
 
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useAuth();

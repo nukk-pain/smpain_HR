@@ -21,10 +21,15 @@
   "license": "ISC",
   "description": "Modern React frontend for HR and payroll management system",
   "dependencies": {
+    "@ag-grid-community/client-side-row-model": "^32.3.5",
+    "@ag-grid-community/core": "^32.3.5",
+    "@ag-grid-community/csv-export": "^32.3.5",
+    "@ag-grid-community/styles": "^32.3.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
+    "@mui/x-data-grid": "^8.9.1",
     "@mui/x-date-pickers": "^8.7.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
@@ -40,6 +45,7 @@
   "devDependencies": {
     "@types/node": "^24.0.10",
     "@vitejs/plugin-react": "^4.6.0",
+    "rollup-plugin-visualizer": "^6.0.3",
     "terser": "^5.43.1",
     "typescript": "^5.8.3",
     "vite": "^7.0.2"

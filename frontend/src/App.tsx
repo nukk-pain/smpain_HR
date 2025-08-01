@@ -5,19 +5,20 @@ import { AuthProvider, useAuth } from './components/AuthProvider'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-// Lazy load PayrollManagement to reduce bundle size
-const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
-import LeaveManagement from './pages/LeaveManagement'
-import EmployeeLeaveManagement from './pages/EmployeeLeaveManagement'
-import LeaveCalendarPage from './pages/LeaveCalendarPage'
-import TeamLeaveStatusPage from './pages/TeamLeaveStatusPage'
-import UserManagementPage from './pages/UserManagementPage'
-import DepartmentManagementPage from './pages/DepartmentManagementPage'
-import Reports from './pages/Reports'
-import FileManagement from './pages/FileManagement'
-import AdminLeaveOverview from './pages/AdminLeaveOverview'
-import AdminLeavePolicy from './pages/AdminLeavePolicy'
 import UserProfile from './pages/UserProfile'
+
+// Lazy load heavy components to reduce initial bundle size
+const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
+const LeaveManagement = React.lazy(() => import('./pages/LeaveManagement'))
+const EmployeeLeaveManagement = React.lazy(() => import('./pages/EmployeeLeaveManagement'))
+const LeaveCalendarPage = React.lazy(() => import('./pages/LeaveCalendarPage'))
+const TeamLeaveStatusPage = React.lazy(() => import('./pages/TeamLeaveStatusPage'))
+const UserManagementPage = React.lazy(() => import('./pages/UserManagementPage'))
+const DepartmentManagementPage = React.lazy(() => import('./pages/DepartmentManagementPage'))
+const Reports = React.lazy(() => import('./pages/Reports'))
+const FileManagement = React.lazy(() => import('./pages/FileManagement'))
+const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview'))
+const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
@@ -83,51 +84,77 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="leave" element={<LeaveManagement />} />
+        <Route path="leave" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <LeaveManagement />
+          </React.Suspense>
+        } />
         
         <Route path="employee-leave" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <EmployeeLeaveManagement />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <EmployeeLeaveManagement />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="leave-calendar" element={<LeaveCalendarPage />} />
+        <Route path="leave-calendar" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <LeaveCalendarPage />
+          </React.Suspense>
+        } />
         
-        <Route path="team-leave-status" element={<TeamLeaveStatusPage />} />
+        <Route path="team-leave-status" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <TeamLeaveStatusPage />
+          </React.Suspense>
+        } />
         
         <Route path="users" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <UserManagementPage />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <UserManagementPage />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
         <Route path="departments" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <DepartmentManagementPage />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <DepartmentManagementPage />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
         <Route path="reports" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <Reports />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <Reports />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
         <Route path="files" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
-            <FileManagement />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <FileManagement />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
         <Route path="admin/leave-overview" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminLeaveOverview />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminLeaveOverview />
+            </React.Suspense>
           </ProtectedRoute>
         } />
         
         <Route path="admin/leave-policy" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminLeavePolicy />
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminLeavePolicy />
+            </React.Suspense>
           </ProtectedRoute>
         } />
       </Route>

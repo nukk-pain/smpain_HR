@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -8,7 +9,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      visualizer({
+        filename: 'dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true
+      })
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
@@ -17,13 +26,14 @@ export default defineConfig(({ mode }) => {
 
     server: {
       port: 3727,
-      proxy: {
-        '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8080',
-          changeOrigin: true,
-          secure: false,
-        }
-      },
+      // 프록시 대신 직접 API 호출 사용 (CORS 설정이 백엔드에서 처리됨)
+      // proxy: {
+      //   '/api': {
+      //     target: env.VITE_API_URL || 'https://hr-backend-429401177957.asia-northeast3.run.app',
+      //     changeOrigin: true,
+      //     secure: true,
+      //   }
+      // },
       // Performance optimization for development
       hmr: {
         overlay: false
@@ -37,23 +47,41 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            // Vendor chunks
-            vendor: ['react', 'react-dom'],
-            mui: ['@mui/material', '@mui/icons-material', '@mui/system'],
-            routing: ['react-router-dom'],
-            utils: ['date-fns', 'axios'],
-
-            // Feature-based chunks
-            payroll: [
-              './src/components/PayrollGrid.tsx',
+            // Framework chunks (separated for better caching)
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'mui-core': ['@mui/material', '@mui/system'],
+            'mui-icons': ['@mui/icons-material'],
+            
+            // Utility chunks
+            'date-utils': ['date-fns'],
+            'http-client': ['axios'],
+            
+            // MUI DataGrid (lighter alternative to AG-Grid)
+            'mui-data-grid': ['@mui/x-data-grid'],
+            
+            // Feature-specific chunks (more granular)
+            'payroll-core': [
               './src/components/PayrollDashboard.tsx',
-              './src/pages/PayrollManagement.tsx'
+              './src/components/IncentiveCalculator.tsx'
             ],
-            user: [
+            'payroll-grid': ['./src/components/PayrollGrid.tsx'],
+            'payroll-pages': ['./src/pages/PayrollManagement.tsx'],
+            
+            // User management features
+            'user-management': [
               './src/components/UserManagement.tsx',
               './src/pages/UserManagementPage.tsx'
             ],
-            file: [
+            
+            // Leave management features
+            'leave-management': [
+              './src/pages/LeaveManagement.tsx',
+              './src/pages/EmployeeLeaveManagement.tsx',
+              './src/components/TeamLeaveStatus.tsx'
+            ],
+            
+            // File management
+            'file-management': [
               './src/components/FileUpload.tsx',
               './src/pages/FileManagement.tsx'
             ]

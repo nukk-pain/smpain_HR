@@ -196,14 +196,31 @@ const corsOptions = {
           'https://hrbackend.smpain.synology.me',
           'http://192.168.0.30:3727',
           'http://192.168.0.30:8090', // Nginx Proxy Manager
+          // Development origins (for production backend with dev frontend)
+          'http://localhost:3000', 
+          'http://localhost:3727', 
+          'http://localhost:3728', 
+          'http://localhost:5173',
+          'http://localhost:8080',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3727', 
+          'http://127.0.0.1:3728',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:8080',
           process.env.FRONTEND_URL
         ].filter(Boolean)
       : [
           // Development origins
           'http://localhost:3000', 
           'http://localhost:3727', 
+          'http://localhost:3728', // 추가 포트
           'http://localhost:5173',
-          'http://localhost:8080'
+          'http://localhost:8080',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3727', 
+          'http://127.0.0.1:3728', // 127.0.0.1 주소 추가
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:8080'
         ];
     
     // Allow requests with no origin (like mobile apps, Postman)

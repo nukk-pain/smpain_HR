@@ -6,9 +6,15 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.tsx'
 import { initializeConfig } from '@/config'
 
-// AG Grid 모듈 등록
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
-ModuleRegistry.registerModules([AllCommunityModule])
+// AG Grid 모듈 등록 (필요한 모듈만)
+import { ModuleRegistry } from '@ag-grid-community/core'
+import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
+import { CsvExportModule } from '@ag-grid-community/csv-export'
+
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  CsvExportModule
+])
 
 // 설정 초기화
 initializeConfig()

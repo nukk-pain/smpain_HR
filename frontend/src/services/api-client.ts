@@ -47,9 +47,15 @@ export class ApiClient {
   private defaultTimeout: number = 10000;
 
   constructor(baseURL?: string) {
-    // Use environment variable or fallback to local development
-    const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:8080';
-    this.baseURL = baseURL || `${apiUrl}/api`;
+    // Use environment variable or fallback to production backend
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://hr-backend-ykuw7bpq7a-du.a.run.app';
+    
+    // apiUrl이 이미 /api를 포함하고 있는지 확인
+    const finalUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+    this.baseURL = baseURL || finalUrl;
+    
+    // 디버깅
+    console.log('🔧 API Client URL:', this.baseURL);
     
     this.client = axios.create({
       baseURL: this.baseURL,
