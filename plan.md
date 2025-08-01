@@ -1,121 +1,113 @@
-# HR 시스템 배포 문제 해결 계획
+# JWT 토큰 기반 인증 전환 계획
 
 ## 현재 상태
-- Frontend: Vercel 배포 (https://smpain-hr.vercel.app)
-- Backend: Google Cloud Run 배포 (https://hr-backend-429401177957.asia-northeast3.run.app)
-- Database: MongoDB Atlas
+- **문제**: 세션 기반 인증이 크로스 도메인 쿠키 문제로 작동하지 않음
+- **원인**: Vercel (프론트엔드)와 Cloud Run (백엔드)가 다른 도메인
+- **증상**: 로그인은 성공하지만 쿠키가 저장되지 않아 인증 상태 유지 불가
 
-## 발견된 문제점
+## 목표
+세션 기반 인증을 JWT 토큰 기반으로 전환하여 크로스 도메인 문제 해결
 
-### 1. 심각한 문제 (즉시 해결 필요)
-1. **세션 쿠키 설정 문제**
-   - 현재: `sameSite='none'`, `domain=undefined`
-   - 문제: 크로스 도메인 인증 실패 가능
-   - 위치: `backend/server.js:260-266`
+## 구현 계획
 
-2. **하드코딩된 API URL**
-   - 현재: 구버전 백엔드 URL이 하드코딩됨
-   - 위치: `frontend/src/services/api-client.ts:51`
+### Phase 1: 백엔드 JWT 구현 (예상 시간: 1시간)
 
-### 2. 중간 문제
-3. **favicon 404 오류**
-   - 현재: index.html이 존재하지 않는 `/vite.svg` 참조
-   - 위치: `frontend/index.html:5`
+#### 1.1 필요한 패키지 설치
+```bash
+cd backend
+npm install jsonwebtoken
+npm install --save-dev @types/jsonwebtoken
+```
 
-4. **구 도메인 참조**
-   - 여러 파일에 `smpain.synology.me` 도메인 잔존
-   - 유지보수 혼란 야기
+#### 1.2 JWT 유틸리티 생성
+- `backend/utils/jwt.js` 파일 생성
+- 토큰 생성 함수: `generateToken(user)`
+- 토큰 검증 함수: `verifyToken(token)`
+- 토큰 만료 시간: 24시간
 
-### 3. 성능 최적화 (이미 일부 완료)
-5. **번들 크기 최적화**
-   - 현재: 일부 최적화 완료
-   - 추가 개선 가능
+#### 1.3 로그인 엔드포인트 수정
+- `/api/auth/login`에서 세션 대신 JWT 토큰 반환
+- 응답 형식:
+  ```json
+  {
+    "success": true,
+    "token": "jwt.token.here",
+    "user": { ... }
+  }
+  ```
 
-## 해결 순서 및 작업 계획
+#### 1.4 인증 미들웨어 수정
+- 기존 `requireAuth` 미들웨어를 JWT 검증으로 변경
+- `Authorization: Bearer <token>` 헤더에서 토큰 추출
+- 토큰 검증 후 `req.user`에 사용자 정보 저장
 
-### Phase 1: 긴급 수정 (인증 문제 해결)
-**목표**: 로그인 후 세션 유지 문제 해결
+#### 1.5 기타 엔드포인트 수정
+- `/api/auth/me`: JWT 토큰 기반으로 사용자 정보 반환
+- `/api/auth/logout`: 클라이언트 측에서 토큰 삭제 (서버 작업 불필요)
 
-1. **세션 쿠키 도메인 설정 수정**
-   ```javascript
-   // backend/server.js
-   cookie: {
-     secure: process.env.NODE_ENV === 'production',
-     httpOnly: true,
-     maxAge: SESSION_MAX_AGE,
-     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-     domain: process.env.COOKIE_DOMAIN || undefined // 환경변수로 관리
-   }
-   ```
+### Phase 2: 프론트엔드 토큰 관리 (예상 시간: 1시간)
 
-2. **환경변수 추가**
-   - `.env.cloudrun`에 `COOKIE_DOMAIN` 추가 검토
-   - 현재는 undefined로 두는 것이 더 안전할 수 있음
+#### 2.1 토큰 저장소 구현
+- `frontend/src/utils/tokenManager.ts` 생성
+- localStorage에 토큰 저장/조회/삭제
+- 토큰 만료 확인 로직
 
-### Phase 2: API 연결 안정화
-**목표**: 프론트엔드-백엔드 연결 신뢰성 향상
+#### 2.2 API 서비스 수정
+- `frontend/src/services/api.ts` 수정
+- axios interceptor에서 모든 요청에 Authorization 헤더 추가
+- 401 응답 시 토큰 삭제 및 로그인 페이지로 리다이렉트
 
-3. **하드코딩된 API URL 제거**
-   ```typescript
-   // frontend/src/services/api-client.ts
-   // 구버전 URL 제거하고 환경변수만 사용
-   ```
+#### 2.3 AuthProvider 수정
+- 로그인 시 토큰 저장
+- 페이지 로드 시 토큰 확인
+- 로그아웃 시 토큰 삭제
 
-4. **API URL 설정 로직 개선**
-   - 폴백 URL 제거
-   - 환경변수 검증 강화
+### Phase 3: 테스트 및 정리 (예상 시간: 30분)
 
-### Phase 3: 사용자 경험 개선
-**목표**: 404 오류 및 UI 문제 해결
+#### 3.1 기능 테스트
+- 로그인/로그아웃 테스트
+- 페이지 새로고침 후 인증 상태 유지
+- API 호출 시 인증 확인
+- 토큰 만료 처리
 
-5. **Favicon 문제 해결**
-   - Option 1: 간단한 favicon.ico 생성
-   - Option 2: favicon 참조 완전 제거
+#### 3.2 세션 관련 코드 정리
+- MongoDB 세션 스토어 제거
+- express-session 미들웨어 제거
+- 불필요한 세션 관련 코드 정리
 
-6. **Vercel 라우팅 검증**
-   - 이미 수정됨, 배포 후 테스트 필요
+### Phase 4: 보안 강화 (선택 사항)
 
-### Phase 4: 코드 정리
-**목표**: 기술 부채 감소
+#### 4.1 Refresh Token 구현
+- Access Token (15분) + Refresh Token (7일)
+- 토큰 갱신 엔드포인트 추가
 
-7. **구 도메인 참조 정리**
-   - 전체 코드베이스에서 `smpain.synology.me` 검색 및 제거
-   - 환경변수로 대체
+#### 4.2 토큰 블랙리스트
+- 로그아웃한 토큰 무효화
+- Redis 캐시 활용
 
-8. **불필요한 console.log 제거**
-   - 프로덕션 빌드에서 console 문 제거 설정 활성화
+## 기술 스택
+- **백엔드**: jsonwebtoken 라이브러리
+- **프론트엔드**: localStorage (또는 sessionStorage)
+- **보안**: HTTPS 필수, httpOnly 쿠키 대신 Authorization 헤더 사용
 
-### Phase 5: 모니터링 및 검증
-**목표**: 배포 후 안정성 확인
+## 장점
+1. **크로스 도메인 문제 해결**: 쿠키에 의존하지 않음
+2. **확장성**: 서버 측 세션 저장소 불필요
+3. **모바일 지원**: 동일한 인증 방식 사용 가능
+4. **마이크로서비스 친화적**: 상태 비저장 아키텍처
 
-9. **배포 후 테스트 체크리스트**
-   - [ ] 로그인 기능 정상 작동
-   - [ ] 세션 유지 (페이지 새로고침 후)
-   - [ ] API 호출 정상 작동
-   - [ ] 파일 업로드/다운로드
-   - [ ] 모든 페이지 라우팅
-
-10. **모니터링 설정**
-    - Cloud Run 로그 확인
-    - Vercel Analytics 확인
-
-## 예상 소요 시간
-- Phase 1-2: 30분 (긴급)
-- Phase 3-4: 1시간
-- Phase 5: 지속적 모니터링
-
-## 성공 지표
-1. 로그인 후 세션 유지됨
-2. 404 오류 없음
-3. 모든 API 호출 성공
-4. 페이지 로딩 시간 < 3초
-
-## 위험 요소
-1. 세션 쿠키 설정 변경 시 기존 사용자 로그아웃 가능
-2. CORS 설정 변경 시 일시적 연결 불가 가능
-3. 캐시로 인한 구버전 자산 로딩
+## 주의사항
+1. **XSS 취약점**: localStorage는 JavaScript로 접근 가능하므로 XSS 공격에 주의
+2. **토큰 탈취**: HTTPS 필수, 토큰 만료 시간 적절히 설정
+3. **로그아웃**: 서버 측에서 토큰을 무효화할 수 없음 (블랙리스트 구현 필요)
 
 ## 롤백 계획
 1. Git 이전 커밋으로 복원
-2. Cloud Run 이전 리비전으로 롤백
-3. Vercel 이전 배포로 롤백
+2. 세션 기반 인증 코드 백업
+3. 환경변수만 변경하여 전환 가능하도록 구현
+
+## 예상 총 소요 시간
+- 구현: 2.5시간
+- 테스트: 30분
+- 배포: 30분
+- **총 3시간**
