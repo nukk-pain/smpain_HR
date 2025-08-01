@@ -47,8 +47,13 @@ export class ApiClient {
   private defaultTimeout: number = 10000;
 
   constructor(baseURL?: string) {
-    // Use environment variable or fallback to production backend
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://hr-backend-ykuw7bpq7a-du.a.run.app';
+    // Use environment variable
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    if (!apiUrl) {
+      console.error('VITE_API_URL is not defined in environment variables');
+      throw new Error('API URL configuration is missing');
+    }
     
     // apiUrl이 이미 /api를 포함하고 있는지 확인
     const finalUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;

@@ -13,32 +13,15 @@ class ApiService {
     const directApiUrl = import.meta.env.VITE_API_URL;
     const configApiUrl = getApiUrl();
     
-    // Vercel 도메인에서는 하드코딩된 백엔드 URL 사용
-    if (window.location.hostname.includes('vercel.app')) {
-      apiUrl = 'https://hr-backend-429401177957.asia-northeast3.run.app/api';
-    } else if (directApiUrl) {
+    // 환경변수 우선, 그 다음 config 시스템
+    if (directApiUrl) {
       apiUrl = directApiUrl;
     } else if (configApiUrl && configApiUrl !== '/api') {
       apiUrl = configApiUrl;
     }
     
-    // 강제 디버깅 (alert 사용)
-    if (window.location.hostname.includes('vercel.app')) {
-      const debugInfo = `
-        Environment Check:
-        - Direct Env: ${directApiUrl || 'undefined'}
-        - Config Sys: ${configApiUrl || 'undefined'}  
-        - Final URL: ${apiUrl}
-        - MODE: ${import.meta.env.MODE || 'undefined'}
-        - PROD: ${import.meta.env.PROD || 'undefined'}
-      `;
-      console.log('🌐 API Service Debug:', debugInfo);
-      // 첫 로드시 한번만 alert (localStorage로 제어)
-      if (!localStorage.getItem('debug-shown')) {
-        alert(debugInfo);
-        localStorage.setItem('debug-shown', 'true');
-      }
-    }
+    // API URL 디버깅 (console only)
+    console.log('🌐 API Service initialized with URL:', apiUrl);
     
     this.api = axios.create({
       baseURL: apiUrl,
@@ -122,10 +105,6 @@ class ApiService {
       method: 'POST'
     });
     
-    // 강제 alert으로 디버깅
-    if (window.location.hostname.includes('vercel.app')) {
-      alert(`Login URL: ${this.api.defaults.baseURL}/auth/login`);
-    }
     
     const response = await this.api.post('/auth/login', { username, password });
     return response.data;
