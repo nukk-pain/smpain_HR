@@ -9,10 +9,10 @@ function createAdminRoutes(db) {
   // Permission middleware
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -23,7 +23,7 @@ function createAdminRoutes(db) {
 
   // Admin role check
   const requireAdmin = (req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
@@ -192,7 +192,7 @@ function createAdminRoutes(db) {
         type,
         amount: Number(amount),
         reason,
-        adjustedBy: req.session.user.id,
+        adjustedBy: req.user.id,
         adjustedAt: new Date(),
         previousBalance: employee.leaveBalance || 0
       };
@@ -574,7 +574,7 @@ function createAdminRoutes(db) {
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        updatedBy: req.session.user.username || req.session.user.name
+        updatedBy: req.user.username || req.user.name
       };
 
       const result = await db.collection('leavePolicy').insertOne(newPolicy);
@@ -583,7 +583,7 @@ function createAdminRoutes(db) {
       await db.collection('policyChangeLogs').insertOne({
         policyId: newPolicy.policyId,
         changeType: 'policy_update',
-        changedBy: req.session.user.username || req.session.user.name,
+        changedBy: req.user.username || req.user.name,
         changedAt: new Date(),
         changes: {
           annualLeaveRules,
@@ -768,7 +768,7 @@ function createAdminRoutes(db) {
           // Update the leave request
           const updateData = {
             status: action === 'approve' ? 'approved' : 'rejected',
-            approvedBy: req.session.user._id,
+            approvedBy: req.user._id,
             approvedAt: new Date(),
             approvalComment: comment || `Bulk ${action}d by admin`
           };
@@ -798,7 +798,7 @@ function createAdminRoutes(db) {
       // Log bulk action
       await db.collection('bulkActionLogs').insertOne({
         actionType: 'bulk_leave_approval',
-        performedBy: req.session.user._id,
+        performedBy: req.user._id,
         performedAt: new Date(),
         action,
         comment,

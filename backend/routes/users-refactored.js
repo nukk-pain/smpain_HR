@@ -237,7 +237,7 @@ router.delete('/:id',
         return notFoundError(res, 'User');
       }
 
-      if (permanent && req.session.user.role !== 'Admin') {
+      if (permanent && req.user.role !== 'Admin') {
         return errorResponse(res, 403, 'Only administrators can permanently delete users');
       }
 

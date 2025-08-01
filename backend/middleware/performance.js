@@ -116,7 +116,7 @@ function apiCache(duration = 300) {
     }
     
     // Skip caching if user is authenticated (for personalized data)
-    if (req.session && req.session.user) {
+    if (req.session && req.user) {
       return next();
     }
     

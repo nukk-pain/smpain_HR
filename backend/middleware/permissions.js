@@ -79,9 +79,9 @@ const PERMISSION_GROUPS = {
   'administration': ['admin:system', 'admin:audit', 'admin:config'],
 };
 
-// Authentication middleware
+// Authentication middleware (JWT-based)
 const requireAuth = (req, res, next) => {
-  if (!req.session || !req.session.user) {
+  if (!req.user) {
     return unauthorizedError(res, 'Authentication required');
   }
   next();
@@ -91,7 +91,7 @@ const requireAuth = (req, res, next) => {
 const requirePermission = (permission, options = {}) => {
   return async (req, res, next) => {
     try {
-      const user = req.session?.user;
+      const user = req.user;
       
       if (!user) {
         return unauthorizedError(res, 'Authentication required');
@@ -117,7 +117,7 @@ const requireRole = (roles) => {
   const roleArray = Array.isArray(roles) ? roles : [roles];
   
   return (req, res, next) => {
-    const user = req.session?.user;
+    const user = req.user;
     
     if (!user) {
       return unauthorizedError(res, 'Authentication required');
@@ -145,7 +145,7 @@ const requireManagerOrAdmin = (req, res, next) => {
 const requireOwnership = (resourceIdParam = 'id', userIdField = 'userId') => {
   return async (req, res, next) => {
     try {
-      const user = req.session?.user;
+      const user = req.user;
       
       if (!user) {
         return unauthorizedError(res, 'Authentication required');
@@ -193,7 +193,7 @@ const requireOwnership = (resourceIdParam = 'id', userIdField = 'userId') => {
 const requireDepartmentAccess = (allowSameDepartment = true, allowManagers = true) => {
   return async (req, res, next) => {
     try {
-      const user = req.session?.user;
+      const user = req.user;
       
       if (!user) {
         return unauthorizedError(res, 'Authentication required');
@@ -329,7 +329,7 @@ function getCollectionFromRoute(routePath) {
 // Permission combination middleware (requires ALL permissions)
 const requireAllPermissions = (permissions) => {
   return async (req, res, next) => {
-    const user = req.session?.user;
+    const user = req.user;
     
     if (!user) {
       return unauthorizedError(res, 'Authentication required');
@@ -349,7 +349,7 @@ const requireAllPermissions = (permissions) => {
 // Permission combination middleware (requires ANY permission)
 const requireAnyPermission = (permissions) => {
   return async (req, res, next) => {
-    const user = req.session?.user;
+    const user = req.user;
     
     if (!user) {
       return unauthorizedError(res, 'Authentication required');
@@ -384,7 +384,7 @@ async function getUserPermissions(user) {
 
 // Permission info middleware (adds permission info to request)
 const addPermissionInfo = async (req, res, next) => {
-  const user = req.session?.user;
+  const user = req.user;
   
   if (user) {
     req.userPermissions = await getUserPermissions(user);

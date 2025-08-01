@@ -54,14 +54,14 @@ const addIdField = (request) => {
  */
 const requirePermission = (permission) => {
   return (req, res, next) => {
-    if (!req.session || !req.session.user) {
+    if (!req.session || !req.user) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
       });
     }
 
-    const userPermissions = req.session.user.permissions || [];
+    const userPermissions = req.user.permissions || [];
     if (!userPermissions.includes(permission)) {
       return res.status(403).json({
         success: false,

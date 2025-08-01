@@ -24,10 +24,10 @@ function createUserRoutes(db) {
   // Make requirePermission available to this module
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -75,23 +75,23 @@ function createUserRoutes(db) {
       let currentUser = null;
       
       // Try to find user by ObjectId first
-      if (ObjectId.isValid(req.session.user.id)) {
-        currentUser = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
+      if (ObjectId.isValid(req.user.id)) {
+        currentUser = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
       }
       
       // If not found, try to find by username
       if (!currentUser) {
-        currentUser = await db.collection('users').findOne({ username: req.session.user.username || req.session.user.id });
+        currentUser = await db.collection('users').findOne({ username: req.user.username || req.user.id });
       }
       
       res.json({
         success: true,
         data: {
-          sessionUser: req.session.user,
+          sessionUser: req.user,
           dbUser: currentUser,
-          hasUsersManage: (req.session.user.permissions || []).includes('users:create'),
-          hasUsersView: (req.session.user.permissions || []).includes(PERMISSIONS.USERS_VIEW),
-          permissions: req.session.user.permissions || []
+          hasUsersManage: (req.user.permissions || []).includes('users:create'),
+          hasUsersView: (req.user.permissions || []).includes(PERMISSIONS.USERS_VIEW),
+          permissions: req.user.permissions || []
         }
       });
     } catch (error) {
@@ -132,7 +132,7 @@ function createUserRoutes(db) {
       ];
       
       // Update session with full admin permissions
-      req.session.user = {
+      req.user = {
         id: adminUser._id,
         username: adminUser.username,
         name: adminUser.name,
@@ -143,7 +143,7 @@ function createUserRoutes(db) {
       res.json({
         success: true,
         message: 'Emergency admin login successful',
-        user: req.session.user
+        user: req.user
       });
     } else {
       res.status(404).json({ error: 'Admin user not found' });
@@ -369,7 +369,7 @@ function createUserRoutes(db) {
     const { name, birthDate, phoneNumber } = req.body;
     
     // Ensure user can only update their own profile
-    if (req.session.user.id !== id) {
+    if (req.user.id !== id) {
       return res.status(403).json({ error: 'You can only update your own profile' });
     }
     
@@ -426,7 +426,7 @@ function createUserRoutes(db) {
     };
     
     // Only admins can modify visibleTeams
-    if (req.session.user.role === 'admin' && visibleTeams !== undefined) {
+    if (req.user.role === 'admin' && visibleTeams !== undefined) {
       // Validate visibleTeams structure
       if (Array.isArray(visibleTeams)) {
         updateData.visibleTeams = visibleTeams.map(team => ({

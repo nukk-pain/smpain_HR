@@ -43,7 +43,7 @@ router.get('/',
   asyncHandler(async (req, res) => {
     try {
       const { user_id, status, startDate, endDate, month, page, limit } = req.query;
-      const currentUser = req.session.user;
+      const currentUser = req.user;
 
       // Build query filters
       const filters = {};
@@ -134,7 +134,7 @@ router.get('/:id',
       }
 
       // Check if user can view this request
-      const currentUser = req.session.user;
+      const currentUser = req.user;
       if (currentUser.role !== 'Admin' && 
           currentUser.role !== 'Manager' && 
           leaveRequest.userId.toString() !== currentUser._id) {
@@ -183,7 +183,7 @@ router.post('/',
   asyncHandler(async (req, res) => {
     try {
       const { startDate, endDate, reason, daysCount } = req.body;
-      const userId = req.session.user._id;
+      const userId = req.user._id;
 
       // Validate dates
       const dateValidation = validateLeaveDates(startDate, endDate);
@@ -274,7 +274,7 @@ router.put('/:id',
   asyncHandler(async (req, res) => {
     try {
       const requestId = req.params.id;
-      const userId = req.session.user._id;
+      const userId = req.user._id;
 
       const existingRequest = await leaveRepository.findById(requestId);
       if (!existingRequest) {
@@ -361,7 +361,7 @@ router.delete('/:id',
   asyncHandler(async (req, res) => {
     try {
       const requestId = req.params.id;
-      const userId = req.session.user._id;
+      const userId = req.user._id;
 
       const leaveRequest = await leaveRepository.findById(requestId);
       if (!leaveRequest) {
@@ -369,7 +369,7 @@ router.delete('/:id',
       }
 
       // Only user who created the request can delete it (or admin)
-      if (leaveRequest.userId.toString() !== userId && req.session.user.role !== 'Admin') {
+      if (leaveRequest.userId.toString() !== userId && req.user.role !== 'Admin') {
         return errorResponse(res, 403, 'You can only delete your own leave requests');
       }
 
@@ -399,7 +399,7 @@ router.post('/:id/approve',
     try {
       const requestId = req.params.id;
       const { approved, note, rejectionReason } = req.body;
-      const approverId = req.session.user._id;
+      const approverId = req.user._id;
 
       const leaveRequest = await leaveRepository.findById(requestId);
       if (!leaveRequest) {
@@ -512,10 +512,10 @@ router.get('/balance',
   requirePermission('leave:view'),
   asyncHandler(async (req, res) => {
     try {
-      const userId = req.query.user_id || req.session.user._id;
+      const userId = req.query.user_id || req.user._id;
 
       // Non-admin users can only view their own balance
-      if (req.session.user.role !== 'Admin' && userId !== req.session.user._id) {
+      if (req.user.role !== 'Admin' && userId !== req.user._id) {
         return errorResponse(res, 403, 'You can only view your own leave balance');
       }
 

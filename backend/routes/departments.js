@@ -9,10 +9,10 @@ function createDepartmentRoutes(db) {
   // Permission middleware
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -95,7 +95,7 @@ function createDepartmentRoutes(db) {
         description: description || '',
         isActive: true,
         createdAt: new Date(),
-        createdBy: req.session.user.id
+        createdBy: req.user.id
       };
 
       const result = await db.collection('departments').insertOne(departmentRecord);

@@ -1,4 +1,5 @@
 const { ObjectId } = require('mongodb');
+const { verifyToken, extractTokenFromHeader } = require('../utils/jwt');
 
 // Global error handler middleware
 const errorHandler = (err, req, res, next) => {
@@ -100,28 +101,42 @@ const validateObjectId = (paramName) => {
   };
 };
 
-// Authentication middleware
+// JWT Authentication middleware
 const requireAuth = (req, res, next) => {
-  if (!req.session.user) {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = extractTokenFromHeader(authHeader);
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required - No token provided'
+      });
+    }
+    
+    const decoded = verifyToken(token);
+    req.user = decoded; // Set user info for route handlers
+    next();
+  } catch (error) {
+    console.error('JWT Auth error:', error.message);
     return res.status(401).json({
       success: false,
-      error: 'Authentication required'
+      error: 'Invalid or expired token'
     });
   }
-  next();
 };
 
-// Role-based authorization middleware
+// Role-based authorization middleware (JWT-based)
 const requireRole = (roles) => {
   return (req, res, next) => {
-    if (!req.session.user) {
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
       });
     }
 
-    if (!roles.includes(req.session.user.role)) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions'

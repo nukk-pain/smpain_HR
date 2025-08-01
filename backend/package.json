@@ -25,6 +25,7 @@
     "express": "^4.18.2",
     "express-session": "^1.18.1",
     "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "mongodb": "^6.17.0",
     "multer": "^2.0.1",

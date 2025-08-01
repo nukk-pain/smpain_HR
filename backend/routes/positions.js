@@ -92,7 +92,7 @@ function createPositionRoutes(db) {
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdBy: req.session.user.id
+      createdBy: req.user.id
     };
 
     const result = await db.collection('positions').insertOne(newPosition);
@@ -144,7 +144,7 @@ function createPositionRoutes(db) {
       department: department?.trim() || '',
       baseSalary: baseSalary || 0,
       updatedAt: new Date(),
-      updatedBy: req.session.user.id
+      updatedBy: req.user.id
     };
 
     const result = await db.collection('positions').updateOne(
@@ -202,7 +202,7 @@ function createPositionRoutes(db) {
         $set: { 
           isActive: false,
           deletedAt: new Date(),
-          deletedBy: req.session.user.id
+          deletedBy: req.user.id
         }
       }
     );

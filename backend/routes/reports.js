@@ -9,10 +9,10 @@ function createReportsRoutes(db) {
   // Permission middleware
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -113,7 +113,7 @@ function createReportsRoutes(db) {
           reportData: payrollReport,
           summary,
           generatedAt: new Date(),
-          generatedBy: req.session.user.name,
+          generatedBy: req.user.name,
           yearMonth: year_month
         }
       });
@@ -180,7 +180,7 @@ function createReportsRoutes(db) {
   router.get('/payslip/:userId/:year_month/excel', requireAuth, asyncHandler(async (req, res) => {
     try {
       const { userId, year_month } = req.params;
-      const currentUser = req.session.user;
+      const currentUser = req.user;
 
       // Check permissions - users can only download their own payslip
       if (currentUser.role === 'user' && currentUser.id !== userId) {

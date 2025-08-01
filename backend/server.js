@@ -105,12 +105,13 @@ const DEFAULT_PERMISSIONS = {
 };
 
 // Permission middleware
+// JWT-based permission middleware
 const requirePermission = (permission) => {
   return (req, res, next) => {
-    if (!req.session.user) {
+    if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    const userPermissions = req.session.user.permissions || [];
+    const userPermissions = req.user.permissions || [];
     const hasPermission = userPermissions.includes(permission);
     if (!hasPermission) {
       return res.status(403).json({ error: 'Insufficient permissions' });
@@ -215,7 +216,44 @@ async function updateExistingUsersPermissions() {
   }
 }
 
-// Middleware setup
+// Basic middleware setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
+app.use(securityHeaders);
+
+// Session must be before CORS for cookie handling
+const sessionConfig = {
+  name: SESSION_NAME,
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: MONGO_URL,
+    dbName: DB_NAME,
+    collectionName: 'sessions',
+    touchAfter: 24 * 3600 // lazy session update
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    httpOnly: true,
+    maxAge: SESSION_MAX_AGE,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-site cookies with secure
+    domain: undefined // Let browser handle domain
+  }
+};
+
+console.log('🔐 Session configuration:', {
+  name: SESSION_NAME,
+  secure: sessionConfig.cookie.secure,
+  sameSite: sessionConfig.cookie.sameSite,
+  maxAge: sessionConfig.cookie.maxAge,
+  environment: process.env.NODE_ENV
+});
+
+app.use(session(sessionConfig));
+
+// CORS setup after session
 app.use(cors(corsOptions));
 
 // Force CORS headers for production (in case reverse proxy strips them)
@@ -238,7 +276,8 @@ if (process.env.NODE_ENV === 'production') {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cookie');
+      res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
     }
 
     if (req.method === 'OPTIONS') {
@@ -249,32 +288,6 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(requestLogger);
-app.use(securityHeaders);
-
-// Session configuration with MongoDB store
-app.use(session({
-  name: SESSION_NAME,
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: MONGO_URL,
-    dbName: DB_NAME,
-    collectionName: 'sessions',
-    touchAfter: 24 * 3600 // lazy session update
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS in production
-    httpOnly: true,
-    maxAge: SESSION_MAX_AGE,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-site cookies with secure
-    domain: undefined // Let browser handle domain
-  }
-}));
 
 // Routes will be initialized after database connection
 

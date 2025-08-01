@@ -15,7 +15,7 @@ const getDb = (req) => req.app.locals.db;
 router.post('/', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { date, maxConcurrentLeaves, reason } = req.body;
-  const createdBy = await getUserObjectId(db, req.session.user.id);
+  const createdBy = await getUserObjectId(db, req.user.id);
   
   if (!createdBy) {
     return res.status(404).json({ error: 'User not found' });

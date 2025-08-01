@@ -16,7 +16,7 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
   const db = getDb(req);
   const { id } = req.params;
   const { action, comment } = req.body;
-  const approverId = req.session.user.id;
+  const approverId = req.user.id;
   
   if (!['approve', 'reject'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action' });
@@ -65,7 +65,7 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
  */
 router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const currentUser = req.session.user;
+  const currentUser = req.user;
   
   let query = { status: 'pending' };
   
@@ -91,7 +91,7 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
   const db = getDb(req);
   const { id } = req.params;
   const { approved, note, rejectionReason } = req.body;
-  const approverId = req.session.user.id;
+  const approverId = req.user.id;
   
   // Convert to the format expected by the existing approval logic
   const action = approved ? 'approve' : 'reject';

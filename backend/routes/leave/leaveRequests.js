@@ -16,7 +16,7 @@ const getDb = (req) => req.app.locals.db;
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { leaveType, startDate, endDate, reason, substituteEmployee, personalOffDays = [] } = req.body;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   // Get user info
   const userObjectId = await getUserObjectId(db, userId);
@@ -225,8 +225,8 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
  */
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const userId = req.session.user.id;
-  const userRole = req.session.user.role;
+  const userId = req.user.id;
+  const userRole = req.user.role;
   
   let query = {};
   
@@ -253,8 +253,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
-  const userId = req.session.user.id;
-  const userRole = req.session.user.role;
+  const userId = req.user.id;
+  const userRole = req.user.role;
   
   let query = { _id: toObjectId(id) };
   
@@ -286,7 +286,7 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { leaveType, startDate, endDate, reason, substituteEmployee, personalOffDays = [] } = req.body;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
@@ -393,7 +393,7 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
 router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
@@ -424,7 +424,7 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
   const db = getDb(req);
   const { id } = req.params;
   const { action, comment, type = 'leave' } = req.body; // type: 'leave' | 'cancellation'
-  const approverId = req.session.user.id;
+  const approverId = req.user.id;
   
   if (!['approve', 'reject'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action' });
@@ -583,7 +583,7 @@ router.post('/:id/cancel', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { reason } = req.body;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
@@ -653,7 +653,7 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
   const db = getDb(req);
   const { id } = req.params;
   const { approved, note, rejectionReason } = req.body;
-  const approverId = req.session.user.id;
+  const approverId = req.user.id;
   
   // Convert to the format expected by the existing approval logic
   const action = approved ? 'approve' : 'reject';

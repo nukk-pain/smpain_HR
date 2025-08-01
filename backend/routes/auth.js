@@ -2,18 +2,19 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
 const { requireAuth } = require('../middleware/errorHandler');
+const { generateToken } = require('../utils/jwt');
 
 const router = express.Router();
 
 // Authentication routes
 function createAuthRoutes(db) {
-  // Make requirePermission available to this module
+  // Make requirePermission available to this module (JWT-based)
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -46,19 +47,13 @@ function createAuthRoutes(db) {
         return res.status(401).json({ error: 'Account is deactivated' });
       }
       
-      // Store user in session
-      req.session.user = {
-        id: user._id.toString(),
-        username: user.username,
-        name: user.name,
-        role: user.role,
-        permissions: user.permissions || [],
-        visibleTeams: user.visibleTeams || []
-      };
+      // Generate JWT token
+      const token = generateToken(user);
       
       res.json({ 
         success: true,
-        message: 'Login successful', 
+        message: 'Login successful',
+        token: token,
         user: {
           _id: user._id.toString(),
           id: user._id.toString(),
@@ -81,76 +76,64 @@ function createAuthRoutes(db) {
     }
   });
 
-  // Logout endpoint
+  // Logout endpoint (JWT-based - client handles token removal)
   router.post('/logout', (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Could not log out' });
-      }
-      res.json({ message: 'Logout successful' });
+    // With JWT, logout is handled client-side by removing the token
+    // Server-side logout would require token blacklisting (future enhancement)
+    res.json({ 
+      success: true,
+      message: 'Logout successful. Please remove token from client.' 
     });
   });
 
-  // Clear session (development only)
+  // Clear session (development only) - JWT version
   router.post('/clear-session', (req, res) => {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({ error: 'Only available in development' });
     }
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Could not clear session' });
-      }
-      res.json({ message: 'Session cleared successfully' });
-    });
+    // With JWT, clearing is handled client-side by removing the token
+    res.json({ message: 'For JWT auth, please clear token on client side' });
   });
 
-  // Get current user
-  router.get('/me', async (req, res) => {
+  // Get current user (JWT-based)
+  router.get('/me', requireAuth, async (req, res) => {
     try {
-      if (req.session && req.session.user) {
-        try {
-          const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.user.id) });
-          if (user && user.isActive) {
-            // Calculate additional fields
-            const hireDate = user.hireDate ? new Date(user.hireDate) : null;
-            const yearsOfService = hireDate ? Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
-            const annualLeave = hireDate ? (yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25)) : 0;
-            
-            res.json({
-              authenticated: true,
-              user: {
-                _id: user._id.toString(),
-                id: user._id.toString(),
-                username: user.username,
-                name: user.name,
-                role: user.role,
-                department: user.department,
-                position: user.position,
-                employeeId: user.employeeId,
-                hireDate: user.hireDate,
-                hireDateFormatted: hireDate ? hireDate.toLocaleDateString() : null,
-                contractType: user.contractType,
-                birthDate: user.birthDate,
-                phoneNumber: user.phoneNumber,
-                yearsOfService,
-                annualLeave,
-                permissions: user.permissions || []
-              }
-            });
-          } else {
-            res.json({ authenticated: false });
+      // req.user is set by the JWT auth middleware
+      const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+      
+      if (user && user.isActive) {
+        // Calculate additional fields
+        const hireDate = user.hireDate ? new Date(user.hireDate) : null;
+        const yearsOfService = hireDate ? Math.floor((new Date() - hireDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
+        const annualLeave = hireDate ? (yearsOfService === 0 ? 11 : Math.min(15 + (yearsOfService - 1), 25)) : 0;
+        
+        res.json({
+          authenticated: true,
+          user: {
+            _id: user._id.toString(),
+            id: user._id.toString(),
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            position: user.position,
+            employeeId: user.employeeId,
+            hireDate: user.hireDate,
+            hireDateFormatted: hireDate ? hireDate.toLocaleDateString() : null,
+            contractType: user.contractType,
+            birthDate: user.birthDate,
+            phoneNumber: user.phoneNumber,
+            yearsOfService,
+            annualLeave,
+            permissions: user.permissions || []
           }
-        } catch (innerError) {
-          console.error('Inner auth error:', innerError);
-          res.json({ authenticated: false });
-        }
+        });
       } else {
-        res.json({ authenticated: false });
+        res.status(401).json({ authenticated: false, error: 'User not found or inactive' });
       }
     } catch (error) {
       console.error('Get user error:', error);
-      console.error('Session user:', req.session?.user);
-      res.json({ authenticated: false });
+      res.status(500).json({ authenticated: false, error: 'Internal server error' });
     }
   });
 
@@ -158,7 +141,7 @@ function createAuthRoutes(db) {
   router.post('/change-password', requireAuth, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.session.user.id;
+      const userId = req.user.id;
 
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: '현재 비밀번호와 새 비밀번호를 모두 입력해주세요.' });

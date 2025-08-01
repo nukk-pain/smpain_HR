@@ -9,10 +9,10 @@ function createSalesRoutes(db) {
   // Permission middleware
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -25,8 +25,8 @@ function createSalesRoutes(db) {
   router.get('/:year_month', requireAuth, asyncHandler(async (req, res) => {
     try {
       const { year_month } = req.params;
-      const userRole = req.session.user.role;
-      const userId = req.session.user.id;
+      const userRole = req.user.role;
+      const userId = req.user.id;
 
       let matchCondition = { yearMonth: year_month };
 
@@ -118,7 +118,7 @@ function createSalesRoutes(db) {
         category: category || 'general',
         notes: notes || '',
         createdAt: new Date(),
-        createdBy: req.session.user.id,
+        createdBy: req.user.id,
         updatedAt: new Date()
       };
 
@@ -144,7 +144,7 @@ function createSalesRoutes(db) {
 
       const updateData = {
         updatedAt: new Date(),
-        updatedBy: req.session.user.id
+        updatedBy: req.user.id
       };
 
       if (salesAmount !== undefined) {
@@ -203,7 +203,7 @@ function createSalesRoutes(db) {
   router.get('/user/:userId', requireAuth, asyncHandler(async (req, res) => {
     try {
       const { userId } = req.params;
-      const currentUser = req.session.user;
+      const currentUser = req.user;
 
       // Check permissions - users can only see their own data
       if (currentUser.role === 'user' && currentUser.id !== userId) {

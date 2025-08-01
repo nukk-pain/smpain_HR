@@ -16,7 +16,7 @@ const getDb = (req) => req.app.locals.db;
 router.get('/:month', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { month } = req.params;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
@@ -84,7 +84,7 @@ router.get('/:month', requireAuth, asyncHandler(async (req, res) => {
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { department, year = new Date().getFullYear() } = req.query;
-  const currentUser = req.session.user;
+  const currentUser = req.user;
   
   // Check if user has permission to view team leave status
   if (currentUser.role === 'user') {

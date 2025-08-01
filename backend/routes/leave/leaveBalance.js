@@ -12,7 +12,7 @@ const router = express.Router();
  */
 router.get('/:userId?', requireAuth, asyncHandler(async (req, res) => {
   const db = req.app.locals.db;
-  const targetUserId = req.params.userId || req.session.user.id;
+  const targetUserId = req.params.userId || req.user.id;
   
   // Get user info
   const userObjectId = await getUserObjectId(db, targetUserId);

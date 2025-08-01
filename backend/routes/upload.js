@@ -29,10 +29,10 @@ function createUploadRoutes(db) {
   // Permission middleware
   const requirePermission = (permission) => {
     return (req, res, next) => {
-      if (!req.session.user) {
+      if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      const userPermissions = req.session.user.permissions || [];
+      const userPermissions = req.user.permissions || [];
       const hasPermission = userPermissions.includes(permission);
       if (!hasPermission) {
         return res.status(403).json({ error: 'Insufficient permissions' });
@@ -82,7 +82,7 @@ function createUploadRoutes(db) {
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         yearMonth,
-        uploadedBy: req.session.user.id,
+        uploadedBy: req.user.id,
         createdAt: new Date(),
         processed: false,
         error: null,
@@ -289,7 +289,7 @@ function createUploadRoutes(db) {
                   incentive: row.incentive,
                   actualPayment: row.actualPayment,
                   updatedAt: new Date(),
-                  updatedBy: req.session.user.id
+                  updatedBy: req.user.id
                 }
               }
             );
@@ -307,7 +307,7 @@ function createUploadRoutes(db) {
               actualPayment: row.actualPayment,
               difference: row.actualPayment - (row.baseSalary + row.incentive),
               createdAt: new Date(),
-              createdBy: req.session.user.id
+              createdBy: req.user.id
             });
             createdCount++;
           }
@@ -328,7 +328,7 @@ function createUploadRoutes(db) {
               errors: errors
             },
             processedAt: new Date(),
-            processedBy: req.session.user.id
+            processedBy: req.user.id
           }
         }
       );

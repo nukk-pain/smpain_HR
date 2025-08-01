@@ -16,7 +16,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
   const { id } = req.params;
   const { reason } = req.body;
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   
   const userObjectId = await getUserObjectId(db, userId);
@@ -87,7 +87,7 @@ router.post('/approve', requireAuth, requirePermission('leave:manage'), asyncHan
   const db = getDb(req);
   const { id } = req.params;
   const { action, comment } = req.body;
-  const approverId = req.session.user.id;
+  const approverId = req.user.id;
   
   if (!['approve', 'reject'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action' });
@@ -169,8 +169,8 @@ router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHand
   const db = getDb(req);
   
   try {
-    const userRole = req.session.user.role;
-    const userDepartment = req.session.user.department;
+    const userRole = req.user.role;
+    const userDepartment = req.user.department;
     
     let matchCondition = {
       cancellationRequested: true,
@@ -234,7 +234,7 @@ router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHand
  */
 router.get('/history', requireAuth, asyncHandler(async (req, res) => {
   const db = getDb(req);
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   
   const userObjectId = await getUserObjectId(db, userId);
   if (!userObjectId) {
