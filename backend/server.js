@@ -222,9 +222,19 @@ app.use(cors(corsOptions));
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    const allowedOrigins = ['https://hr.smpain.synology.me', 'https://hrbackend.smpain.synology.me'];
+    const allowedOrigins = [
+      'https://hr.smpain.synology.me', 
+      'https://hrbackend.smpain.synology.me',
+      'https://smpain-hr.vercel.app',
+      'https://hr-frontend.vercel.app',
+      'https://hr-frontend-git-main.vercel.app',
+      'https://hr-frontend-git-cloud.vercel.app'
+    ];
 
-    if (allowedOrigins.includes(origin)) {
+    // Also check for Vercel preview URLs (pattern matching)
+    const isVercelPreview = origin && /^https:\/\/.*\.vercel\.app$/.test(origin);
+
+    if (allowedOrigins.includes(origin) || isVercelPreview) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
