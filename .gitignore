@@ -42,6 +42,7 @@ Thumbs.db
 *.tmp
 *.temp
 nohup.out
+docs/previous_plans
 
 # Google Cloud Platform
 # Service account keys and authentication
