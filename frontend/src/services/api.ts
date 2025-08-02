@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ApiResponse, AuthResponse } from '../types';
 import { getApiUrl } from '../config/env';
+import { getValidToken, clearAuth } from '../utils/tokenManager';
 
 class ApiService {
   private api: AxiosInstance;
@@ -38,7 +39,24 @@ class ApiService {
     // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
-        // Add any auth tokens or modify request here
+        // Add JWT token to Authorization header
+        const token = getValidToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('🔑 Token added to request', {
+            url: config.url,
+            method: config.method,
+            hasToken: true,
+            tokenLength: token.length,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.warn('⚠️ No token available for request', {
+            url: config.url,
+            method: config.method,
+            timestamp: new Date().toISOString()
+          });
+        }
         return config;
       },
       (error) => {
@@ -54,8 +72,24 @@ class ApiService {
       (error) => {
         // Handle common errors
         if (error.response?.status === 401) {
-          // Redirect to login or clear auth state
-          window.location.href = '/login';
+          // Only clear token if this is not a login request and not already on login page
+          const isLoginRequest = error.config?.url?.includes('/auth/login');
+          const isOnLoginPage = window.location.pathname === '/login';
+          
+          console.warn('🚫 401 Unauthorized received', {
+            url: error.config?.url,
+            isLoginRequest,
+            isOnLoginPage,
+            currentPath: window.location.pathname,
+            willClearToken: !isLoginRequest && !isOnLoginPage,
+            timestamp: new Date().toISOString()
+          });
+          
+          if (!isLoginRequest && !isOnLoginPage) {
+            console.warn('🗑️ Clearing token due to 401 error');
+            clearAuth();
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }

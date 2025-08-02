@@ -19,8 +19,7 @@ if (process.env.NODE_ENV === 'production') {
 
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
+// Session-related imports removed - using JWT authentication
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 // const multer = require('multer'); // Not used currently
@@ -48,6 +47,9 @@ const {
   corsOptions
 } = require('./middleware/errorHandler');
 
+// Import JWT utilities
+const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -68,9 +70,7 @@ console.log('🔍 MONGODB_URI from env:', process.env.MONGODB_URI?.replace(/:[^:
 console.log('🔍 MONGODB_URL from env:', process.env.MONGODB_URL);
 console.log('🔍 Using connection string:', (process.env.MONGODB_URI || process.env.MONGODB_URL || 'fallback')?.replace(/:[^:]*@/, ':****@'));
 console.log('🔍 Using MONGO_URL:', MONGO_URL);
-const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
-const SESSION_NAME = process.env.SESSION_NAME || 'connect.sid';
-const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000; // 24시간
+// Session-related constants removed - using JWT authentication
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3727';
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 10;
 
@@ -222,39 +222,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 app.use(securityHeaders);
 
-// Session must be before CORS for cookie handling
-const sessionConfig = {
-  name: SESSION_NAME,
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: MONGO_URL,
-    dbName: DB_NAME,
-    collectionName: 'sessions',
-    touchAfter: 24 * 3600 // lazy session update
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS in production
-    httpOnly: true,
-    maxAge: SESSION_MAX_AGE,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-site cookies with secure
-    domain: undefined // Let browser handle domain
-  }
-};
-
-console.log('🔐 Session configuration:', {
-  name: SESSION_NAME,
-  secure: sessionConfig.cookie.secure,
-  sameSite: sessionConfig.cookie.sameSite,
-  maxAge: sessionConfig.cookie.maxAge,
-  environment: process.env.NODE_ENV
-});
-
-app.use(session(sessionConfig));
-
-// CORS setup after session
+// CORS setup
 app.use(cors(corsOptions));
+
+// JWT Authentication Middleware - Parse JWT token and set req.user
+app.use((req, res, next) => {
+  // Skip JWT parsing for login endpoint
+  if (req.path === '/api/auth/login') {
+    return next();
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    const token = extractTokenFromHeader(authHeader);
+    
+    if (token) {
+      const decoded = verifyToken(token);
+      req.user = decoded; // Set user info for route handlers
+      console.log('✅ JWT token parsed for user:', decoded.username, 'on', req.method, req.path);
+    }
+  } catch (error) {
+    // Don't fail the request, just log the error
+    // Routes will handle authorization separately
+    console.warn('⚠️ JWT parsing error:', error.message, 'on', req.method, req.path);
+  }
+  
+  next();
+});
 
 // Force CORS headers for production (in case reverse proxy strips them)
 if (process.env.NODE_ENV === 'production') {

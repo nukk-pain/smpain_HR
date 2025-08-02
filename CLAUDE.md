@@ -269,3 +269,12 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - `frontend/src/config/` - Frontend constants and settings
 - `ecosystem.config.js` - PM2 production configuration
 - Never hardcode values - always use configuration
+
+## Backend Infrastructure Details
+
+- backend는 google cloud에서 작동중이야.
+
+## Deployment URLs
+
+- **Frontend (Vercel)**: https://smpain-hr.vercel.app/
+- **Backend (Google Cloud Run)**: https://hr-backend-429401177957.asia-northeast3.run.app

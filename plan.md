@@ -66,18 +66,19 @@ npm install --save-dev @types/jsonwebtoken
 - 로그아웃 시 토큰 삭제 ✅
 - JWT 기반 인증 상태 체크 ✅
 
-### Phase 3: 테스트 및 정리 🔄 진행중
+### Phase 3: 테스트 및 정리 ✅ 완료
 
-#### 3.1 기능 테스트 🔄
-- 로그인/로그아웃 테스트 (배포 후 테스트 예정)
-- 페이지 새로고침 후 인증 상태 유지 (배포 후 테스트 예정)
-- API 호출 시 인증 확인 (배포 후 테스트 예정)
-- 토큰 만료 처리 (배포 후 테스트 예정)
+#### 3.1 기능 테스트 ✅
+- 로그인/로그아웃 테스트 ✅ (admin 계정 작동 확인)
+- 페이지 새로고침 후 인증 상태 유지 ✅ (hr_auth_token localStorage 저장 확인)
+- API 호출 시 인증 확인 ✅ (JWT Authorization 헤더 작동)
+- 토큰 만료 처리 ✅ (401 에러 정상 처리)
+- **테스트 문서**: `docs/deployment/jwt-testing-results.md` 완료
 
-#### 3.2 세션 관련 코드 정리 ⏸️
-- MongoDB 세션 스토어 제거 (JWT 테스트 완료 후)
-- express-session 미들웨어 제거 (JWT 테스트 완료 후)
-- 불필요한 세션 관련 코드 정리 (JWT 테스트 완료 후)
+#### 3.2 세션 관련 코드 정리 ✅
+- MongoDB 세션 스토어 제거 ✅ (connect-mongo 삭제)
+- express-session 미들웨어 제거 ✅ (server.js에서 제거)
+- 불필요한 세션 관련 코드 정리 ✅ (package.json 정리)
 
 #### 3.3 배포 필요사항
 **백엔드 배포 (Google Cloud Run):**

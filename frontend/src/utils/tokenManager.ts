@@ -25,7 +25,12 @@ export interface DecodedToken {
 export const storeToken = (token: string): void => {
   try {
     localStorage.setItem(TOKEN_KEY, token);
-    console.log('✅ Token stored successfully');
+    console.log('✅ Token stored successfully', { 
+      tokenLength: token.length,
+      tokenPreview: token.substring(0, 50) + '...',
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack
+    });
   } catch (error) {
     console.error('❌ Failed to store token:', error);
   }
@@ -50,8 +55,13 @@ export const getToken = (): string | null => {
  */
 export const removeToken = (): void => {
   try {
+    const existingToken = localStorage.getItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_KEY);
-    console.log('✅ Token removed successfully');
+    console.warn('🗑️ Token removed', {
+      hadToken: !!existingToken,
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack
+    });
   } catch (error) {
     console.error('❌ Failed to remove token:', error);
   }
@@ -108,22 +118,33 @@ export const getValidToken = (): string | null => {
   const token = getToken();
   
   if (!token) {
+    console.log('🔍 No token found in storage');
     return null;
   }
   
   const expired = isTokenExpired(token);
   if (expired === true) {
-    console.log('🔄 Token expired, removing from storage');
+    console.warn('⏰ Token expired, removing from storage', {
+      token: token.substring(0, 50) + '...',
+      timestamp: new Date().toISOString()
+    });
     removeToken();
     return null;
   }
   
   if (expired === null) {
-    console.log('❌ Invalid token format, removing from storage');
+    console.warn('❌ Invalid token format, removing from storage', {
+      token: token.substring(0, 50) + '...',
+      timestamp: new Date().toISOString()
+    });
     removeToken();
     return null;
   }
   
+  console.log('✅ Valid token found', {
+    tokenLength: token.length,
+    timestamp: new Date().toISOString()
+  });
   return token;
 };
 

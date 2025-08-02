@@ -122,19 +122,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Store the JWT token
         storeToken(response.token)
         
-        // After successful login, get complete user info including calculated fields
-        const userResponse = await apiService.getCurrentUser()
-        if (userResponse.authenticated && userResponse.user) {
-          setAuthState({
-            isAuthenticated: true,
-            user: userResponse.user as User,
-          })
-        } else {
-          setAuthState({
-            isAuthenticated: true,
-            user: response.user as User,
-          })
+        // Set auth state with login response data first
+        setAuthState({
+          isAuthenticated: true,
+          user: response.user as User,
+        })
+        
+        // Try to get complete user info including calculated fields
+        // Don't fail the login if this fails
+        try {
+          // Small delay to ensure token is properly set in interceptor
+          await new Promise(resolve => setTimeout(resolve, 100))
+          const userResponse = await apiService.getCurrentUser()
+          if (userResponse.authenticated && userResponse.user) {
+            setAuthState({
+              isAuthenticated: true,
+              user: userResponse.user as User,
+            })
+          }
+        } catch (userError) {
+          console.warn('Failed to fetch complete user info after login:', userError)
+          // Keep the basic user info from login response
         }
+        
         return true
       }
       return false
