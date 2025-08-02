@@ -180,19 +180,21 @@ function createPositionRoutes(db) {
       return res.status(400).json({ error: 'Invalid position ID' });
     }
 
-    // Check if position is being used by any users
+    // Get position name first to check against users
+    const position = await db.collection('positions').findOne({ _id: new ObjectId(id) });
+    if (!position) {
+      return res.status(404).json({ error: 'Position not found' });
+    }
+
+    // Check if this specific position is being used by any users
     const usersWithPosition = await db.collection('users').countDocuments({ 
-      position: { $exists: true, $ne: '' },
+      position: position.name,
       isActive: { $ne: false }
     });
 
     if (usersWithPosition > 0) {
-      // Get position name for better error message
-      const position = await db.collection('positions').findOne({ _id: new ObjectId(id) });
-      const positionName = position ? position.name : 'this position';
-      
       return res.status(400).json({ 
-        error: `Cannot delete position because ${usersWithPosition} user(s) are assigned to ${positionName}` 
+        error: `Cannot delete position because ${usersWithPosition} user(s) are assigned to ${position.name}` 
       });
     }
 
