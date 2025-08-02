@@ -173,14 +173,17 @@ node scripts/resetDatabase.js
 # MongoDB connection (development)
 mongodb://localhost:27017/SM_nomu
 
-# MongoDB connection (production - Docker Replica Set)
-mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu
+# MongoDB connection (development - Atlas)
+mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-dev
+
+# MongoDB connection (production - Google Cloud)
+mongodb+srv://hr_app_prod:STRONG_PASSWORD@hr-cluster-prod.xxxxx.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-prod
 ```
 
 ## High-Level Architecture
 
 ### Backend Architecture
-- **Session-based authentication**: Uses express-session with connect-mongo store
+- **JWT token-based authentication**: Stateless authentication using JWT tokens (migrated from sessions Aug 2025)
 - **Role-based access control (RBAC)**: Three roles (Admin, Manager, User) with fine-grained permissions
 - **Modular route structure**: Features split into separate route files under `backend/routes/`
 - **Validation layer**: Joi schemas for request validation
@@ -218,7 +221,7 @@ mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:270
 - **leave_balances**: Current leave balance tracking
 - **departments**: Organizational structure
 - **payroll**: Monthly payroll records with calculations
-- **sessions**: MongoDB session storage
+- **~~sessions~~**: ❌ Removed (JWT is stateless, no server-side session storage needed)
 
 ### API Endpoints Structure
 - `/api/auth/*` - Authentication (login, logout, check)
@@ -237,7 +240,11 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 ### Security Considerations
 - Passwords hashed with bcryptjs (10 rounds)
-- Session cookies with httpOnly, secure flags
+- **JWT token authentication** with Authorization headers (no cookies needed)
+- **Stateless authentication** - no server-side session storage
+- **Cross-domain compatible** - works with Vercel frontend + Cloud Run backend
+- **Token expiration and refresh** (Phase 4 features available)
+- **Server-side token blacklisting** (optional Phase 4 feature)
 - Input validation on all endpoints
 - File upload restrictions and virus scanning
 - Role-based API access control
@@ -246,7 +253,8 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - Frontend code splitting by route
 - Lazy loading for heavy components
 - MongoDB indexes on frequently queried fields
-- Session cleanup job for expired sessions
+- **JWT stateless architecture** - no session cleanup needed
+- **Reduced database load** - no session read/write operations
 - Pagination on all list endpoints
 
 ### Development Workflow

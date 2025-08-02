@@ -325,15 +325,19 @@ fetch('/api/leave/pending')
 
 ## 🚨 문제 발생 시 해결책
 
-### 1. 서버 연결 오류
+### 1. JWT 서버 연결 오류
 ```bash
-# 포트 확인
-netstat -ano | findstr :5444
-netstat -ano | findstr :3000
+# 포트 확인 (JWT 포트 변경됨)
+netstat -ano | findstr :8080
+netstat -ano | findstr :3727
 
 # 서버 재시작
 cd backend && node server.js
 cd frontend && npm run dev
+
+# JWT 헬스 체크
+curl http://localhost:8080/health
+# 응답에 "authentication": "JWT" 포함되어야 함
 ```
 
 ### 2. 데이터베이스 연결 오류

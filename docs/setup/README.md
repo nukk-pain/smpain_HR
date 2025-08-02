@@ -13,7 +13,7 @@ This system provides complete HR management capabilities including employee leav
 - **Database**: MongoDB
 - **UI Library**: Material-UI (MUI)
 - **Data Grid**: AG Grid Community
-- **Authentication**: Session-based with bcryptjs
+- **Authentication**: JWT token-based with bcryptjs (migrated Aug 2025)
 - **Process Manager**: PM2 (Production)
 
 ---
@@ -58,8 +58,9 @@ This system provides complete HR management capabilities including employee leav
 
 4. **Access the application**
    - Frontend: http://localhost:3727
-   - Backend API: http://localhost:5455/api
+   - Backend API: http://localhost:8080/api
    - Default login: `admin` / `admin`
+   - JWT tokens stored in localStorage after login
 
 ---
 
@@ -123,17 +124,18 @@ This system provides complete HR management capabilities including employee leav
 ```javascript
 env: {
   NODE_ENV: 'production',
-  MONGODB_URL: 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu',
-  MONGODB_USER: 'hr_app_user',
-  MONGODB_PASSWORD: 'Hr2025Secure',
+  MONGODB_URI: 'mongodb+srv://hr_app_prod:STRONG_PASSWORD@hr-cluster-prod.xxxxx.mongodb.net/SM_nomu',
   DB_NAME: 'SM_nomu',
-  SESSION_SECRET: 'your-session-secret'
+  JWT_SECRET: 'your-jwt-secret-256-bits',
+  FRONTEND_URL: 'https://smpain-hr.vercel.app',
+  USE_REFRESH_TOKENS: 'true',
+  ENABLE_TOKEN_BLACKLIST: 'true'
 }
 ```
 
 #### Development Environment
-- MongoDB: `mongodb://localhost:27017`
-- Backend: `http://localhost:5455`
+- MongoDB: `mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu`
+- Backend: `http://localhost:8080`
 - Frontend: `http://localhost:3727`
 
 ---
@@ -185,9 +187,11 @@ HR/
 
 ### 🔗 API Endpoints
 
-#### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+#### Authentication (JWT-based)
+- `POST /api/auth/login` - User login (returns JWT token)
+- `POST /api/auth/logout` - User logout (invalidates token if blacklisting enabled)
+- `GET /api/auth/me` - Get current user info (requires JWT token)
+- `POST /api/auth/refresh` - Refresh access token (Phase 4 feature)
 - `POST /api/auth/change-password` - Change password
 
 #### Leave Management
@@ -300,8 +304,13 @@ docker run -it --rm --network host mongo:latest mongosh \
 # Check PM2 logs
 pm2 logs hr-backend --lines 50
 
-# Health check
-curl http://localhost:5455/api/health
+# Health check (includes JWT status)
+curl http://localhost:8080/api/health
+
+# Test JWT authentication
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}'
 ```
 
 ---
@@ -350,4 +359,4 @@ This project is proprietary software developed for internal use.
 
 ---
 
-*Last updated: July 2025*
+*Last updated: August 2025 (JWT Migration Complete)*

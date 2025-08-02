@@ -52,13 +52,19 @@ The system has three user roles:
 ## Access Control Implementation
 
 1. **Route Protection**: Uses `ProtectedRoute` component to enforce role-based access
-2. **Authentication Check**: Redirects to `/login` if not authenticated
-3. **Role Validation**: Redirects to `/dashboard` if user lacks required role
-4. **Component-Level Checks**: Some components have additional role validation
+2. **JWT Authentication Check**: Redirects to `/login` if no valid JWT token
+3. **Token Validation**: Verifies JWT token with backend before allowing access
+4. **Role Validation**: Redirects to `/dashboard` if user lacks required role
+5. **Component-Level Checks**: Some components have additional role validation
+6. **Automatic Logout**: Redirects to login if JWT token expires or is invalid
 
 ## Notes
 
 - All authenticated pages are wrapped in the Layout component
-- Session-based authentication via backend API
+- **JWT token-based authentication** via backend API (migrated from sessions Aug 2025)
+- **JWT tokens stored in localStorage** - no cookies needed
+- **Authorization headers** required for all API calls: `Authorization: Bearer <token>`
+- **Automatic token refresh** available (Phase 4 feature)
+- **Cross-domain compatible** - works with Vercel frontend + Cloud Run backend
 - File locations: All page components are in `frontend/src/pages/`
 - Route definitions: `frontend/src/App.tsx`

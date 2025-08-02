@@ -27,8 +27,14 @@ PORT=5455
 MONGODB_URL=mongodb://localhost:27017
 DB_NAME=SM_nomu
 
-# Session Configuration
-SESSION_SECRET=hr-development-secret-2025
+# JWT Authentication Configuration
+JWT_SECRET=hr-development-jwt-secret-2025
+
+# Phase 4 JWT Features (Optional)
+USE_REFRESH_TOKENS=false
+ENABLE_TOKEN_BLACKLIST=false
+ACCESS_TOKEN_EXPIRES_IN=24h
+REFRESH_TOKEN_EXPIRES_IN=7d
 ```
 
 ### Production Environment
@@ -50,8 +56,14 @@ DB_NAME=SM_nomu
 MONGODB_USER=hr_app_user
 MONGODB_PASSWORD=Hr2025Secure
 
-# Session Configuration
-SESSION_SECRET=hr-synology-secret-2025
+# JWT Authentication Configuration
+JWT_SECRET=hr-production-jwt-secret-2025
+
+# Phase 4 JWT Features (Optional)
+USE_REFRESH_TOKENS=false
+ENABLE_TOKEN_BLACKLIST=false
+ACCESS_TOKEN_EXPIRES_IN=24h
+REFRESH_TOKEN_EXPIRES_IN=7d
 ```
 
 ## Environment Variables Reference
@@ -76,7 +88,7 @@ SESSION_SECRET=hr-synology-secret-2025
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `SESSION_SECRET` | Session encryption key | `fallback-secret-key` | Yes |
+| `JWT_SECRET` | JWT token signing key | `fallback-jwt-key` | Yes |
 
 ## Default Connection Strings
 
@@ -141,7 +153,7 @@ NODE_ENV=production cd backend && npm start
 
 - Never commit `.env` files to version control
 - Use strong, unique secrets for each environment
-- Regularly rotate session secrets
+- Regularly rotate JWT secrets
 - Limit file permissions: `chmod 600 .env`
 
 ### 2. MongoDB Credentials
@@ -154,7 +166,7 @@ NODE_ENV=production cd backend && npm start
 ### 3. Secret Management
 
 ```bash
-# Generate secure session secret
+# Generate secure JWT secret
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
@@ -177,12 +189,13 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    - Check MongoDB service is running
    - Validate credentials and network access
 
-3. **Session errors**
+3. **JWT authentication errors**
    ```
-   Error: secret option required for sessions
+   Error: JWT secret not configured
    ```
-   - Ensure `SESSION_SECRET` is set
+   - Ensure `JWT_SECRET` is set
    - Check the secret is not empty
+   - Verify secret is at least 32 characters long
 
 ### Debugging Environment Variables
 
@@ -194,7 +207,7 @@ console.log('Environment Variables:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 console.log('MONGODB_URL:', process.env.MONGODB_URL ? '[HIDDEN]' : 'NOT SET');
-console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '[HIDDEN]' : 'NOT SET');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '[HIDDEN]' : 'NOT SET');
 ```
 
 ## Migration from Hard-coded Values

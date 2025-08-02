@@ -375,9 +375,14 @@ pm2 monit
 # View logs
 pm2 logs hr-backend
 
-# Application metrics
-curl http://localhost:3000/api/health
-curl http://localhost:3000/api/performance/stats
+# Application metrics (JWT health check)
+curl http://localhost:8080/api/health
+curl http://localhost:8080/api/performance/stats
+
+# JWT authentication test
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}'
 ```
 
 ### 2. System Monitoring
@@ -534,11 +539,23 @@ db.system.profile.find().sort({ ts: -1 }).limit(5)
 
 ### 1. Application Health Check
 ```bash
-# Health check endpoint
-curl -f http://localhost:3000/api/health || exit 1
+# Health check endpoint (includes JWT status)
+curl -f http://localhost:8080/api/health || exit 1
 
 # Performance check
-curl -f http://localhost:3000/api/performance/stats
+curl -f http://localhost:8080/api/performance/stats
+
+# JWT authentication test
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' | jq -r '.token')
+
+if [ "$TOKEN" != "null" ] && [ "$TOKEN" != "" ]; then
+  echo "JWT authentication working"
+else
+  echo "JWT authentication failed"
+  exit 1
+fi
 ```
 
 ### 2. Database Health Check
@@ -553,10 +570,21 @@ Create `scripts/health-check.sh`:
 ```bash
 #!/bin/bash
 
-# Check application
-if ! curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+# Check application (JWT-enabled)
+if ! curl -f http://localhost:8080/api/health > /dev/null 2>&1; then
     echo "Application health check failed"
     # Send alert (email, Slack, etc.)
+    exit 1
+fi
+
+# Check JWT authentication
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' 2>/dev/null | jq -r '.token' 2>/dev/null)
+
+if [ "$TOKEN" = "null" ] || [ "$TOKEN" = "" ]; then
+    echo "JWT authentication health check failed"
+    # Send alert
     exit 1
 fi
 
@@ -590,7 +618,7 @@ pm2 logs hr-backend
 pm2 env hr-backend
 
 # Check port availability
-netstat -tulpn | grep :3000
+netstat -tulpn | grep :8080
 ```
 
 #### 2. Database Connection Issues
@@ -620,13 +648,14 @@ pm2 monit
 #### 4. Slow Performance
 ```bash
 # Check performance metrics
-curl http://localhost:3000/api/performance/stats
+curl http://localhost:8080/api/performance/stats
 
 # Monitor database queries
 db.system.profile.find().sort({ ts: -1 }).limit(5)
 
-# Check cache hit rates
-curl http://localhost:3000/api/health | jq .cache
+# Check cache hit rates and JWT status
+curl http://localhost:8080/api/health | jq .cache
+curl http://localhost:8080/api/health | jq .config
 ```
 
 ## Rollback Procedures

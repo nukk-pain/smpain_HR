@@ -3,7 +3,18 @@
 ## 개요
 이 파일은 HR 시스템의 모든 API 엔드포인트를 정리하여 중복 개발을 방지하고 API 사용성을 높이기 위한 문서입니다.
 
-**Base URL**: `http://localhost:5455/api`
+**Base URL**: 
+- Development: `http://localhost:8080/api`
+- Production: `https://hr-backend-429401177957.asia-northeast3.run.app/api`
+
+> ⚠️ **중요**: 2025년 8월 JWT 마이그레이션으로 인해 모든 인증 방식이 **JWT 토큰 기반**으로 변경되었습니다.
+
+## 인증 방식
+모든 API 엔드포인트는 **JWT 토큰 인증**을 사용합니다. 요청할 때 다음과 같이 Authorization 헤더를 포함해야 합니다:
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
 ---
 
@@ -11,7 +22,7 @@
 
 ### POST 엔드포인트
 #### POST `/api/auth/login`
-- **기능**: 사용자 로그인
+- **기능**: 사용자 로그인 (JWT 토큰 발급)
 - **권한**: 없음 (public)
 - **Body**: 
   ```json
@@ -20,40 +31,80 @@
     "password": "string"
   }
   ```
-- **응답**: 
+- **기본 JWT 응답**: 
   ```json
   {
     "success": true,
     "message": "Login successful",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "_id": "string",
+      "username": "string",
+      "name": "string",
+      "role": "Admin|Manager|User",
+      "department": "string",
+      "permissions": ["permission1", "permission2"]
+    }
+  }
+  ```
+- **Phase 4 고급 응답** (`USE_REFRESH_TOKENS=true` 일 때):
+  ```json
+  {
+    "success": true,
+    "message": "Login successful",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": "15m",
     "user": { /* 사용자 정보 */ }
   }
   ```
 
 #### POST `/api/auth/logout`
-- **기능**: 사용자 로그아웃
-- **권한**: 없음
-- **응답**: 
+- **기능**: 사용자 로그아웃 (토큰 무효화)
+- **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
+- **기본 응답**: 
   ```json
   {
     "success": true,
     "message": "Logout successful"
   }
   ```
+- **토큰 블랙리스트 응답** (`ENABLE_TOKEN_BLACKLIST=true` 일 때):
+  ```json
+  {
+    "success": true,
+    "message": "Logout successful. Token has been invalidated."
+  }
+  ```
 
-#### POST `/api/auth/clear-session`
-- **기능**: 세션 초기화 (개발 환경 전용)
-- **권한**: 없음
+#### POST `/api/auth/refresh` (Phase 4)
+- **기능**: 액세스 토큰 갱신
+- **권한**: 없음 (리프레시 토큰 필요)
+- **조건**: `USE_REFRESH_TOKENS=true` 환경변수 설정 시에만 사용 가능
+- **Body**: 
+  ```json
+  {
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
 - **응답**: 
   ```json
   {
     "success": true,
-    "message": "Session cleared"
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": "15m"
   }
   ```
 
 #### POST `/api/auth/change-password`
 - **기능**: 비밀번호 변경
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **Body**: 
   ```json
   {
@@ -64,17 +115,19 @@
 
 ### GET 엔드포인트
 #### GET `/api/auth/me`
-- **기능**: 현재 사용자 정보 조회
-- **권한**: 없음 (세션 확인)
+- **기능**: 현재 사용자 정보 조회 (JWT 토큰 검증)
+- **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **응답**: 
   ```json
   {
     "authenticated": true,
     "user": {
-      "id": "string",
+      "_id": "string",
       "username": "string",
       "name": "string",
       "role": "string",
+      "department": "string",
       "permissions": ["string"]
     }
   }
@@ -88,11 +141,13 @@
 #### GET `/api/users`
 - **기능**: 모든 사용자 조회
 - **권한**: `users:view`
+- **헤더**: `Authorization: Bearer <token>`
 - **응답**: 사용자 목록 배열
 
 #### GET `/api/users/:id`
 - **기능**: 특정 사용자 조회
 - **권한**: `users:view`
+- **헤더**: `Authorization: Bearer <token>`
 - **파라미터**: `id` (사용자 ID)
 - **응답**: 사용자 상세 정보
 
@@ -115,6 +170,7 @@
 #### POST `/api/users`
 - **기능**: 새 사용자 생성
 - **권한**: `users:create`
+- **헤더**: `Authorization: Bearer <token>`
 - **Body**: 
   ```json
   {
@@ -180,16 +236,20 @@
 
 ## /api/leave (휴가 관리)
 
+> **인증 필수**: 모든 휴가 관리 API는 JWT 토큰 인증이 필요합니다.
+
 ### GET 엔드포인트
 #### GET `/api/leave`
 - **기능**: 휴가 신청 목록 조회
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **Query**: `status`, `userId`, `startDate`, `endDate`
 - **응답**: 휴가 신청 목록
 
 #### GET `/api/leave/:id`
 - **기능**: 특정 휴가 신청 조회
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **파라미터**: `id` (휴가 신청 ID)
 
 #### GET `/api/leave/pending`
@@ -253,6 +313,7 @@
 #### POST `/api/leave`
 - **기능**: 휴가 신청 생성
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **Body**: 
   ```json
   {
@@ -342,10 +403,13 @@
 
 ## /api/admin (관리자 기능)
 
+> **인증 필수**: 모든 관리자 API는 JWT 토큰 인증과 관리자 권한이 필요합니다.
+
 ### GET 엔드포인트
 #### GET `/api/admin/leave/overview`
 - **기능**: 관리자 휴가 현황 조회
 - **권한**: 관리자
+- **헤더**: `Authorization: Bearer <token>`
 - **응답**: 전체 휴가 현황 통계
 
 #### GET `/api/admin/leave/employee/:id`
@@ -420,10 +484,13 @@
 
 ## /api/departments (부서 관리)
 
+> **인증 필수**: 모든 부서 관리 API는 JWT 토큰 인증이 필요합니다.
+
 ### GET 엔드포인트
 #### GET `/api/departments`
 - **기능**: 모든 부서 조회
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **응답**: 부서 목록
 
 #### GET `/api/departments/:name/employees`
@@ -461,10 +528,13 @@
 
 ## /api/payroll (급여 관리)
 
+> **인증 필수**: 모든 급여 관리 API는 JWT 토큰 인증이 필요합니다.
+
 ### GET 엔드포인트
 #### GET `/api/payroll/monthly/:year_month`
 - **기능**: 월별 급여 조회
 - **권한**: 로그인 필요
+- **헤더**: `Authorization: Bearer <token>`
 - **파라미터**: `year_month` (YYYY-MM)
 - **응답**: 월별 급여 데이터
 
@@ -606,10 +676,13 @@
 
 ## /api/reports (보고서 관리)
 
+> **인증 필수**: 모든 보고서 API는 JWT 토큰 인증이 필요합니다.
+
 ### GET 엔드포인트
 #### GET `/api/reports/payroll/:year_month`
 - **기능**: 급여 보고서 생성
 - **권한**: `reports:view`
+- **헤더**: `Authorization: Bearer <token>`
 - **파라미터**: `year_month` (YYYY-MM)
 - **응답**: 급여 보고서 데이터
 
@@ -718,8 +791,8 @@
 - **200**: 성공
 - **201**: 생성 성공
 - **400**: 잘못된 요청
-- **401**: 인증 필요
-- **403**: 권한 없음
+- **401**: JWT 토큰 인증 실패 (토큰 없음, 만료, 유효하지 않음, 블랙리스트 등)
+- **403**: 권한 없음 (인증은 되었지만 해당 작업 권한 없음)
 - **404**: 리소스 없음
 - **500**: 서버 오류
 
@@ -736,5 +809,38 @@
 
 ---
 
-**최종 업데이트**: 2025-01-17
+---
+
+## JWT 인증 관련 추가 정보
+
+### 환경변수 설정
+- **JWT_SECRET**: JWT 토큰 서명용 비밀키 (필수)
+- **USE_REFRESH_TOKENS**: 리프레시 토큰 사용 여부 (기본값: false)
+- **ENABLE_TOKEN_BLACKLIST**: 토큰 블랙리스트 사용 여부 (기본값: false)
+- **ACCESS_TOKEN_EXPIRES_IN**: 액세스 토큰 만료 시간 (기본값: 24h)
+- **REFRESH_TOKEN_EXPIRES_IN**: 리프레시 토큰 만료 시간 (기본값: 7d)
+
+### JWT 토큰 테스트 방법
+```bash
+# 로그인 후 토큰 저장
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' \
+  | jq -r '.token')
+
+# 토큰으로 API 호출
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8080/api/auth/me
+```
+
+### 마이그레이션 변경사항
+- ❌ **세션 기반 인증** → ✅ **JWT 토큰 인증**
+- ❌ 쿠키 사용 → ✅ Authorization 헤더 사용
+- ❌ 서버 세션 저장소 → ✅ Stateless 인증
+- ❌ CORS 쿠키 문제 → ✅ 크로스 도메인 호환
+- ✅ **새로운 기능**: 토큰 갱신, 토큰 블랙리스트
+
+---
+
+**최종 업데이트**: 2025-08-02 (JWT 마이그레이션)
 **담당자**: HR 시스템 개발팀

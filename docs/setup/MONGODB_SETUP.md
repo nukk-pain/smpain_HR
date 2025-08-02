@@ -1,12 +1,21 @@
 # MongoDB Setup Guide
 
 ## Overview
-This guide covers MongoDB setup for the HR system, including development and production environments.
+This guide covers MongoDB setup for the JWT-authenticated HR system, including development and production environments.
+
+> ⚠️ **Migration Note**: As of August 2025, this system uses **JWT token authentication** instead of session-based authentication. MongoDB is no longer used for session storage, only for application data.
 
 ## Development Setup (Single Node Replica Set)
 
 ### Why Replica Set?
-The HR system uses MongoDB transactions for data consistency, which requires a replica set configuration.
+The HR system uses MongoDB transactions for data consistency, which requires a replica set configuration. With JWT authentication, MongoDB is used exclusively for:
+- User account data
+- Leave request records
+- Payroll information
+- Department data
+- System audit logs
+
+**Note**: Session storage is no longer required as JWT tokens are stateless.
 
 ### Configuration
 ```yaml
@@ -304,6 +313,34 @@ mongorestore --drop \
 4. **Updates**: Keep MongoDB version updated
 5. **Monitoring**: Set up alerts for unusual activity
 6. **Backups**: Test restore procedures regularly
+
+## JWT Migration Impact
+
+### What Changed
+- ❌ **Session Collection**: No longer needed (express-session removed)
+- ❌ **Session Indexes**: Removed from database
+- ✅ **Stateless Authentication**: JWT tokens stored client-side
+- ✅ **Reduced Database Load**: No session read/write operations
+- ✅ **Better Scalability**: No server-side session state
+
+### Database Optimization Benefits
+- **Reduced I/O Operations**: No session collection writes
+- **Lower Memory Usage**: No session data caching
+- **Simplified Backup**: Only application data, no session data
+- **Better Performance**: Fewer database connections needed
+
+### Connection String Updates
+The MongoDB connection strings remain the same, but the application no longer creates or manages session collections.
+
+```javascript
+// Connection remains the same
+mongodb://hr_app_user:Hr2025Secure@server:27018,server:27019,server:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu
+
+// But the application now uses JWT instead of MongoDB sessions
+```
+
+### JWT Token Blacklisting (Optional)
+If `ENABLE_TOKEN_BLACKLIST=true` is set, the system may optionally use MongoDB to store invalidated tokens, but this is minimal compared to full session storage.
 
 ## References
 - [MongoDB Replica Set Documentation](https://docs.mongodb.com/manual/replication/)

@@ -1,7 +1,9 @@
 # 환경 변수 및 시크릿 설정 가이드
 
 ## 개요
-HR 관리 시스템의 환경별 설정과 시크릿 관리 방법을 설명합니다.
+HR 관리 시스템의 환경별 설정과 시크릿 관리 방법을 설명합니다. 시스템은 **JWT 토큰 기반 인증**을 사용하며, 세션 관련 설정은 더 이상 필요하지 않습니다.
+
+> ⚠️ **중요**: 2025년 8월 JWT 마이그레이션으로 인해 세션 기반 설정이 완전히 제거되었습니다.
 
 ## 환경별 구성
 
@@ -11,8 +13,14 @@ HR 관리 시스템의 환경별 설정과 시크릿 관리 방법을 설명합�
 NODE_ENV=development
 PORT=8080
 MONGODB_URI=mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-dev
-SESSION_SECRET=hr-development-secret-2025
+JWT_SECRET=hr-development-jwt-secret-2025
 DB_NAME=SM_nomu
+
+# Phase 4 JWT Features (Optional)
+USE_REFRESH_TOKENS=false
+ENABLE_TOKEN_BLACKLIST=false
+ACCESS_TOKEN_EXPIRES_IN=24h
+REFRESH_TOKEN_EXPIRES_IN=7d
 ```
 
 ### 스테이징 환경 (Staging)
@@ -21,8 +29,13 @@ DB_NAME=SM_nomu
 NODE_ENV=staging
 PORT=8080
 MONGODB_URI=[Secret Manager에서 관리]
-SESSION_SECRET=[Secret Manager에서 관리]
+JWT_SECRET=[Secret Manager에서 관리]
 DB_NAME=SM_nomu
+FRONTEND_URL=https://staging-hr.vercel.app
+
+# Phase 4 Features (Optional)
+USE_REFRESH_TOKENS=true
+ENABLE_TOKEN_BLACKLIST=true
 ```
 
 ### 프로덕션 환경 (Production)
@@ -31,8 +44,14 @@ DB_NAME=SM_nomu
 NODE_ENV=production
 PORT=8080
 MONGODB_URI=[Secret Manager에서 관리]
-SESSION_SECRET=[Secret Manager에서 관리]
+JWT_SECRET=[Secret Manager에서 관리]
 DB_NAME=SM_nomu
+FRONTEND_URL=https://smpain-hr.vercel.app
+
+# Phase 4 Features (Production Recommended)
+USE_REFRESH_TOKENS=true
+ENABLE_TOKEN_BLACKLIST=true
+REFRESH_TOKEN_SECRET=[Secret Manager에서 관리]
 ```
 
 ## Google Cloud Secret Manager 설정
@@ -49,11 +68,11 @@ gcloud secrets create mongodb-uri --data-file=-
 gcloud secrets versions list mongodb-uri
 ```
 
-#### 세션 시크릿
+#### JWT 시크릿
 ```bash
-# 개발용 세션 시크릿 (현재 사용 중인 것)
-echo "hr-development-secret-2025" | \
-gcloud secrets create session-secret --data-file=-
+# 개발용 JWT 시크릿 (현재 사용 중인 것)
+echo "hr-development-jwt-secret-2025" | \
+gcloud secrets create jwt-secret --data-file=-
 ```
 
 ### 2. 프로덕션용 시크릿 생성
@@ -69,17 +88,20 @@ echo "mongodb+srv://hr_app_prod:STRONG_RANDOM_PASSWORD@hr-cluster-prod.xxxxx.mon
 gcloud secrets create mongodb-uri-prod --data-file=-
 ```
 
-#### 프로덕션 세션 시크릿
+#### 프로덕션 JWT 시크릿
 ```bash
-# 강력한 랜덤 세션 시크릿 생성
-openssl rand -base64 64 | gcloud secrets create session-secret-prod --data-file=-
+# 강력한 랜덤 JWT 시크릿 생성
+openssl rand -base64 64 | gcloud secrets create jwt-secret-prod --data-file=-
+
+# Phase 4: Refresh Token 시크릿 (선택사항)
+openssl rand -base64 64 | gcloud secrets create refresh-token-secret-prod --data-file=-
 ```
 
 ### 3. 스테이징용 시크릿 (선택사항)
 ```bash
 # 스테이징은 개발용과 동일하게 사용하거나 별도 생성
 gcloud secrets create mongodb-uri-staging --data-file=staging-mongodb.txt
-gcloud secrets create session-secret-staging --data-file=staging-session.txt
+gcloud secrets create jwt-secret-staging --data-file=staging-jwt.txt
 ```
 
 ## 시크릿 접근 권한 설정
@@ -94,7 +116,7 @@ gcloud secrets add-iam-policy-binding mongodb-uri \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-gcloud secrets add-iam-policy-binding session-secret \
+gcloud secrets add-iam-policy-binding jwt-secret \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
@@ -103,7 +125,12 @@ gcloud secrets add-iam-policy-binding mongodb-uri-prod \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-gcloud secrets add-iam-policy-binding session-secret-prod \
+gcloud secrets add-iam-policy-binding jwt-secret-prod \
+    --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
+
+# Phase 4: Refresh Token 시크릿 권한
+gcloud secrets add-iam-policy-binding refresh-token-secret-prod \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 ```
@@ -115,7 +142,7 @@ gcloud secrets add-iam-policy-binding mongodb-uri \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-gcloud secrets add-iam-policy-binding session-secret \
+gcloud secrets add-iam-policy-binding jwt-secret \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 ```
@@ -136,6 +163,7 @@ nano backend/.env.development
 // backend/server.js에서 환경변수 로드 확인
 console.log('🔍 Environment:', process.env.NODE_ENV);
 console.log('🔍 MONGODB_URI:', process.env.MONGODB_URI?.replace(/:[^:]*@/, ':****@'));
+console.log('🔍 JWT_SECRET:', process.env.JWT_SECRET ? '✅ Set' : '❌ Missing');
 console.log('🔍 PORT:', process.env.PORT);
 ```
 
@@ -147,7 +175,8 @@ node -e "
 require('dotenv').config({ path: '.env.development' });
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('MONGODB_URI:', process.env.MONGODB_URI?.substring(0, 50) + '...');
-console.log('SESSION_SECRET:', process.env.SESSION_SECRET?.substring(0, 10) + '...');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '✅ Configured (' + process.env.JWT_SECRET.length + ' chars)' : '❌ Missing');
+console.log('USE_REFRESH_TOKENS:', process.env.USE_REFRESH_TOKENS || 'false');
 "
 ```
 
@@ -158,20 +187,29 @@ console.log('SESSION_SECRET:', process.env.SESSION_SECRET?.substring(0, 10) + '.
 gcloud run deploy hr-backend \
   --image gcr.io/$PROJECT_ID/hr-backend:latest \
   --region asia-northeast3 \
-  --set-env-vars="NODE_ENV=staging,PORT=8080" \
-  --set-secrets="MONGODB_URI=mongodb-uri:latest,SESSION_SECRET=session-secret:latest"
+  --set-env-vars="NODE_ENV=staging,PORT=8080,FRONTEND_URL=https://staging-hr.vercel.app" \
+  --set-secrets="MONGODB_URI=mongodb-uri:latest,JWT_SECRET=jwt-secret:latest"
 ```
 
-### 2. 프로덕션 환경
+### 2. 프로덕션 환경 (기본 JWT)
 ```bash
 gcloud run deploy hr-backend-prod \
   --image gcr.io/$PROJECT_ID/hr-backend:latest \
   --region asia-northeast3 \
-  --set-env-vars="NODE_ENV=production,PORT=8080" \
-  --set-secrets="MONGODB_URI=mongodb-uri-prod:latest,SESSION_SECRET=session-secret-prod:latest"
+  --set-env-vars="NODE_ENV=production,PORT=8080,FRONTEND_URL=https://smpain-hr.vercel.app" \
+  --set-secrets="MONGODB_URI=mongodb-uri-prod:latest,JWT_SECRET=jwt-secret-prod:latest"
 ```
 
-### 3. 환경변수 업데이트
+### 3. 프로덕션 환경 (Phase 4 고급 기능)
+```bash
+gcloud run deploy hr-backend-prod \
+  --image gcr.io/$PROJECT_ID/hr-backend:latest \
+  --region asia-northeast3 \
+  --set-env-vars="NODE_ENV=production,PORT=8080,FRONTEND_URL=https://smpain-hr.vercel.app,USE_REFRESH_TOKENS=true,ENABLE_TOKEN_BLACKLIST=true,ACCESS_TOKEN_EXPIRES_IN=15m,REFRESH_TOKEN_EXPIRES_IN=7d" \
+  --set-secrets="MONGODB_URI=mongodb-uri-prod:latest,JWT_SECRET=jwt-secret-prod:latest,REFRESH_TOKEN_SECRET=refresh-token-secret-prod:latest"
+```
+
+### 4. 환경변수 업데이트
 ```bash
 # 기존 서비스의 환경변수 업데이트
 gcloud run services update hr-backend \
@@ -180,29 +218,47 @@ gcloud run services update hr-backend \
   --remove-env-vars="OLD_VAR"
 ```
 
+## JWT 환경변수 상세 설명
+
+### 필수 환경변수
+| 변수명 | 설명 | 예시 |
+|--------|------|------|
+| `JWT_SECRET` | JWT 토큰 서명용 비밀키 | `super-secure-jwt-secret-256bit` |
+| `MONGODB_URI` | MongoDB 연결 문자열 | `mongodb+srv://user:pass@cluster.mongodb.net/db` |
+| `FRONTEND_URL` | CORS 설정용 프론트엔드 URL | `https://smpain-hr.vercel.app` |
+
+### Phase 4 고급 기능 (선택사항)
+| 변수명 | 설명 | 기본값 |
+|--------|------|--------|
+| `USE_REFRESH_TOKENS` | 리프레시 토큰 사용 여부 | `false` |
+| `ENABLE_TOKEN_BLACKLIST` | 토큰 블랙리스트 사용 여부 | `false` |
+| `ACCESS_TOKEN_EXPIRES_IN` | 액세스 토큰 만료 시간 | `24h` |
+| `REFRESH_TOKEN_EXPIRES_IN` | 리프레시 토큰 만료 시간 | `7d` |
+| `REFRESH_TOKEN_SECRET` | 리프레시 토큰 서명용 비밀키 | JWT_SECRET + '_refresh' |
+
 ## 시크릿 관리 베스트 프랙티스
 
-### 1. 시크릿 로테이션
+### 1. JWT 시크릿 로테이션
 ```bash
-# 새 버전의 시크릿 생성
-echo "new-secret-value" | gcloud secrets versions add session-secret --data-file=-
+# 새 JWT 시크릿 생성
+openssl rand -base64 64 | gcloud secrets versions add jwt-secret --data-file=-
 
 # Cloud Run 서비스 업데이트 (자동으로 최신 버전 사용)
 gcloud run services update hr-backend \
   --region asia-northeast3 \
-  --update-secrets="SESSION_SECRET=session-secret:latest"
+  --update-secrets="JWT_SECRET=jwt-secret:latest"
 
 # 이전 버전 비활성화 (필요시)
-gcloud secrets versions disable VERSION_ID --secret="session-secret"
+gcloud secrets versions disable VERSION_ID --secret="jwt-secret"
 ```
 
 ### 2. 시크릿 백업
 ```bash
-# 시크릿 값을 안전한 위치에 백업 (암호화된 저장소)
-gcloud secrets versions access latest --secret="session-secret" > session-secret-backup.enc
+# JWT 시크릿 값을 안전한 위치에 백업 (암호화된 저장소)
+gcloud secrets versions access latest --secret="jwt-secret" > jwt-secret-backup.enc
 
 # 여러 리전에 복제 (재해 복구용)
-gcloud secrets replication update session-secret \
+gcloud secrets replication update jwt-secret \
   --set-locations="asia-northeast3,us-central1"
 ```
 
@@ -220,7 +276,7 @@ gcloud logging sinks create secret-access-sink \
 ```javascript
 // backend/server.js에 추가
 function validateEnvironment() {
-  const required = ['MONGODB_URI', 'SESSION_SECRET'];
+  const required = ['MONGODB_URI', 'JWT_SECRET'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -234,7 +290,21 @@ function validateEnvironment() {
     process.exit(1);
   }
   
+  // JWT Secret 길이 검증
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+    console.warn('⚠️ JWT_SECRET should be at least 32 characters long');
+  }
+  
   console.log('✅ Environment validation passed');
+  console.log('🔐 JWT Authentication enabled');
+  
+  // Phase 4 기능 상태 표시
+  if (process.env.USE_REFRESH_TOKENS === 'true') {
+    console.log('🔄 Refresh tokens enabled');
+  }
+  if (process.env.ENABLE_TOKEN_BLACKLIST === 'true') {
+    console.log('🚫 Token blacklisting enabled');
+  }
 }
 
 // 서버 시작 전에 호출
@@ -250,14 +320,17 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
+    authentication: 'JWT',
     config: {
       mongodb: process.env.MONGODB_URI ? '✅ configured' : '❌ missing',
-      session: process.env.SESSION_SECRET ? '✅ configured' : '❌ missing'
+      jwt: process.env.JWT_SECRET ? '✅ configured' : '❌ missing',
+      refreshTokens: process.env.USE_REFRESH_TOKENS === 'true' ? '✅ enabled' : '❌ disabled',
+      tokenBlacklist: process.env.ENABLE_TOKEN_BLACKLIST === 'true' ? '✅ enabled' : '❌ disabled'
     }
   };
   
   const isHealthy = health.config.mongodb.includes('✅') && 
-                   health.config.session.includes('✅');
+                   health.config.jwt.includes('✅');
   
   res.status(isHealthy ? 200 : 503).json(health);
 });
@@ -265,10 +338,10 @@ app.get('/health', (req, res) => {
 
 ## 트러블슈팅
 
-### 1. 시크릿 접근 오류
+### 1. JWT 시크릿 접근 오류
 ```bash
 # 권한 확인
-gcloud secrets get-iam-policy mongodb-uri
+gcloud secrets get-iam-policy jwt-secret
 
 # 서비스 계정 확인
 gcloud iam service-accounts list
@@ -279,7 +352,18 @@ gcloud run services describe hr-backend \
   --format="value(spec.template.spec.serviceAccountName)"
 ```
 
-### 2. 환경변수 누락
+### 2. JWT 토큰 검증 실패
+```bash
+# JWT 시크릿 확인
+gcloud secrets versions access latest --secret="jwt-secret"
+
+# 토큰 검증 테스트
+curl -X POST https://hr-backend-429401177957.asia-northeast3.run.app/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}'
+```
+
+### 3. 환경변수 누락
 ```bash
 # Cloud Run 서비스의 환경변수 확인
 gcloud run services describe hr-backend \
@@ -287,14 +371,29 @@ gcloud run services describe hr-backend \
   --format="yaml" | grep -A 20 "env:"
 ```
 
-### 3. 로컬에서 클라우드 시크릿 테스트
+### 4. 로컬에서 클라우드 시크릿 테스트
 ```bash
 # 로컬에서 클라우드 시크릿 값 가져와서 테스트
 export MONGODB_URI=$(gcloud secrets versions access latest --secret="mongodb-uri")
-export SESSION_SECRET=$(gcloud secrets versions access latest --secret="session-secret")
+export JWT_SECRET=$(gcloud secrets versions access latest --secret="jwt-secret")
 
 # 로컬에서 동일한 환경으로 실행
 npm run dev
 ```
 
-이 가이드를 따라하면 안전하고 효율적으로 환경변수와 시크릿을 관리할 수 있습니다.
+## 마이그레이션 노트
+
+### 세션에서 JWT로의 변경사항
+- ❌ `SESSION_SECRET` → ✅ `JWT_SECRET`
+- ❌ `express-session` → ✅ JWT tokens
+- ❌ MongoDB 세션 스토어 → ✅ Stateless authentication
+- ❌ 쿠키 기반 인증 → ✅ Authorization 헤더
+
+### 기존 시크릿 정리
+```bash
+# 사용하지 않는 세션 시크릿 삭제 (선택사항)
+gcloud secrets delete session-secret
+gcloud secrets delete session-secret-prod
+```
+
+이 가이드를 따라하면 JWT 기반 인증으로 안전하고 효율적으로 환경변수와 시크릿을 관리할 수 있습니다.
