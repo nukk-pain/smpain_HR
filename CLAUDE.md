@@ -174,10 +174,12 @@ node scripts/resetDatabase.js
 mongodb://localhost:27017/SM_nomu
 
 # MongoDB connection (development - Atlas)
-mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-dev
+# ⚠️ SECURITY: Use environment variables - never commit credentials
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
 
 # MongoDB connection (production - Google Cloud)
-mongodb+srv://hr_app_prod:STRONG_PASSWORD@hr-cluster-prod.xxxxx.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-prod
+# ⚠️ SECURITY: Set via Google Cloud Secret Manager
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
 ```
 
 ## High-Level Architecture

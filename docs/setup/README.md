@@ -134,7 +134,7 @@ env: {
 ```
 
 #### Development Environment
-- MongoDB: `mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu`
+- MongoDB: `Set via MONGODB_URI environment variable`
 - Backend: `http://localhost:8080`
 - Frontend: `http://localhost:3727`
 

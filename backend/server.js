@@ -58,11 +58,8 @@ const PORT = process.env.PORT || 8080;
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // MongoDB connection string with authentication
-// For Atlas, use MONGODB_URI environment variable
-const MONGO_URL = process.env.MONGODB_URI || process.env.MONGODB_URL || (isDevelopment
-  ? 'mongodb://localhost:27017'
-  : 'mongodb://hr_app_user:Hr2025Secure@localhost:27018,localhost:27019,localhost:27020/SM_nomu?replicaSet=hrapp&authSource=SM_nomu'
-);
+// ⚠️ SECURITY: Always use MONGODB_URI environment variable
+const MONGO_URL = process.env.MONGODB_URI || process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'SM_nomu';
 
 // Debug logging

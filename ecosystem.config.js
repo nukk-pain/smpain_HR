@@ -7,11 +7,13 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 5455,
-        MONGODB_URL: 'mongodb://hr_app_user:Hr2025Secure@localhost:27018/SM_nomu?authSource=SM_nomu',
-        MONGODB_USER: 'hr_app_user',
-        MONGODB_PASSWORD: 'Hr2025Secure',
+        // ⚠️ SECURITY: Set these via PM2 environment variables or external config
+        // MONGODB_URI: 'Set_via_environment_variables',
+        // MONGODB_USER: 'Set_via_environment_variables',
+        // MONGODB_PASSWORD: 'Set_via_environment_variables',
         DB_NAME: 'SM_nomu',
-        SESSION_SECRET: 'hr-synology-secret-2025',
+        // SESSION_SECRET: 'Set_via_environment_variables',
+        // JWT_SECRET: 'Set_via_environment_variables',
         FRONTEND_URL: 'https://hr.smpain.synology.me'
       },
       instances: 1,

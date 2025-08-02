@@ -15,6 +15,7 @@ frontend/.cache/
 .env.local
 .env.production
 # Keep .env.example and .env.development for deployment setup
+secret.md
 
 # Database credentials
 MONGODB_CREDENTIALS.md
