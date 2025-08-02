@@ -66,14 +66,23 @@ This system provides complete HR management capabilities including employee leav
 ### 🗄️ Database Management
 
 #### Reset Database (Remove Test Data)
+
+**⚠️ First set environment variables:**
+```bash
+# Copy example file and set your MongoDB credentials
+cp .env.example .env
+# Edit .env file with your actual MongoDB URI
+```
+
+**Then run reset commands:**
 ```bash
 # Reset local MongoDB (removes all data except admin user)
-npm run db:reset:local
+MONGODB_URI=mongodb://localhost:27017 npm run db:reset
 
-# Reset MongoDB Atlas (production)
-npm run db:reset:atlas
+# Reset MongoDB Atlas (production) - requires MONGODB_URI env var
+MONGODB_URI=your-atlas-uri npm run db:reset
 
-# Auto-detect environment
+# Or set MONGODB_URI in .env file and run:
 npm run db:reset
 ```
 

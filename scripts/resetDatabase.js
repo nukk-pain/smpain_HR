@@ -2,11 +2,8 @@ const path = require('path');
 const { MongoClient } = require(path.join(__dirname, '../backend/node_modules/mongodb'));
 const bcrypt = require(path.join(__dirname, '../backend/node_modules/bcryptjs'));
 
-// MongoDB 연결 설정 - 환경에 따라 자동 선택
-const MONGODB_URI = process.env.MONGODB_URI || 
-  process.env.NODE_ENV === 'production' 
-    ? 'mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-dev'
-    : 'mongodb://localhost:27017';
+// MongoDB 연결 설정 - 환경변수 필수
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 
 const dbName = 'SM_nomu';
 
