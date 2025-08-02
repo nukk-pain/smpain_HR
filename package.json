@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "db:reset": "node scripts/resetDatabase.js",
+    "db:reset:local": "NODE_ENV=development node scripts/resetDatabase.js",
+    "db:reset:atlas": "NODE_ENV=production node scripts/resetDatabase.js"
+  },
   "dependencies": {
     "axios": "^1.11.0"
   }

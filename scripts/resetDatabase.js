@@ -2,12 +2,18 @@ const path = require('path');
 const { MongoClient } = require(path.join(__dirname, '../backend/node_modules/mongodb'));
 const bcrypt = require(path.join(__dirname, '../backend/node_modules/bcryptjs'));
 
-// MongoDB 연결 설정
-const url = 'mongodb://localhost:27017';
+// MongoDB 연결 설정 - 환경에 따라 자동 선택
+const MONGODB_URI = process.env.MONGODB_URI || 
+  process.env.NODE_ENV === 'production' 
+    ? 'mongodb+srv://hr_app_user:HrDev2025Temp!@hr-cluster-dev.sp0ckpk.mongodb.net/SM_nomu?retryWrites=true&w=majority&appName=hr-cluster-dev'
+    : 'mongodb://localhost:27017';
+
 const dbName = 'SM_nomu';
 
+console.log(`🔗 연결 대상: ${MONGODB_URI.includes('localhost') ? '로컬 MongoDB' : 'MongoDB Atlas'}`);
+
 async function resetDatabase() {
-  const client = new MongoClient(url);
+  const client = new MongoClient(MONGODB_URI);
   
   try {
     console.log('🗄️  HR 시스템 데이터베이스 초기화 시작...');

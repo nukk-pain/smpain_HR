@@ -63,6 +63,32 @@ This system provides complete HR management capabilities including employee leav
    - Backend API: http://localhost:5455/api
    - Default login: `admin` / `admin`
 
+### 🗄️ Database Management
+
+#### Reset Database (Remove Test Data)
+```bash
+# Reset local MongoDB (removes all data except admin user)
+npm run db:reset:local
+
+# Reset MongoDB Atlas (production)
+npm run db:reset:atlas
+
+# Auto-detect environment
+npm run db:reset
+```
+
+**What gets reset:**
+- ✅ All leave requests and exceptions
+- ✅ All payroll and bonus data  
+- ✅ All departments and positions
+- ✅ All users except admin
+- ✅ Admin password reset to 'admin'
+- ✅ Sessions and temporary data
+
+**What stays:**
+- 🔒 Admin user account (username: admin, password: admin)
+- 🔒 Database structure and indexes
+
 ---
 
 ## 🌐 Production Deployment (Cloud)
