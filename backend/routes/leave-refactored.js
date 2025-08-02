@@ -49,8 +49,8 @@ router.get('/',
       const filters = {};
       
       // Non-admin users can only see their own requests
-      if (currentUser.role !== 'Admin') {
-        filters.userId = new ObjectId(user_id || currentUser._id);
+      if (currentUser.role !== 'admin') {
+        filters.userId = new ObjectId(user_id || currentUser.id);
       } else if (user_id) {
         filters.userId = new ObjectId(user_id);
       }

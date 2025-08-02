@@ -49,6 +49,7 @@ const {
 
 // Import JWT utilities
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
+const { tokenBlacklist, TokenBlacklist } = require('./utils/tokenBlacklist');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -237,6 +238,15 @@ app.use((req, res, next) => {
     const token = extractTokenFromHeader(authHeader);
     
     if (token) {
+      // Check if token is blacklisted (if blacklisting is enabled)
+      if (process.env.ENABLE_TOKEN_BLACKLIST === 'true') {
+        const tokenId = TokenBlacklist.getTokenId(token);
+        if (tokenBlacklist.isBlacklisted(tokenId)) {
+          console.log('❌ Blacklisted token rejected for', req.method, req.path);
+          return res.status(401).json({ error: 'Token has been revoked' });
+        }
+      }
+      
       const decoded = verifyToken(token);
       req.user = decoded; // Set user info for route handlers
       console.log('✅ JWT token parsed for user:', decoded.username, 'on', req.method, req.path);

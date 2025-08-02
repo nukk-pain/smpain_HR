@@ -11,8 +11,8 @@ const axios = require('axios');
 const API_BASE_URL = process.env.API_URL || 'https://hr-backend-429401177957.asia-northeast3.run.app';
 const TEST_ACCOUNTS = {
   admin: { username: 'admin', password: 'admin' },
-  manager: { username: 'hyeseong.kim', password: 'ths1004' },
-  user: { username: 'yongho.kim', password: 'kim1234' }
+  manager: { username: 'hyeseong_kim', password: 'ths1004' },
+  user: { username: 'yongho_kim', password: 'kim1234' }
 };
 
 // Color codes for terminal output

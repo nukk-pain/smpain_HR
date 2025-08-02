@@ -21,6 +21,67 @@ function createPayrollRoutes(db) {
     };
   };
 
+  // Get all payroll data (for current month by default)
+  router.get('/', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
+    try {
+      const userRole = req.user.role;
+      const userId = req.user.id;
+      
+      // Get current year-month
+      const now = new Date();
+      const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      let matchCondition = { yearMonth: currentYearMonth };
+
+      // If not admin/manager, only show own data
+      if (userRole === 'user') {
+        matchCondition.userId = new ObjectId(userId);
+      }
+
+      const payrollData = await db.collection('monthlyPayments').aggregate([
+        { $match: matchCondition },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            yearMonth: 1,
+            baseSalary: 1,
+            totalIncentive: 1,
+            totalDeductions: 1,
+            netPay: 1,
+            status: 1,
+            'user.name': 1,
+            'user.employeeId': 1,
+            'user.department': 1,
+            'user.position': 1,
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        { $sort: { 'user.employeeId': 1 } }
+      ]).toArray();
+
+      res.json({
+        success: true,
+        data: payrollData,
+        count: payrollData.length,
+        yearMonth: currentYearMonth
+      });
+    } catch (error) {
+      console.error('Error fetching payroll data:', error);
+      res.status(500).json({ error: 'Failed to fetch payroll data' });
+    }
+  }));
+
   // Get monthly payroll data
   router.get('/monthly/:year_month', requireAuth, asyncHandler(async (req, res) => {
     try {

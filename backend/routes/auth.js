@@ -2,7 +2,9 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
 const { requireAuth } = require('../middleware/errorHandler');
-const { generateToken } = require('../utils/jwt');
+const { generateToken, verifyToken } = require('../utils/jwt');
+const { generateTokenPair, verifyRefreshToken } = require('../utils/refreshToken');
+const { tokenBlacklist, TokenBlacklist } = require('../utils/tokenBlacklist');
 
 const router = express.Router();
 
@@ -47,13 +49,44 @@ function createAuthRoutes(db) {
         return res.status(401).json({ error: 'Account is deactivated' });
       }
       
-      // Generate JWT token
-      const token = generateToken(user);
+      // Generate token pair (access + refresh) for Phase 4 enhancement
+      const useRefreshTokens = process.env.USE_REFRESH_TOKENS === 'true';
       
-      res.json({ 
-        success: true,
-        message: 'Login successful',
-        token: token,
+      if (useRefreshTokens) {
+        const { accessToken, refreshToken } = generateTokenPair(user);
+        
+        res.json({ 
+          success: true,
+          message: 'Login successful',
+          token: accessToken,  // Keep backward compatibility
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          tokenType: 'Bearer',
+          expiresIn: '15m',
+          user: {
+            _id: user._id.toString(),
+            id: user._id.toString(),
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            position: user.position,
+            employeeId: user.employeeId,
+            hireDate: user.hireDate,
+            birthDate: user.birthDate,
+            phoneNumber: user.phoneNumber,
+            contractType: user.contractType,
+            permissions: user.permissions || []
+          }
+        });
+      } else {
+        // Legacy single token mode
+        const token = generateToken(user);
+        
+        res.json({ 
+          success: true,
+          message: 'Login successful',
+          token: token,
         user: {
           _id: user._id.toString(),
           id: user._id.toString(),
@@ -76,14 +109,68 @@ function createAuthRoutes(db) {
     }
   });
 
-  // Logout endpoint (JWT-based - client handles token removal)
-  router.post('/logout', (req, res) => {
-    // With JWT, logout is handled client-side by removing the token
-    // Server-side logout would require token blacklisting (future enhancement)
-    res.json({ 
-      success: true,
-      message: 'Logout successful. Please remove token from client.' 
-    });
+  // Logout endpoint (with token blacklisting support)
+  router.post('/logout', requireAuth, (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      // If token blacklisting is enabled, add current token to blacklist
+      if (process.env.ENABLE_TOKEN_BLACKLIST === 'true' && authHeader) {
+        const token = authHeader.split(' ')[1];
+        const tokenId = TokenBlacklist.getTokenId(token);
+        const expirationTime = TokenBlacklist.getExpirationTime(req.user);
+        
+        tokenBlacklist.addToken(tokenId, expirationTime);
+      }
+      
+      res.json({ 
+        success: true,
+        message: 'Logout successful. Token has been invalidated.' 
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.json({ 
+        success: true,
+        message: 'Logout successful. Please remove token from client.' 
+      });
+    }
+  });
+
+  // Refresh token endpoint (Phase 4)
+  router.post('/refresh', async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(400).json({ error: 'Refresh token is required' });
+      }
+      
+      // Verify refresh token
+      const decoded = verifyRefreshToken(refreshToken);
+      
+      // Get user from database
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.id) });
+      
+      if (!user || !user.isActive) {
+        return res.status(401).json({ error: 'User not found or inactive' });
+      }
+      
+      // Generate new token pair
+      const { accessToken, refreshToken: newRefreshToken } = generateTokenPair(user);
+      
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        accessToken: accessToken,
+        refreshToken: newRefreshToken,
+        tokenType: 'Bearer',
+        expiresIn: '15m'
+      });
+      
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
   });
 
   // Clear session (development only) - JWT version
