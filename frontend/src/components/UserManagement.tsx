@@ -583,6 +583,7 @@ const UserManagement: React.FC = () => {
                 timestamp: new Date().toISOString()
               })}
               <AgGridReact
+                theme="legacy"
                 columnDefs={columnDefs}
                 rowData={users}
                 defaultColDef={defaultColDef}
