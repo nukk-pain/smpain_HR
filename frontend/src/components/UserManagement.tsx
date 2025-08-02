@@ -48,7 +48,9 @@ import '@ag-grid-community/styles/ag-grid.css';
 import '@ag-grid-community/styles/ag-theme-material.css';
 
 const UserManagement: React.FC = () => {
+  console.log('🚀 UserManagement component started rendering');
   const { user: currentUser } = useAuth();
+  console.log('👤 Current user:', currentUser);
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -104,6 +106,12 @@ const UserManagement: React.FC = () => {
         department: departmentFilter || undefined,
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         search: searchTerm || undefined,
+      });
+      console.log('🔍 UserManagement - API Response:', {
+        success: response.success,
+        dataLength: response.data?.length,
+        data: response.data,
+        timestamp: new Date().toISOString()
       });
       setUsers(response.success ? response.data : []);
     } catch (error) {
@@ -569,6 +577,11 @@ const UserManagement: React.FC = () => {
             </Box>
           ) : (
             <div className="ag-theme-material" style={{ height: 600, width: '100%' }}>
+              {console.log('🔍 AG Grid Render - Users data:', {
+                usersLength: users.length,
+                users: users,
+                timestamp: new Date().toISOString()
+              })}
               <AgGridReact
                 columnDefs={columnDefs}
                 rowData={users}
