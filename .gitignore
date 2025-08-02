@@ -23,6 +23,7 @@ MONGODB_CREDENTIALS.md
 # Logs
 *.log
 
+
 # IDE
 .vscode/
 .idea/
@@ -44,6 +45,7 @@ Thumbs.db
 *.temp
 nohup.out
 docs/previous_plans
+todo.md
 
 # Google Cloud Platform
 # Service account keys and authentication

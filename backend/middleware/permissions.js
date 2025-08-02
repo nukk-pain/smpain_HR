@@ -38,11 +38,11 @@ const PERMISSIONS = {
   'admin:config': 'Configure system settings',
 
   // Department management
-  'department:view': 'View departments',
-  'department:create': 'Create departments',
-  'department:edit': 'Edit departments',
-  'department:delete': 'Delete departments',
-  'department:manage': 'Full department management',
+  'departments:view': 'View departments',
+  'departments:create': 'Create departments',
+  'departments:edit': 'Edit departments',
+  'departments:delete': 'Delete departments',
+  'departments:manage': 'Full department management',
 };
 
 // Role-based default permissions
@@ -57,8 +57,8 @@ const ROLE_PERMISSIONS = {
     'payroll:view',
     'reports:view',
     'reports:export',
-    'department:view',
-    'department:edit',
+    'departments:view',
+    'departments:edit',
   ],
   'User': [
     'user:view', // Only own profile
@@ -74,7 +74,7 @@ const PERMISSION_GROUPS = {
   'user_management': ['user:view', 'user:create', 'user:edit', 'user:delete'],
   'leave_management': ['leave:view', 'leave:create', 'leave:edit', 'leave:delete', 'leave:approve'],
   'payroll_management': ['payroll:view', 'payroll:create', 'payroll:edit', 'payroll:delete'],
-  'department_management': ['department:view', 'department:create', 'department:edit', 'department:delete'],
+  'department_management': ['departments:view', 'departments:create', 'departments:edit', 'departments:delete'],
   'reporting': ['reports:view', 'reports:export'],
   'administration': ['admin:system', 'admin:audit', 'admin:config'],
 };

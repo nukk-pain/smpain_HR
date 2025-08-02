@@ -1,7 +1,7 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
-const { requirePermission } = require('./leave/utils/leaveHelpers');
+const { requirePermission } = require('../middleware/permissions');
 
 function createPositionRoutes(db) {
   const router = express.Router();
