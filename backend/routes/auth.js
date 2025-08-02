@@ -87,7 +87,7 @@ function createAuthRoutes(db) {
           success: true,
           message: 'Login successful',
           token: token,
-        user: {
+          user: {
           _id: user._id.toString(),
           id: user._id.toString(),
           username: user.username,
@@ -102,7 +102,8 @@ function createAuthRoutes(db) {
           contractType: user.contractType,
           permissions: user.permissions || []
         }
-      });
+        });
+      }
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ error: 'Internal server error' });

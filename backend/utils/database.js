@@ -1,10 +1,7 @@
 const { MongoClient } = require('mongodb');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
 
 let client = null;
 let db = null;
-let sessionStore = null;
 
 const connectToDatabase = async () => {
   if (db) return { client, db };
@@ -67,28 +64,9 @@ const closeDatabaseConnection = async () => {
     console.log('MongoDB connection closed');
     client = null;
     db = null;
-    sessionStore = null;
   }
 };
 
-const createSessionStore = () => {
-  if (sessionStore) return sessionStore;
-
-  if (!client) {
-    throw new Error('Database client not initialized. Call connectToDatabase first.');
-  }
-
-  sessionStore = MongoStore.create({
-    client: client,
-    dbName: process.env.DB_NAME || 'SM_nomu',
-    collectionName: 'sessions',
-    ttl: 24 * 60 * 60, // 24 hours
-    autoRemove: 'native',
-    touchAfter: 24 * 3600, // 24 hours
-  });
-
-  return sessionStore;
-};
 
 const withTransaction = async (callback) => {
   const session = client.startSession();
@@ -108,6 +86,5 @@ module.exports = {
   getDatabase,
   getClient,
   closeDatabaseConnection,
-  createSessionStore,
   withTransaction
 };
