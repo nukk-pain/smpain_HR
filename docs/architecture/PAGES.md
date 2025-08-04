@@ -40,13 +40,10 @@ The system has three user roles:
 
 | Page | Path | Description |
 |------|------|-------------|
-| User Management | `/admin/users` | Create and manage all user accounts |
-| Department Management | `/admin/departments` | Manage all departments |
-| Payroll Management | `/admin/payroll` | System-wide payroll processing and management |
-| Reports | `/admin/reports` | Generate system-wide reports |
-| File Management | `/admin/files` | Upload and manage all files |
 | Leave Overview | `/admin/leave/overview` | System-wide leave overview |
 | Leave Policy | `/admin/leave/policy` | Configure leave policies |
+
+**Note**: Admin users can access all `/supervisor/*` pages with full system-wide permissions. The admin-specific pages above are for system-level configurations that only admins should manage.
 
 ## Legacy URL Support & Redirects
 
@@ -64,11 +61,11 @@ For backward compatibility, the following legacy URLs automatically redirect to 
 ### Role-Based Dynamic Redirects
 | Legacy URL | Supervisor Redirect | Admin Redirect | Description |
 |------------|-------------------|----------------|-------------|
-| `/users` | `/supervisor/users` | `/admin/users` | Role-based user management |
-| `/departments` | `/supervisor/departments` | `/admin/departments` | Role-based dept management |
-| `/payroll` | `/supervisor/payroll` | `/admin/payroll` | Role-based payroll access |
-| `/reports` | `/supervisor/reports` | `/admin/reports` | Role-based reports access |
-| `/files` | `/supervisor/files` | `/admin/files` | Role-based file management |
+| `/users` | `/supervisor/users` | `/supervisor/users` | User management (Admin uses supervisor route) |
+| `/departments` | `/supervisor/departments` | `/supervisor/departments` | Department management (Admin uses supervisor route) |
+| `/payroll` | `/supervisor/payroll` | `/supervisor/payroll` | Payroll access (Admin uses supervisor route) |
+| `/reports` | `/supervisor/reports` | `/supervisor/reports` | Reports access (Admin uses supervisor route) |
+| `/files` | `/supervisor/files` | `/supervisor/files` | File management (Admin uses supervisor route) |
 
 **Note**: All redirects use `replace` navigation to prevent browser history pollution.
 
@@ -86,9 +83,8 @@ The new URL structure follows these patterns:
 - Supervisor leave: `/supervisor/leave/status`, `/supervisor/leave/requests`
 
 ### 3. Clear Role Separation
-- Same functionality accessible via different URLs based on role
-- Admin users can access both `/supervisor/*` and `/admin/*` paths
-- Supervisor users can only access `/supervisor/*` paths
+- Admin users can access `/supervisor/*` paths with full system-wide permissions and `/admin/*` paths for system configuration
+- Supervisor users can only access `/supervisor/*` paths with team/department-level permissions
 - Regular users only access public routes
 
 ### 4. SEO and UX Benefits

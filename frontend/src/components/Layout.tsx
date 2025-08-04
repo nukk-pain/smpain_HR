@@ -122,38 +122,8 @@ const supervisorNavigationItems: NavigationItem[] = [
   },
 ]
 
-// Admin-specific navigation items
+// Admin-specific navigation items (only admin-exclusive features)
 const adminNavigationItems: NavigationItem[] = [
-  {
-    text: '직원 관리',
-    icon: <People />,
-    path: '/admin/users',
-    permissions: ['users:view'],
-  },
-  {
-    text: '부서 관리',
-    icon: <Business />,
-    path: '/admin/departments',
-    permissions: ['departments:view', 'departments:manage'],
-  },
-  {
-    text: '급여 관리',
-    icon: <AccountBalance />,
-    path: '/admin/payroll',
-    permissions: ['payroll:view', 'payroll:manage'],
-  },
-  {
-    text: '보고서',
-    icon: <Assessment />,
-    path: '/admin/reports',
-    permissions: ['reports:view'],
-  },
-  {
-    text: '파일 관리',
-    icon: <CloudUpload />,
-    path: '/admin/files',
-    permissions: ['files:view', 'files:manage'],
-  },
   {
     text: '전체 휴가 현황',
     icon: <BeachAccess />,
