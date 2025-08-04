@@ -22,26 +22,80 @@ The system has three user roles:
 | Dashboard | `/dashboard` | Main dashboard (content varies by role) |
 | User Profile | `/profile` | Personal profile management |
 | Leave Management | `/leave` | Personal leave requests and history |
-| Leave Calendar | `/leave-calendar` | Calendar view of leaves |
+| Leave Calendar | `/leave/calendar` | Calendar view of leaves |
 
 ### 3. Supervisor & Admin Only
 
 | Page | Path | Description |
 |------|------|-------------|
-| Team Leave Status | `/team-leave-status` | Team leave overview |
-| Employee Leave Management | `/employee-leave` | Manage employee leave requests |
+| Team Leave Status | `/supervisor/leave/status` | Team leave overview |
+| Employee Leave Management | `/supervisor/leave/requests` | Manage employee leave requests |
+| User Management | `/supervisor/users` | Manage team members and employees |
+| Department Management | `/supervisor/departments` | Manage department information |
+| Payroll Management | `/supervisor/payroll` | Process and manage payroll |
+| Reports | `/supervisor/reports` | Generate team and department reports |
+| File Management | `/supervisor/files` | Upload and manage files |
 
 ### 4. Admin Only
 
 | Page | Path | Description |
 |------|------|-------------|
-| Payroll Management | `/payroll` | Payroll processing and management |
-| Leave Overview | `/admin/leave-overview` | System-wide leave overview |
-| Leave Policy | `/admin/leave-policy` | Configure leave policies |
-| User Management | `/users` | Create and manage user accounts |
-| Department Management | `/departments` | Manage departments |
-| Reports | `/reports` | Generate various reports |
-| File Management | `/files` | File upload and management |
+| User Management | `/admin/users` | Create and manage all user accounts |
+| Department Management | `/admin/departments` | Manage all departments |
+| Payroll Management | `/admin/payroll` | System-wide payroll processing and management |
+| Reports | `/admin/reports` | Generate system-wide reports |
+| File Management | `/admin/files` | Upload and manage all files |
+| Leave Overview | `/admin/leave/overview` | System-wide leave overview |
+| Leave Policy | `/admin/leave/policy` | Configure leave policies |
+
+## Legacy URL Support & Redirects
+
+For backward compatibility, the following legacy URLs automatically redirect to the new structure:
+
+### Simple Redirects
+| Legacy URL | Redirects To | Description |
+|------------|--------------|-------------|
+| `/leave-calendar` | `/leave/calendar` | Calendar view redirect |
+| `/employee-leave-status` | `/supervisor/leave/status` | Team status redirect |
+| `/employee-leave` | `/supervisor/leave/requests` | Employee leave redirect |
+| `/admin/leave-overview` | `/admin/leave/overview` | Admin overview redirect |
+| `/admin/leave-policy` | `/admin/leave/policy` | Admin policy redirect |
+
+### Role-Based Dynamic Redirects
+| Legacy URL | Supervisor Redirect | Admin Redirect | Description |
+|------------|-------------------|----------------|-------------|
+| `/users` | `/supervisor/users` | `/admin/users` | Role-based user management |
+| `/departments` | `/supervisor/departments` | `/admin/departments` | Role-based dept management |
+| `/payroll` | `/supervisor/payroll` | `/admin/payroll` | Role-based payroll access |
+| `/reports` | `/supervisor/reports` | `/admin/reports` | Role-based reports access |
+| `/files` | `/supervisor/files` | `/admin/files` | Role-based file management |
+
+**Note**: All redirects use `replace` navigation to prevent browser history pollution.
+
+## URL Structure Principles
+
+The new URL structure follows these patterns:
+
+### 1. Hierarchical Organization
+- **Public routes**: No prefix (e.g., `/dashboard`, `/profile`, `/leave`)
+- **Supervisor routes**: `/supervisor/*` prefix for supervisor-level access
+- **Admin routes**: `/admin/*` prefix for admin-only access
+
+### 2. Nested Paths for Related Features
+- Leave management: `/admin/leave/overview`, `/admin/leave/policy`
+- Supervisor leave: `/supervisor/leave/status`, `/supervisor/leave/requests`
+
+### 3. Clear Role Separation
+- Same functionality accessible via different URLs based on role
+- Admin users can access both `/supervisor/*` and `/admin/*` paths
+- Supervisor users can only access `/supervisor/*` paths
+- Regular users only access public routes
+
+### 4. SEO and UX Benefits
+- Intuitive URL structure for bookmarking and sharing
+- Clear access level indication in URL
+- Deep linking support for all routes
+- Browser back/forward navigation works correctly
 
 ## Dashboard Content by Role
 

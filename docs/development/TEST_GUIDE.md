@@ -23,8 +23,8 @@ node server.js
 cd frontend
 npm run dev
 ```
-- 포트: 3000
-- 확인: `http://localhost:3000`
+- 포트: 3727
+- 확인: `http://localhost:3727`
 
 ## 🔐 2단계: 초기 로그인
 
@@ -129,7 +129,7 @@ fetch('/api/leave/REQUEST_ID/approve', {
 
 1. **휴가 관리 페이지 접속**
    - 메뉴에서 "휴가 관리" 클릭
-   - 또는 직접 `http://localhost:3000/leave` 접속
+   - 또는 직접 `http://localhost:3727/leave` 접속
 
 2. **휴가 신청 버튼 클릭**
    - 우측 상단의 "휴가 신청" 버튼 클릭
@@ -174,7 +174,86 @@ fetch('/api/leave/REQUEST_ID/approve', {
    - 승인 버튼 클릭 → 성공 메시지 확인
    - 거부 버튼 클릭 → 사유 입력 다이얼로그 → 거부 처리
 
-## 🔍 5단계: 권한 시스템 테스트
+## 🔗 5단계: URL 구조 및 네비게이션 테스트
+
+### A. 새 URL 구조 테스트
+
+#### 1. 공용 페이지 (모든 인증된 사용자)
+```javascript
+// 브라우저 주소창에 직접 입력하여 테스트
+http://localhost:3727/dashboard      // 대시보드
+http://localhost:3727/profile        // 프로필
+http://localhost:3727/leave          // 휴가 관리
+http://localhost:3727/leave/calendar // 휴가 달력
+```
+
+#### 2. 매니저/감독자 전용 페이지
+```javascript
+// 매니저 계정으로 로그인 후 테스트
+http://localhost:3727/supervisor/leave/status      // 팀 휴가 현황
+http://localhost:3727/supervisor/leave/requests    // 휴가 승인 관리
+http://localhost:3727/supervisor/users             // 사용자 관리
+http://localhost:3727/supervisor/departments       // 부서 관리
+http://localhost:3727/supervisor/payroll           // 급여 관리
+http://localhost:3727/supervisor/reports           // 보고서
+http://localhost:3727/supervisor/files             // 파일 관리
+```
+
+#### 3. 관리자 전용 페이지
+```javascript
+// 관리자 계정으로 로그인 후 테스트
+http://localhost:3727/admin/users                  // 관리자 사용자 관리
+http://localhost:3727/admin/departments            // 관리자 부서 관리
+http://localhost:3727/admin/payroll                // 관리자 급여 관리
+http://localhost:3727/admin/reports                // 관리자 보고서
+http://localhost:3727/admin/files                  // 관리자 파일 관리
+http://localhost:3727/admin/leave/overview         // 휴가 개요
+http://localhost:3727/admin/leave/policy           // 휴가 정책
+```
+
+### B. 기존 URL 리다이렉트 테스트
+
+#### 1. 단순 리다이렉트 테스트
+브라우저 주소창에 입력하여 자동 리다이렉트 확인:
+```javascript
+http://localhost:3727/leave-calendar          → /leave/calendar
+http://localhost:3727/employee-leave-status   → /supervisor/leave/status
+http://localhost:3727/employee-leave          → /supervisor/leave/requests
+http://localhost:3727/admin/leave-overview    → /admin/leave/overview
+http://localhost:3727/admin/leave-policy      → /admin/leave/policy
+```
+
+#### 2. 역할 기반 동적 리다이렉트 테스트
+```javascript
+// 매니저 계정으로 테스트
+http://localhost:3727/users         → /supervisor/users
+http://localhost:3727/departments   → /supervisor/departments
+http://localhost:3727/payroll       → /supervisor/payroll
+http://localhost:3727/reports       → /supervisor/reports
+http://localhost:3727/files         → /supervisor/files
+
+// 관리자 계정으로 테스트
+http://localhost:3727/users         → /admin/users
+http://localhost:3727/departments   → /admin/departments
+http://localhost:3727/payroll       → /admin/payroll
+http://localhost:3727/reports       → /admin/reports
+http://localhost:3727/files         → /admin/files
+```
+
+### C. 브라우저 네비게이션 테스트
+
+#### 1. 뒤로가기/앞으로가기 테스트
+1. 여러 페이지 순차적 방문
+2. 브라우저 뒤로가기 버튼 클릭
+3. 앞으로가기 버튼 클릭
+4. 히스토리 오염 없이 정상 동작 확인
+
+#### 2. 북마크 및 링크 공유 테스트
+1. 페이지 북마크 저장
+2. 새 탭에서 북마크 접속
+3. URL 복사하여 다른 브라우저에서 접속
+
+## 🔍 6단계: 권한 시스템 테스트
 
 ### A. 사용자 권한 테스트
 
@@ -219,7 +298,7 @@ fetch('/api/leave/pending')
   });
 ```
 
-## 🎯 6단계: 비즈니스 로직 테스트
+## 🎯 7단계: 비즈니스 로직 테스트
 
 ### A. 연차 계산 로직 테스트
 
@@ -249,7 +328,7 @@ fetch('/api/leave/pending')
 2. **겹치는 기간 신청**
    - 일부 겹치는 기간 신청 시 에러 메시지
 
-## 🐛 7단계: 에러 시나리오 테스트
+## 🐛 8단계: 에러 시나리오 테스트
 
 ### A. 네트워크 에러 테스트
 
@@ -271,7 +350,7 @@ fetch('/api/leave/pending')
    - 과거 날짜 선택 시 에러 메시지
    - 종료일 < 시작일 시 에러 메시지
 
-## 📊 8단계: 성능 테스트
+## 📊 9단계: 성능 테스트
 
 ### A. 대용량 데이터 테스트
 
@@ -288,7 +367,7 @@ fetch('/api/leave/pending')
    - 세션 관리 확인
    - 데이터 일관성 확인
 
-## ✅ 9단계: 테스트 체크리스트
+## ✅ 10단계: 테스트 체크리스트
 
 ### 필수 기능 체크리스트
 
@@ -302,6 +381,16 @@ fetch('/api/leave/pending')
 - [ ] 승인 대기 목록 조회
 - [ ] 권한별 접근 제어
 - [ ] 에러 처리 및 사용자 알림
+
+### URL 구조 및 네비게이션 체크리스트
+
+- [ ] 새 URL 구조 정상 동작 (/supervisor/*, /admin/*)
+- [ ] 기존 URL 자동 리다이렉트 동작
+- [ ] 역할 기반 동적 리다이렉트 동작
+- [ ] 브라우저 뒤로가기/앞으로가기 정상 동작
+- [ ] 직접 URL 입력 시 권한 확인
+- [ ] 북마크 및 링크 공유 정상 동작
+- [ ] 리다이렉트 시 히스토리 오염 없음
 
 ### UI/UX 체크리스트
 

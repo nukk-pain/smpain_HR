@@ -220,7 +220,7 @@ const UnifiedDashboard: React.FC = () => {
           title: '사용자 관리',
           description: '직원 추가/수정/비활성화',
           icon: <People />,
-          action: () => window.location.href = '/users',
+          action: () => window.location.href = '/admin/users',
           color: 'primary'
         }
       );
@@ -231,21 +231,21 @@ const UnifiedDashboard: React.FC = () => {
             title: '급여 보고서',
             description: '월별 급여 보고서 생성',
             icon: <Assessment />,
-            action: () => window.location.href = '/reports',
+            action: () => window.location.href = '/admin/reports',
             color: 'success'
           },
           {
             title: '파일 업로드',
             description: '급여 확정 파일 검증',
             icon: <Download />,
-            action: () => window.location.href = '/files',
+            action: () => window.location.href = '/admin/files',
             color: 'warning'
           },
           {
             title: '시스템 설정',
             description: '인센티브 수식 관리',
             icon: <Security />,
-            action: () => window.location.href = '/payroll?tab=4',
+            action: () => window.location.href = '/admin/payroll?tab=4',
             color: 'info'
           }
         );
@@ -258,14 +258,14 @@ const UnifiedDashboard: React.FC = () => {
           title: '급여 관리',
           description: '월별 급여 현황 확인',
           icon: <AttachMoney />,
-          action: () => window.location.href = '/payroll',
+          action: () => window.location.href = '/admin/payroll',
           color: 'primary'
         },
         {
           title: '매출 입력',
           description: '직원별 매출 데이터 관리',
           icon: <TrendingUp />,
-          action: () => window.location.href = '/payroll?tab=2',
+          action: () => window.location.href = '/admin/payroll?tab=2',
           color: 'success'
         }
       );

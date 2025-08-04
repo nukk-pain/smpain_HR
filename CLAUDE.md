@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Always follow the instructions in plan.md. When I say "go", find the next unmarked test in plan.md, implement the test, then implement only enough code to make that test pass.
 
 # ROLE AND EXPERTISE
 
@@ -288,3 +288,7 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 - **Frontend (Vercel)**: https://smpain-hr.vercel.app/
 - **Backend (Google Cloud Run)**: https://hr-backend-429401177957.asia-northeast3.run.app
+
+## HR Understanding Notes
+
+- supervisor는 팀과 완전 무관한 직책이야.

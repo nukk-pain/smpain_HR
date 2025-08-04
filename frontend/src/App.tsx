@@ -20,6 +20,7 @@ const FileManagement = React.lazy(() => import('./pages/FileManagement'))
 const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview'))
 const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
 import { NotificationProvider } from './components/NotificationProvider'
+import RoleBasedRedirect from './components/RoleBasedRedirect'
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: string[] }> = ({ 
@@ -76,8 +77,16 @@ const AppContent: React.FC = () => {
         
         <Route path="profile" element={<UserProfile />} />
         
-        <Route path="payroll" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="supervisor/payroll" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <PayrollManagement />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="admin/payroll" element={
+          <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <PayrollManagement />
             </React.Suspense>
@@ -90,59 +99,107 @@ const AppContent: React.FC = () => {
           </React.Suspense>
         } />
         
-        <Route path="employee-leave" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="leave/calendar" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <LeaveCalendarPage />
+          </React.Suspense>
+        } />
+        
+        {/* Redirect old URLs to new structure */}
+        <Route path="leave-calendar" element={<Navigate to="/leave/calendar" replace />} />
+        <Route path="employee-leave-status" element={<Navigate to="/supervisor/leave/status" replace />} />
+        <Route path="employee-leave" element={<Navigate to="/supervisor/leave/requests" replace />} />
+        <Route path="admin/leave-overview" element={<Navigate to="/admin/leave/overview" replace />} />
+        <Route path="admin/leave-policy" element={<Navigate to="/admin/leave/policy" replace />} />
+        
+        {/* Role-based redirects for old management pages */}
+        <Route path="users" element={<RoleBasedRedirect supervisorPath="/supervisor/users" adminPath="/admin/users" />} />
+        <Route path="departments" element={<RoleBasedRedirect supervisorPath="/supervisor/departments" adminPath="/admin/departments" />} />
+        <Route path="payroll" element={<RoleBasedRedirect supervisorPath="/supervisor/payroll" adminPath="/admin/payroll" />} />
+        <Route path="reports" element={<RoleBasedRedirect supervisorPath="/supervisor/reports" adminPath="/admin/reports" />} />
+        <Route path="files" element={<RoleBasedRedirect supervisorPath="/supervisor/files" adminPath="/admin/files" />} />
+        
+        <Route path="supervisor/leave/status" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <TeamLeaveStatusPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="supervisor/leave/requests" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <EmployeeLeaveManagement />
             </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="leave-calendar" element={
-          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-            <LeaveCalendarPage />
-          </React.Suspense>
-        } />
-        
-        <Route path="team-leave-status" element={
-          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-            <TeamLeaveStatusPage />
-          </React.Suspense>
-        } />
-        
-        <Route path="users" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="supervisor/users" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <UserManagementPage />
             </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="departments" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="supervisor/departments" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <DepartmentManagementPage />
             </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="reports" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="admin/users" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <UserManagementPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="admin/departments" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <DepartmentManagementPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="supervisor/reports" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <Reports />
             </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="files" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+        <Route path="supervisor/files" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <FileManagement />
             </React.Suspense>
           </ProtectedRoute>
         } />
         
-        <Route path="admin/leave-overview" element={
+        <Route path="admin/reports" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <Reports />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="admin/files" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <FileManagement />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="admin/leave/overview" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <AdminLeaveOverview />
@@ -150,7 +207,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="admin/leave-policy" element={
+        <Route path="admin/leave/policy" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <AdminLeavePolicy />

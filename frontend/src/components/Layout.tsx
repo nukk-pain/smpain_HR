@@ -55,17 +55,12 @@ interface NavigationItem {
   permissions?: string[]
 }
 
-const navigationItems: NavigationItem[] = [
+// Base navigation items available to all users
+const baseNavigationItems: NavigationItem[] = [
   {
     text: '대시보드',
     icon: <Dashboard />,
     path: '/dashboard',
-  },
-  {
-    text: '급여 관리',
-    icon: <AccountBalance />,
-    path: '/payroll',
-    permissions: ['payroll:view', 'payroll:manage'],
   },
   {
     text: '내 휴가 관리',
@@ -74,57 +69,101 @@ const navigationItems: NavigationItem[] = [
     permissions: ['leave:view'],
   },
   {
-    text: '직원 휴가 관리',
-    icon: <BeachAccess />,
-    path: '/employee-leave',
+    text: '휴가 달력',
+    icon: <Event />,
+    path: '/leave/calendar',
+    permissions: ['leave:view', 'leave:manage'],
+  },
+]
+
+// Supervisor-specific navigation items
+const supervisorNavigationItems: NavigationItem[] = [
+  {
+    text: '직원 휴가 현황',
+    icon: <Group />,
+    path: '/supervisor/leave/status',
     permissions: ['leave:manage'],
   },
   {
-    text: '휴가 달력',
-    icon: <Event />,
-    path: '/leave-calendar',
-    permissions: ['leave:view', 'leave:manage'],
-  },
-  {
-    text: '전체 직원 휴가 현황',
-    icon: <Group />,
-    path: '/team-leave-status',
+    text: '직원 휴가 승인',
+    icon: <BeachAccess />,
+    path: '/supervisor/leave/requests',
     permissions: ['leave:manage'],
   },
   {
     text: '직원 관리',
     icon: <People />,
-    path: '/users',
+    path: '/supervisor/users',
     permissions: ['users:view'],
   },
   {
     text: '부서 관리',
     icon: <Business />,
-    path: '/departments',
+    path: '/supervisor/departments',
     permissions: ['departments:view', 'departments:manage'],
+  },
+  {
+    text: '급여 관리',
+    icon: <AccountBalance />,
+    path: '/supervisor/payroll',
+    permissions: ['payroll:view', 'payroll:manage'],
   },
   {
     text: '보고서',
     icon: <Assessment />,
-    path: '/reports',
+    path: '/supervisor/reports',
     permissions: ['reports:view'],
   },
   {
     text: '파일 관리',
     icon: <CloudUpload />,
-    path: '/files',
+    path: '/supervisor/files',
+    permissions: ['files:view', 'files:manage'],
+  },
+]
+
+// Admin-specific navigation items
+const adminNavigationItems: NavigationItem[] = [
+  {
+    text: '직원 관리',
+    icon: <People />,
+    path: '/admin/users',
+    permissions: ['users:view'],
+  },
+  {
+    text: '부서 관리',
+    icon: <Business />,
+    path: '/admin/departments',
+    permissions: ['departments:view', 'departments:manage'],
+  },
+  {
+    text: '급여 관리',
+    icon: <AccountBalance />,
+    path: '/admin/payroll',
+    permissions: ['payroll:view', 'payroll:manage'],
+  },
+  {
+    text: '보고서',
+    icon: <Assessment />,
+    path: '/admin/reports',
+    permissions: ['reports:view'],
+  },
+  {
+    text: '파일 관리',
+    icon: <CloudUpload />,
+    path: '/admin/files',
     permissions: ['files:view', 'files:manage'],
   },
   {
-    text: '관리자 휴가 현황',
+    text: '전체 휴가 현황',
     icon: <BeachAccess />,
-    path: '/admin/leave-overview',
+    path: '/admin/leave/overview',
     permissions: ['admin:permissions'],
   },
   {
     text: '휴가 정책 설정',
     icon: <Settings />,
-    path: '/admin/leave-policy',
+    path: '/admin/leave/policy',
     permissions: ['admin:permissions'],
   },
 ]
@@ -206,6 +245,25 @@ const Layout: React.FC = () => {
     navigate(path)
     setMobileOpen(false)
   }
+
+  // Build navigation items based on user role
+  const navigationItems = React.useMemo(() => {
+    if (!user) return baseNavigationItems;
+    
+    // Start with base items
+    let items = [...baseNavigationItems];
+    
+    // Add role-specific items
+    if (user.role === 'admin') {
+      // Admin gets both supervisor items and admin-specific items
+      items = [...items, ...supervisorNavigationItems, ...adminNavigationItems];
+    } else if (user.role === 'supervisor') {
+      // Supervisor only gets supervisor items
+      items = [...items, ...supervisorNavigationItems];
+    }
+    
+    return items;
+  }, [user]);
 
   const filteredNavigationItems = navigationItems.filter(item => {
     // If no permissions required, show to all users
