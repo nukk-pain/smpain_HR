@@ -100,8 +100,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   if (currentUser.role === 'admin') {
     // Admins can see all departments
     allowedDepartments = null; // null means all departments
-  } else if (currentUser.role === 'manager') {
-    // Managers can only see departments in their visibleTeams array
+  } else if (currentUser.role === 'manager' || currentUser.role === 'supervisor') {
+    // Supervisors/Managers can only see departments in their visibleTeams array
     if (fullUserData.visibleTeams && Array.isArray(fullUserData.visibleTeams) && fullUserData.visibleTeams.length > 0) {
       allowedDepartments = fullUserData.visibleTeams.map(team => team.departmentName);
     } else {
@@ -127,8 +127,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   // Apply visibleTeams restrictions for managers
   if (allowedDepartments !== null && allowedDepartments.length > 0) {
     userQuery.department = { $in: allowedDepartments };
-  } else if (currentUser.role === 'manager' && allowedDepartments !== null) {
-    // Manager with empty allowedDepartments should see nothing
+  } else if ((currentUser.role === 'manager' || currentUser.role === 'supervisor') && allowedDepartments !== null) {
+    // Supervisor/Manager with empty allowedDepartments should see nothing
     userQuery._id = { $in: [] }; // This will match no documents
   }
   

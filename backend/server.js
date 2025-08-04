@@ -51,6 +51,9 @@ const {
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
 const { tokenBlacklist, TokenBlacklist } = require('./utils/tokenBlacklist');
 
+// Import role transformation middleware
+const { transformRequestRoles, transformResponseRoles } = require('./middleware/roleTransform');
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -222,6 +225,10 @@ app.use(securityHeaders);
 
 // CORS setup
 app.use(cors(corsOptions));
+
+// Role transformation middleware (for backward compatibility)
+app.use(transformRequestRoles);
+app.use(transformResponseRoles);
 
 // JWT Authentication Middleware - Parse JWT token and set req.user
 app.use((req, res, next) => {

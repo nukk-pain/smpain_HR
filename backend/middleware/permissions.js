@@ -136,10 +136,13 @@ const requireAdmin = (req, res, next) => {
   return requireRole('Admin')(req, res, next);
 };
 
-// Manager or Admin middleware
-const requireManagerOrAdmin = (req, res, next) => {
-  return requireRole(['Manager', 'Admin'])(req, res, next);
+// Supervisor or Admin middleware (formerly Manager)
+const requireSupervisorOrAdmin = (req, res, next) => {
+  return requireRole(['Supervisor', 'Manager', 'Admin'])(req, res, next);
 };
+
+// Legacy alias for backward compatibility
+const requireManagerOrAdmin = requireSupervisorOrAdmin;
 
 // Resource ownership middleware
 const requireOwnership = (resourceIdParam = 'id', userIdField = 'userId') => {
@@ -401,6 +404,7 @@ module.exports = {
   requireRole,
   requireAdmin,
   requireManagerOrAdmin,
+  requireSupervisorOrAdmin,
   requireOwnership,
   requireDepartmentAccess,
   requireAllPermissions,

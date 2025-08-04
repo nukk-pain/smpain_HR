@@ -69,8 +69,8 @@ router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(asy
   
   let query = { status: 'pending' };
   
-  // If user is a manager (not admin), filter by departments they can manage
-  if (currentUser.role === 'manager' && currentUser.visibleTeams) {
+  // If user is a supervisor/manager (not admin), filter by departments they can manage
+  if ((currentUser.role === 'manager' || currentUser.role === 'supervisor') && currentUser.visibleTeams) {
     const visibleDepartments = currentUser.visibleTeams.map(team => team.departmentName);
     query.userDepartment = { $in: visibleDepartments };
   }

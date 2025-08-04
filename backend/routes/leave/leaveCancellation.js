@@ -177,8 +177,8 @@ router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHand
       cancellationStatus: 'pending'
     };
     
-    // Managers can only see their department
-    if (userRole === 'manager') {
+    // Supervisors/Managers can only see their department
+    if (userRole === 'manager' || userRole === 'supervisor') {
       const departmentUserIds = await db.collection('users').find({
         department: userDepartment
       }).project({ _id: 1 }).toArray();
