@@ -292,3 +292,7 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 ## HR Understanding Notes
 
 - supervisor는 팀과 완전 무관한 직책이야.
+
+## Project Structure Guidelines
+
+- 수정 계획은 root 폴더에 만들고 docs에는 영구적으로 남길 파일만 남겨줘.
