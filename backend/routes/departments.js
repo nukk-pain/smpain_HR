@@ -12,12 +12,37 @@ function createDepartmentRoutes(db) {
       if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      
       const userPermissions = req.user.permissions || [];
-      const hasPermission = userPermissions.includes(permission);
-      if (!hasPermission) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
+      const userRole = req.user.role;
+      
+      // Admin role has all permissions
+      if (userRole === 'admin' || userRole === 'Admin') {
+        return next();
       }
-      next();
+      
+      // Check specific permission in user's permissions array
+      if (userPermissions.includes(permission)) {
+        return next();
+      }
+
+      // If user doesn't have explicit permission, check if their role should have it
+      const roleBasedPermissions = {
+        user: ['leave:view'],
+        manager: ['leave:view', 'leave:manage', 'users:view', 'departments:view', 'departments:edit'],
+        supervisor: ['leave:view', 'leave:manage', 'users:view', 'departments:view', 'departments:edit'],
+        admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
+                 'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
+                 'reports:view', 'files:view', 'files:manage', 'departments:view',
+                 'departments:manage', 'admin:permissions']
+      };
+
+      const rolePermissions = roleBasedPermissions[userRole.toLowerCase()] || [];
+      if (rolePermissions.includes(permission)) {
+        return next();
+      }
+      
+      return res.status(403).json({ error: 'Insufficient permissions' });
     };
   };
 
@@ -38,7 +63,7 @@ function createDepartmentRoutes(db) {
               managers: {
                 $push: {
                   $cond: [
-                    { $eq: ['$role', 'manager'] },
+                    { $or: [{ $eq: ['$role', 'manager'] }, { $eq: ['$role', 'supervisor'] }] },
                     { name: '$name', id: { $toString: '$_id' } },
                     null
                   ]
@@ -192,7 +217,7 @@ function createDepartmentRoutes(db) {
 
       const summary = {
         totalEmployees: employees.length,
-        managers: employees.filter(emp => emp.role === 'manager').length,
+        managers: employees.filter(emp => emp.role === 'manager' || emp.role === 'supervisor').length,
         regular: employees.filter(emp => emp.role === 'user').length,
         contract: 0 // Placeholder
       };

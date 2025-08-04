@@ -48,13 +48,14 @@ const addIdField = (request) => {
 };
 
 /**
- * Permission middleware generator
+ * Permission middleware generator (JWT-based)
  * @param {string} permission - Required permission
  * @returns {Function} - Middleware function
  */
 const requirePermission = (permission) => {
   return (req, res, next) => {
-    if (!req.session || !req.user) {
+    // JWT authentication sets req.user via requireAuth middleware
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -62,14 +63,40 @@ const requirePermission = (permission) => {
     }
 
     const userPermissions = req.user.permissions || [];
-    if (!userPermissions.includes(permission)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Insufficient permissions'
-      });
+    const userRole = req.user.role;
+    
+    // Admin role has all permissions
+    if (userRole === 'admin' || userRole === 'Admin') {
+      return next();
+    }
+    
+    // Check specific permission in user's permissions array
+    if (userPermissions.includes(permission)) {
+      return next();
     }
 
-    next();
+    // If user doesn't have explicit permission, check if their role should have it
+    // This handles cases where users were created before the permission system
+    // or when role-based permissions are expected
+    const roleBasedPermissions = {
+      user: ['leave:view'],
+      manager: ['leave:view', 'leave:manage', 'users:view'],
+      supervisor: ['leave:view', 'leave:manage', 'users:view'],
+      admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
+               'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
+               'reports:view', 'files:view', 'files:manage', 'departments:view',
+               'departments:manage', 'admin:permissions']
+    };
+
+    const rolePermissions = roleBasedPermissions[userRole.toLowerCase()] || [];
+    if (rolePermissions.includes(permission)) {
+      return next();
+    }
+    
+    return res.status(403).json({
+      success: false,
+      error: 'Insufficient permissions'
+    });
   };
 };
 

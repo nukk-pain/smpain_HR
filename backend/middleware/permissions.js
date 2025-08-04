@@ -219,8 +219,8 @@ const requireDepartmentAccess = (allowSameDepartment = true, allowManagers = tru
         return next();
       }
 
-      // Managers can access their department (if allowed)
-      if (allowManagers && user.role === 'Manager') {
+      // Managers/Supervisors can access their department (if allowed)
+      if (allowManagers && (user.role === 'Manager' || user.role === 'Supervisor')) {
         return next();
       }
 
@@ -283,8 +283,8 @@ async function contextualPermissionCheck(user, permission, req, options = {}) {
     const userId = req.params.id || req.params.userId || req.query.user_id;
     
     if (userId && userId !== user._id) {
-      // Managers can view their department's data
-      if (user.role === 'Manager' && options.allowDepartmentAccess) {
+      // Managers/Supervisors can view their department's data
+      if ((user.role === 'Manager' || user.role === 'Supervisor') && options.allowDepartmentAccess) {
         return await checkDepartmentAccess(user, userId);
       }
       return false;
