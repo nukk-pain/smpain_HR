@@ -4,7 +4,7 @@
 
 The system has three user roles:
 - **Admin**: Full system access
-- **Manager**: Department/team management access
+- **Supervisor**: Department/team management access (formerly Manager)
 - **User**: Basic employee access
 
 ## Pages and Access Permissions
@@ -15,7 +15,7 @@ The system has three user roles:
 |------|------|-------------|
 | Login | `/login` | User login page |
 
-### 2. All Authenticated Users (User, Manager, Admin)
+### 2. All Authenticated Users (User, Supervisor, Admin)
 
 | Page | Path | Description |
 |------|------|-------------|
@@ -24,7 +24,7 @@ The system has three user roles:
 | Leave Management | `/leave` | Personal leave requests and history |
 | Leave Calendar | `/leave-calendar` | Calendar view of leaves |
 
-### 3. Manager & Admin Only
+### 3. Supervisor & Admin Only
 
 | Page | Path | Description |
 |------|------|-------------|
@@ -46,7 +46,7 @@ The system has three user roles:
 ## Dashboard Content by Role
 
 - **Admin**: Shows UnifiedDashboard component with system-wide statistics
-- **Manager**: Shows UserDashboard component with manager-focused information
+- **Supervisor**: Shows UserDashboard component with supervisor-focused information
 - **User**: Shows UserDashboard component with personal information
 
 ## Access Control Implementation

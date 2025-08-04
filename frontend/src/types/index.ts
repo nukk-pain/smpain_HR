@@ -1,16 +1,18 @@
 // User and Authentication Types
+export type UserRole = 'admin' | 'manager' | 'supervisor' | 'user';
+
 export interface User {
   _id: string;
   username: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
+  role: UserRole;
   isActive: boolean;
   hireDate?: string;
   department?: string;
   position?: string;
   employeeId?: string;
   accountNumber?: string;
-  managerId?: string;
+  supervisorId?: string;
   contractType?: 'regular' | 'contract';
   terminationDate?: string;
   baseSalary?: number;
@@ -221,13 +223,13 @@ export interface UserForm {
   username: string;
   password?: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
+  role: UserRole;
   hireDate?: string;
   department?: string;
   position?: string;
   employeeId?: string;
   accountNumber?: string;
-  managerId?: string;
+  supervisorId?: string;
   contractType?: 'regular' | 'contract';
   baseSalary?: number;
   incentiveFormula?: string;
@@ -293,7 +295,7 @@ export interface Department {
   _id: string;
   name: string;
   description?: string;
-  managerId?: string;
+  supervisorId?: string;
   employeeCount: number;
   positions: string[];
   managers: {

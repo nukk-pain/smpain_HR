@@ -42,6 +42,7 @@ import {
 import { Department, DepartmentEmployees, User, OrganizationChart, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
+import { getRoleColor, isSupervisorRole } from '../utils/roleUtils';
 
 const DepartmentManagement: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -65,7 +66,7 @@ const DepartmentManagement: React.FC = () => {
   const [newDepartment, setNewDepartment] = useState({
     name: '',
     description: '',
-    managerId: '',
+    supervisorId: '',
   });
   const [newPosition, setNewPosition] = useState({
     title: '',
@@ -148,7 +149,7 @@ const DepartmentManagement: React.FC = () => {
       setIsDeptDialogOpen(false);
       setIsEditMode(false);
       setEditingDepartment(null);
-      setNewDepartment({ name: '', description: '', managerId: '' });
+      setNewDepartment({ name: '', description: '', supervisorId: '' });
       loadDepartments();
     } catch (error) {
       showNotification('error', 'Error', `Failed to ${isEditMode ? 'update' : 'create'} department`);
@@ -160,7 +161,7 @@ const DepartmentManagement: React.FC = () => {
     setNewDepartment({
       name: dept.name,
       description: dept.description || '',
-      managerId: dept.managerId || '',
+      supervisorId: dept.supervisorId || '',
     });
     setIsEditMode(true);
     setIsDeptDialogOpen(true);
@@ -259,9 +260,9 @@ const DepartmentManagement: React.FC = () => {
         <Card sx={{ mb: 1, backgroundColor: level === 0 ? '#f5f5f5' : 'white' }}>
           <CardContent sx={{ py: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color={user.role === 'admin' ? 'error' : user.role === 'manager' ? 'warning' : 'primary'} />
+              <PersonIcon color={getRoleColor(user.role)} />
               <Typography variant="subtitle2">{user.name}</Typography>
-              <Chip label={user.role} size="small" color={user.role === 'admin' ? 'error' : user.role === 'manager' ? 'warning' : 'primary'} />
+              <Chip label={user.role} size="small" color={getRoleColor(user.role)} />
               <Typography variant="body2" color="text.secondary">
                 {user.department} - {user.position}
               </Typography>
@@ -561,7 +562,7 @@ const DepartmentManagement: React.FC = () => {
         setIsDeptDialogOpen(false);
         setIsEditMode(false);
         setEditingDepartment(null);
-        setNewDepartment({ name: '', description: '', managerId: '' });
+        setNewDepartment({ name: '', description: '', supervisorId: '' });
       }} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? 'Edit Department' : 'Add New Department'}</DialogTitle>
         <DialogContent>
@@ -587,14 +588,14 @@ const DepartmentManagement: React.FC = () => {
             </Grid>
             <Grid size={12}>
               <FormControl fullWidth>
-                <InputLabel>Manager</InputLabel>
+                <InputLabel>Supervisor</InputLabel>
                 <Select
-                  value={newDepartment.managerId}
-                  label="Manager"
-                  onChange={(e) => setNewDepartment({ ...newDepartment, managerId: e.target.value })}
+                  value={newDepartment.supervisorId}
+                  label="Supervisor"
+                  onChange={(e) => setNewDepartment({ ...newDepartment, supervisorId: e.target.value }))
                 >
-                  <MenuItem value="">No Manager</MenuItem>
-                  {users.filter(u => u.role === 'manager' || u.role === 'admin').map((user) => (
+                  <MenuItem value="">No Supervisor</MenuItem>
+                  {users.filter(u => isSupervisorRole(u.role)).map((user) => (
                     <MenuItem key={user._id} value={user._id}>
                       {user.name} ({user.department})
                     </MenuItem>
@@ -659,7 +660,7 @@ const DepartmentManagement: React.FC = () => {
                   <React.Fragment key={employee._id || `employee-${index}`}>
                     <ListItem>
                       <ListItemIcon>
-                        <PersonIcon color={employee.role === 'manager' ? 'warning' : 'primary'} />
+                        <PersonIcon color={getRoleColor(employee.role)} />
                       </ListItemIcon>
                       <ListItemText
                         primary={employee.name}
@@ -669,7 +670,7 @@ const DepartmentManagement: React.FC = () => {
                             <Chip 
                               label={employee.role} 
                               size="small" 
-                              color={employee.role === 'manager' ? 'warning' : 'primary'} 
+                              color={getRoleColor(employee.role)} 
                             />
                             <Chip 
                               label={employee.contractType} 

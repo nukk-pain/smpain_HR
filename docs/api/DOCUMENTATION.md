@@ -44,7 +44,7 @@ Content-Type: application/json
     "_id": "string",
     "username": "string", 
     "name": "string",
-    "role": "Admin|Manager|User",
+    "role": "Admin|Supervisor|User",
     "department": "string",
     "permissions": ["permission1", "permission2"]
   }
@@ -181,7 +181,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Query Parameters:**
 - `page` (number): Page number for pagination
 - `limit` (number): Items per page (max 100)
-- `role` (string): Filter by role (Admin, Manager, User)
+- `role` (string): Filter by role (Admin, Supervisor, User)
 - `department` (string): Filter by department
 - `isActive` (boolean): Filter by active status
 
@@ -268,7 +268,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Query Parameters:**
-- `user_id` (string): Filter by user ID (Admin/Manager only)
+- `user_id` (string): Filter by user ID (Admin/Supervisor only)
 - `status` (string): Filter by status (pending, approved, rejected, cancelled)
 - `startDate` (date): Filter from date (YYYY-MM-DD)
 - `endDate` (date): Filter to date (YYYY-MM-DD)
@@ -380,7 +380,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-**Required Permissions:** `leave:approve` (Manager/Admin only)
+**Required Permissions:** `leave:approve` (Supervisor/Admin only)
 
 ### Get Pending Requests
 ```http
@@ -433,10 +433,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       "name": "Information Technology",
       "code": "IT",
       "description": "IT Department handling system development",
-      "managerId": "managerId",
+      "supervisorId": "supervisorId",
       "manager": {
-        "_id": "managerId",
-        "name": "Manager Name"
+        "_id": "supervisorId",
+        "name": "Supervisor Name"
       },
       "budget": 1000000,
       "location": "Building A, Floor 3",
@@ -464,7 +464,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "name": "Marketing",
   "code": "MKT",
   "description": "Marketing and Communications",
-  "managerId": "managerId",
+  "supervisorId": "supervisorId",
   "budget": 500000,
   "location": "Building B, Floor 2"
 }
@@ -481,7 +481,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   "description": "Updated description",
   "budget": 750000,
-  "managerId": "newManagerId"
+  "supervisorId": "newSupervisorId"
 }
 ```
 
@@ -651,7 +651,7 @@ X-Cache: HIT
 - `password`: 8-100 characters, must contain letter and number
 - `email`: Valid email format, unique
 - `employeeId`: Alphanumeric, unique if provided
-- `role`: Must be one of: Admin, Manager, User
+- `role`: Must be one of: Admin, Supervisor, User
 - `phone`: Korean phone number format (010-XXXX-XXXX)
 
 ### Leave Request Fields
@@ -665,7 +665,7 @@ X-Cache: HIT
 - `name`: 1-100 characters, unique
 - `code`: 2-10 characters, uppercase, unique
 - `budget`: Positive number if provided
-- `managerId`: Must be valid user ID with Manager or Admin role
+- `supervisorId`: Must be valid user ID with Supervisor or Admin role
 
 ## SDK Examples
 

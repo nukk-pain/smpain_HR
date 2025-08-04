@@ -201,7 +201,7 @@ env: {
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| 👥 **User Management** | ✅ Complete | Role-based access control (Admin/Manager/User) |
+| 👥 **User Management** | ✅ Complete | Role-based access control (Admin/Supervisor/User) |
 | 🏖️ **Leave Management** | ✅ Complete | Request, approve, and track employee leave |
 | 💰 **Payroll System** | ✅ Complete | Salary calculations with incentives and bonuses |
 | 📅 **Leave Calendar** | ✅ Complete | Monthly calendar view with team visibility |
@@ -341,9 +341,9 @@ HR/
 - All payroll operations
 - JWT token management
 
-### 👨‍💼 Manager
+### 👨‍💼 Supervisor
 - **Employee management** (team members)
-- Leave approval workflow
+- Leave approval workflow  
 - Team analytics and reports
 - Limited payroll access
 - Department management

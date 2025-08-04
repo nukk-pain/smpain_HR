@@ -29,6 +29,7 @@ export const DATABASE_CONFIG = {
 export const USER_ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
+  SUPERVISOR: 'supervisor',
   USER: 'user',
 } as const;
 

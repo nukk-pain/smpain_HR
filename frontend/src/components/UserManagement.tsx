@@ -80,7 +80,7 @@ const UserManagement: React.FC = () => {
     position: '',
     employeeId: '',
     accountNumber: '',
-    managerId: '',
+    supervisorId: '',
     contractType: 'regular',
     baseSalary: 0,
     incentiveFormula: '',
@@ -161,7 +161,7 @@ const UserManagement: React.FC = () => {
       position: '',
       employeeId: '', // Will be auto-generated, not used in form
       accountNumber: '',
-      managerId: '',
+      supervisorId: '',
       contractType: 'regular',
       baseSalary: 0,
       incentiveFormula: '',
@@ -184,7 +184,7 @@ const UserManagement: React.FC = () => {
       position: user.position || '',
       employeeId: user.employeeId || '',
       accountNumber: user.accountNumber || '',
-      managerId: user.managerId || '',
+      supervisorId: user.supervisorId || '',
       contractType: user.contractType || 'regular',
       baseSalary: user.baseSalary || 0,
       incentiveFormula: user.incentiveFormula || '',
@@ -769,7 +769,7 @@ const UserManagement: React.FC = () => {
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
                 >
                   <MenuItem value="user">User</MenuItem>
-                  <MenuItem value="manager">Manager</MenuItem>
+                  <MenuItem value="supervisor">Supervisor</MenuItem>
                   <MenuItem value="admin">Admin</MenuItem>
                 </Select>
               </FormControl>
@@ -847,16 +847,16 @@ const UserManagement: React.FC = () => {
               </FormControl>
             </Grid>
             
-            {/* Team Visibility Settings - Only for admins editing managers */}
-            {currentUser?.role === 'admin' && isEditing && userForm.role === 'manager' && (
+            {/* Team Visibility Settings - Only for admins editing supervisors/managers */}
+            {currentUser?.role === 'admin' && isEditing && (userForm.role === 'manager' || userForm.role === 'supervisor') && (
               <>
                 <Grid size={12}>
                   <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
                     Team Leave Visibility Settings
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Select which departments this manager can view in the Team Leave Status page. 
-                    If no departments are selected, the manager cannot view any team leave information.
+                    Select which departments this supervisor can view in the Team Leave Status page. 
+                    If no departments are selected, the supervisor cannot view any team leave information.
                   </Typography>
                 </Grid>
                 <Grid size={12}>

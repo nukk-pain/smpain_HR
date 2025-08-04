@@ -77,7 +77,7 @@ const AppContent: React.FC = () => {
         <Route path="profile" element={<UserProfile />} />
         
         <Route path="payroll" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <PayrollManagement />
             </React.Suspense>
@@ -91,7 +91,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="employee-leave" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <EmployeeLeaveManagement />
             </React.Suspense>
@@ -111,7 +111,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="users" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <UserManagementPage />
             </React.Suspense>
@@ -119,7 +119,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="departments" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <DepartmentManagementPage />
             </React.Suspense>
@@ -127,7 +127,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="reports" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <Reports />
             </React.Suspense>
@@ -135,7 +135,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="files" element={
-          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <FileManagement />
             </React.Suspense>

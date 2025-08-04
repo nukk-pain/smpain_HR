@@ -186,7 +186,7 @@ mongodb://localhost:27017/SM_nomu
 
 ### Backend Architecture
 - **JWT token-based authentication**: Stateless authentication using JWT tokens (migrated from sessions Aug 2025)
-- **Role-based access control (RBAC)**: Three roles (Admin, Manager, User) with fine-grained permissions
+- **Role-based access control (RBAC)**: Three roles (Admin, Supervisor, User) with fine-grained permissions
 - **Modular route structure**: Features split into separate route files under `backend/routes/`
 - **Validation layer**: Joi schemas for request validation
 - **Error handling**: Centralized async error handling with proper status codes

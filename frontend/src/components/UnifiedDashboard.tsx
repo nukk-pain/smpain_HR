@@ -46,6 +46,7 @@ import {
 import { format, subMonths, startOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { apiService } from '../services/api';
+import { getRoleDisplayName } from '../utils/roleUtils';
 import { useNotification } from './NotificationProvider';
 import { useAuth } from './AuthProvider';
 
@@ -682,8 +683,7 @@ const UnifiedDashboard: React.FC = () => {
                       <Grid key={role} size={6}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
                           <Typography variant="body2">
-                            {role === 'admin' ? '관리자' : 
-                             role === 'manager' ? '매니저' : '사용자'}
+                            {getRoleDisplayName(role as any)}
                           </Typography>
                           <Typography variant="body2" fontWeight="bold">{count}명</Typography>
                         </Box>

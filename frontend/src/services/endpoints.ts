@@ -56,7 +56,7 @@ export interface Department {
   _id: string;
   name: string;
   description?: string;
-  managerId?: string;
+  supervisorId?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
