@@ -60,6 +60,18 @@ const ROLE_PERMISSIONS = {
     'departments:view',
     'departments:edit',
   ],
+  'Supervisor': [
+    'user:view',
+    'user:edit',
+    'leave:view',
+    'leave:approve',
+    'leave:manage',
+    'payroll:view',
+    'reports:view',
+    'reports:export',
+    'departments:view',
+    'departments:edit',
+  ],
   'User': [
     'user:view', // Only own profile
     'leave:view', // Only own requests

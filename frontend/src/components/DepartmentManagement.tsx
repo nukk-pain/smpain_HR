@@ -112,7 +112,7 @@ const DepartmentManagement: React.FC = () => {
   const loadOrganizationChart = useCallback(async () => {
     try {
       const response = await apiService.getOrganizationChart();
-      setOrganizationChart(response.success ? response.data : {});
+      setOrganizationChart(response.success ? response.data : null);
     } catch (error) {
       console.error('Failed to load organization chart:', error);
     }
@@ -130,7 +130,7 @@ const DepartmentManagement: React.FC = () => {
   const handleViewDepartment = async (departmentName: string) => {
     try {
       const response = await apiService.getDepartmentEmployees(departmentName);
-      setSelectedDepartment(response.success ? response.data : {});
+      setSelectedDepartment(response.success ? response.data : null);
       setIsEmployeeDialogOpen(true);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load department employees');
@@ -254,15 +254,18 @@ const DepartmentManagement: React.FC = () => {
     }
   };
 
-  const renderUserTree = (user: User, level: number = 0) => {
+  // Type for user in organization tree - includes both full users and subordinates
+  type TreeUser = User | (User['subordinates'] extends (infer T)[] ? T : never) & { role?: string; subordinates?: TreeUser[] };
+  
+  const renderUserTree = (user: TreeUser, level: number = 0) => {
     return (
       <Box key={`${user._id}-${level}`} sx={{ ml: level * 3 }}>
         <Card sx={{ mb: 1, backgroundColor: level === 0 ? '#f5f5f5' : 'white' }}>
           <CardContent sx={{ py: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color={getRoleColor(user.role)} />
+              <PersonIcon color={getRoleColor(user.role || 'user')} />
               <Typography variant="subtitle2">{user.name}</Typography>
-              <Chip label={user.role} size="small" color={getRoleColor(user.role)} />
+              {user.role && <Chip label={user.role} size="small" color={getRoleColor(user.role)} />}
               <Typography variant="body2" color="text.secondary">
                 {user.department} - {user.position}
               </Typography>
@@ -393,7 +396,7 @@ const DepartmentManagement: React.FC = () => {
                                 color="primary"
                               />
                               <Chip
-                                label={`${dept.managers.length} managers`}
+                                label={`${dept.managers.length} supervisors`}
                                 size="small"
                                 color="secondary"
                               />
@@ -445,7 +448,7 @@ const DepartmentManagement: React.FC = () => {
                       <Typography variant="h4" color="warning.main">
                         {organizationChart.summary.managersCount}
                       </Typography>
-                      <Typography variant="body2">Managers</Typography>
+                      <Typography variant="body2">Supervisors</Typography>
                     </Box>
                   </Grid>
                   <Grid size={6}>
@@ -592,7 +595,7 @@ const DepartmentManagement: React.FC = () => {
                 <Select
                   value={newDepartment.supervisorId}
                   label="Supervisor"
-                  onChange={(e) => setNewDepartment({ ...newDepartment, supervisorId: e.target.value }))
+                  onChange={(e) => setNewDepartment({ ...newDepartment, supervisorId: e.target.value })}
                 >
                   <MenuItem value="">No Supervisor</MenuItem>
                   {users.filter(u => isSupervisorRole(u.role)).map((user) => (
@@ -634,7 +637,7 @@ const DepartmentManagement: React.FC = () => {
                     <Typography variant="h6" color="warning.main">
                       {selectedDepartment.summary.managers}
                     </Typography>
-                    <Typography variant="body2">Managers</Typography>
+                    <Typography variant="body2">Supervisors</Typography>
                   </Box>
                 </Grid>
                 <Grid size={3}>

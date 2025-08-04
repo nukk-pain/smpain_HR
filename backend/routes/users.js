@@ -323,7 +323,8 @@ function createUserRoutes(db) {
     
     const DEFAULT_PERMISSIONS = {
       user: ['leave:view'],
-      manager: ['leave:view', 'leave:manage'],
+      manager: ['leave:view', 'leave:manage'], // Legacy support
+      supervisor: ['leave:view', 'leave:manage'],
       admin: ['leave:view', 'leave:manage', 'users:view', 'users:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions']
     };
     

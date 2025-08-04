@@ -123,7 +123,9 @@ const UserProfile: React.FC = () => {
       case 'admin':
         return '관리자';
       case 'manager':
-        return '매니저';
+        return '매니저'; // Legacy support
+      case 'supervisor':
+        return '감독자';
       case 'user':
         return '사용자';
       default:

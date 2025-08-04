@@ -39,7 +39,7 @@ import {
   Security as PermissionsIcon,
 } from '@mui/icons-material';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridApi, GridReadyEvent } from '@ag-grid-community/core';
+import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { User, UserForm, Department, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
@@ -582,7 +582,7 @@ const UserManagement: React.FC = () => {
                 users: users,
                 timestamp: new Date().toISOString()
               })}
-              <AgGridReact
+              <AgGridReact<User>
                 theme="legacy"
                 columnDefs={columnDefs}
                 rowData={users}

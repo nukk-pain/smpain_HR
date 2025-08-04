@@ -83,7 +83,9 @@ export class ApiClient {
         const token = getValidToken();
         if (token && !(config as any).skipAuth) {
           if (!config.headers) {
-            config.headers = {};
+            config.headers = {
+              'Content-Type': 'application/json',
+            };
           }
           (config.headers as any).Authorization = `Bearer ${token}`;
         }

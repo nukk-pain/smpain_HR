@@ -96,7 +96,8 @@ const PERMISSIONS = {
 // Default permissions for each role
 const DEFAULT_PERMISSIONS = {
   user: ['leave:view'],
-  manager: ['leave:view', 'leave:manage', 'users:view'],
+  manager: ['leave:view', 'leave:manage', 'users:view'], // Legacy support
+  supervisor: ['leave:view', 'leave:manage', 'users:view'],
   admin: [
     'users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
     'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
@@ -476,18 +477,18 @@ app.get('/api/organization-chart', requireAuth, asyncHandler(async (_, res) => {
 
     // Simple organization structure
     const adminUsers = users.filter(u => u.role === 'admin');
-    const managerUsers = users.filter(u => u.role === 'manager');
+    const supervisorUsers = users.filter(u => u.role === 'supervisor' || u.role === 'manager'); // Support both
     const regularUsers = users.filter(u => u.role === 'user');
 
     const organizationTree = adminUsers.map(admin => ({
       ...admin,
-      subordinates: managerUsers.concat(regularUsers)
+      subordinates: supervisorUsers.concat(regularUsers)
     }));
 
     const summary = {
       totalEmployees: users.length,
       totalDepartments: new Set(users.map(u => u.department).filter(d => d)).size,
-      managersCount: managerUsers.length,
+      managersCount: supervisorUsers.length, // Keep field name for frontend compatibility but count supervisors
       adminCount: adminUsers.length
     };
 

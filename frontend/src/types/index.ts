@@ -364,6 +364,7 @@ export interface EmploymentInfo {
 export interface Position {
   _id: string;
   title: string;
+  name: string; // Alias for title for backward compatibility
   description?: string;
   department?: string;
   responsibilities?: string[];

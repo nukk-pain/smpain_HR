@@ -20,7 +20,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
 /**
  * Get role color for Material-UI components
  */
-export const getRoleColor = (role: UserRole): 'error' | 'warning' | 'primary' | 'default' => {
+export const getRoleColor = (role: UserRole): 'error' | 'warning' | 'primary' | 'secondary' => {
   switch (role) {
     case 'admin':
       return 'error';
@@ -30,7 +30,7 @@ export const getRoleColor = (role: UserRole): 'error' | 'warning' | 'primary' | 
     case 'user':
       return 'primary';
     default:
-      return 'default';
+      return 'secondary';
   }
 };
 

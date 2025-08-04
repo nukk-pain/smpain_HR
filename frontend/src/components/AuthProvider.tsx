@@ -8,6 +8,8 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
   loading: boolean
+  hasPermission: (permission: string) => boolean
+  hasRole: (role: string | string[]) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -185,12 +187,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const hasPermission = (permission: string): boolean => {
+    if (!authState.user) return false
+    if (authState.user.role === 'admin') return true
+    return authState.user.permissions?.includes(permission) || false
+  }
+
+  const hasRole = (role: string | string[]): boolean => {
+    if (!authState.user) return false
+    const roles = Array.isArray(role) ? role : [role]
+    return roles.some(r => authState.user?.role.toLowerCase() === r.toLowerCase())
+  }
+
   const value: AuthContextType = {
     ...authState,
     login,
     logout,
     refreshUser,
     loading,
+    hasPermission,
+    hasRole,
   }
 
   return (

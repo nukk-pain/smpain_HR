@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { ApiResponse, AuthResponse } from '../types';
+import { ApiResponse, AuthResponse, User, Department, Position, OrganizationChart, DepartmentEmployees } from '../types';
 import { getApiUrl } from '../config/env';
 import { getValidToken, clearAuth } from '../utils/tokenManager';
 
@@ -159,8 +159,8 @@ class ApiService {
     position?: string;
     isActive?: boolean;
     search?: string;
-  }) {
-    return this.get('/users/', params);
+  }): Promise<ApiResponse<User[]>> {
+    return this.get<User[]>('/users/', params);
   }
 
   async getUser(id: string) {
@@ -384,8 +384,8 @@ class ApiService {
   }
 
   // Departments
-  async getDepartments() {
-    return this.get('/departments/');
+  async getDepartments(): Promise<ApiResponse<Department[]>> {
+    return this.get<Department[]>('/departments/');
   }
 
   async createDepartment(data: any) {
@@ -400,17 +400,17 @@ class ApiService {
     return this.delete(`/departments/${id}`);
   }
 
-  async getDepartmentEmployees(departmentName: string) {
-    return this.get(`/departments/${departmentName}/employees`);
+  async getDepartmentEmployees(departmentName: string): Promise<ApiResponse<DepartmentEmployees>> {
+    return this.get<DepartmentEmployees>(`/departments/${departmentName}/employees`);
   }
 
-  async getOrganizationChart() {
-    return this.get('/organization-chart');
+  async getOrganizationChart(): Promise<ApiResponse<OrganizationChart>> {
+    return this.get<OrganizationChart>('/organization-chart');
   }
 
   // Positions
-  async getPositions() {
-    return this.get('/positions/');
+  async getPositions(): Promise<ApiResponse<Position[]>> {
+    return this.get<Position[]>('/positions/');
   }
 
   async getPosition(id: string) {
