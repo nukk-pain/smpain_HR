@@ -7,7 +7,6 @@ export const getRoleDisplayName = (role: UserRole): string => {
   switch (role) {
     case 'admin':
       return '관리자';
-    case 'manager':
     case 'supervisor':
       return '감독자';
     case 'user':
@@ -24,7 +23,6 @@ export const getRoleColor = (role: UserRole): 'error' | 'warning' | 'primary' | 
   switch (role) {
     case 'admin':
       return 'error';
-    case 'manager':
     case 'supervisor':
       return 'warning';
     case 'user':
@@ -38,7 +36,7 @@ export const getRoleColor = (role: UserRole): 'error' | 'warning' | 'primary' | 
  * Check if role has supervisor privileges
  */
 export const isSupervisorRole = (role: UserRole): boolean => {
-  return role === 'manager' || role === 'supervisor' || role === 'admin';
+  return role === 'supervisor' || role === 'admin';
 };
 
 /**

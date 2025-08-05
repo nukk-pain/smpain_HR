@@ -245,7 +245,7 @@ export const validateUserForm = (
 
   // Check required fields for new users
   if (!isEdit && !skipRequired) {
-    const requiredFields = ['username', 'password', 'name', 'employeeId'] as const;
+    const requiredFields = ['username', 'password', 'name'] as const;
     
     requiredFields.forEach(field => {
       if (userData[field] === undefined) {

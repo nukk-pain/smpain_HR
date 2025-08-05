@@ -60,7 +60,7 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
 }));
 
 /**
- * Get pending leave requests (for managers/admins)
+ * Get pending leave requests (for supervisors/admins)
  * GET /api/leave/pending
  */
 router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {
@@ -69,8 +69,8 @@ router.get('/', requireAuth, requirePermission('leave:manage'), asyncHandler(asy
   
   let query = { status: 'pending' };
   
-  // If user is a supervisor/manager (not admin), filter by departments they can manage
-  if ((currentUser.role === 'manager' || currentUser.role === 'supervisor') && currentUser.visibleTeams) {
+  // If user is a supervisor (not admin), filter by departments they can manage
+  if (currentUser.role === 'supervisor' && currentUser.visibleTeams) {
     const visibleDepartments = currentUser.visibleTeams.map(team => team.departmentName);
     query.userDepartment = { $in: visibleDepartments };
   }

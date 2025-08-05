@@ -80,7 +80,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 /**
- * Approve/reject leave cancellation (for managers/admins)
+ * Approve/reject leave cancellation (for supervisors/admins)
  * POST /api/leave/:id/cancel/approve
  */
 router.post('/approve', requireAuth, requirePermission('leave:manage'), asyncHandler(async (req, res) => {

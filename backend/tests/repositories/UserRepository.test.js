@@ -251,12 +251,12 @@ describe('UserRepository', () => {
     });
 
     it('should return users with specific role', async () => {
-      const managers = await userRepository.findByRole('Manager');
+      const supervisors = await userRepository.findByRole('supervisor');
 
-      expect(managers).toHaveLength(2);
-      expect(managers.every(user => user.role === 'Manager')).toBe(true);
-      expect(managers.map(u => u.name)).toContain('Manager User 1');
-      expect(managers.map(u => u.name)).toContain('Manager User 2');
+      expect(supervisors).toHaveLength(2);
+      expect(supervisors.every(user => user.role === 'supervisor')).toBe(true);
+      expect(supervisors.map(u => u.name)).toContain('Supervisor User 1');
+      expect(supervisors.map(u => u.name)).toContain('Supervisor User 2');
     });
 
     it('should return single admin user', async () => {

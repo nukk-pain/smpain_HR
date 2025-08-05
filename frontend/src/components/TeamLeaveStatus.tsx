@@ -383,7 +383,7 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
               
               {teamMembers.length === 0 ? (
                 <Alert severity="info">
-                  {user?.role === 'manager' || user?.role === 'supervisor' ? 
+                  {user?.role === 'supervisor' ? 
                     '팀 연차 현황을 보려면 관리자에게 권한을 요청하세요.' : 
                     '선택한 조건에 해당하는 팀원이 없습니다.'
                   }

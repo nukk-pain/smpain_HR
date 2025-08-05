@@ -105,7 +105,7 @@ async function testCRUDOperation(token, role) {
     { url: '/api/departments', desc: 'Get departments' }
   ];
   
-  if (role === 'admin' || role === 'manager') {
+  if (role === 'admin' || role === 'supervisor') {
     endpoints.push(
       { url: '/api/payroll', desc: 'Get payroll data' },
       { url: '/api/reports/leave/summary', desc: 'Get leave summary report' }

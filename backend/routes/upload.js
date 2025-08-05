@@ -49,7 +49,6 @@ function createUploadRoutes(db) {
       // If user doesn't have explicit permission, check if their role should have it
       const roleBasedPermissions = {
         user: ['leave:view'],
-        manager: ['leave:view', 'leave:manage', 'users:view', 'files:view', 'files:manage'],
         supervisor: ['leave:view', 'leave:manage', 'users:view', 'files:view', 'files:manage'],
         admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
                  'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',

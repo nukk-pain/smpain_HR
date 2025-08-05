@@ -63,7 +63,7 @@ function createDepartmentRoutes(db) {
               managers: {
                 $push: {
                   $cond: [
-                    { $or: [{ $eq: ['$role', 'manager'] }, { $eq: ['$role', 'supervisor'] }] },
+                    { $eq: ['$role', 'supervisor'] },
                     { name: '$name', id: { $toString: '$_id' } },
                     null
                   ]
@@ -217,7 +217,7 @@ function createDepartmentRoutes(db) {
 
       const summary = {
         totalEmployees: employees.length,
-        managers: employees.filter(emp => emp.role === 'manager' || emp.role === 'supervisor').length,
+        supervisors: employees.filter(emp => emp.role === 'supervisor').length,
         regular: employees.filter(emp => emp.role === 'user').length,
         contract: 0 // Placeholder
       };

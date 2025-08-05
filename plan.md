@@ -1,185 +1,100 @@
-# UserManagement 컴포넌트 리팩토링 TDD 계획
+# Plan: 프로젝트 정리 작업 (TDD 방식)
 
-## 리팩토링 목표
-- UserManagement.tsx (1,131줄)를 여러 개의 작은 컴포넌트로 분리
-- 각 컴포넌트는 500줄 이하 유지
-- 단일 책임 원칙 준수
-- 테스트 가능한 구조로 개선
-
-## TDD 사이클 적용 방식
-각 컴포넌트 분리 시 **Red → Green → Refactor** 사이클을 엄격히 준수
+## TDD 방식 적용 방법
+프로젝트 정리 작업에 TDD의 Red-Green-Refactor 사이클을 적용:
+- **Red**: 정리 전 상태 확인 테스트 (실패해야 함)
+- **Green**: 파일 정리 작업 수행 (테스트 통과)  
+- **Refactor**: 구조 개선 및 최적화
 
 ---
 
-## Phase 1: 상수 및 유틸리티 분리
+## 테스트 1: 불필요한 문서 파일 식별 테스트
+### Red Phase
+- [ ] **테스트 작성**: 프로젝트 루트에서 불필요한 문서 파일들이 존재하는지 확인하는 스크립트 작성
+  - 중복된 README 파일 검증 (README.md, readme.txt 등)
+  - `.md` 파일 중 더 이상 사용하지 않는 임시 문서 검증
+  - 마이그레이션 관련 임시 문서 검증 (`*migration*.md`, `*temp*.md` 등)
+- [ ] **예상 결과**: 테스트 실패 (불필요한 파일들이 존재함)
 
-### Test 1: 사용자 역할 상수 분리
-- [ ] **RED**: `constants/userRoles.ts`에 대한 테스트 작성 (실패)
-- [ ] **GREEN**: 최소한의 userRoles 상수 구현 (테스트 통과)
-- [ ] **REFACTOR**: 코드 정리 및 타입 안전성 개선
+### Green Phase  
+- [ ] **문서 파일 정리 실행**:
+  - 중복 README 파일 삭제
+  - 임시 메모 파일들 삭제 (`temp_*.md`, `notes_*.md` 등)
+  - 마이그레이션 관련 임시 문서 삭제
+  - 더 이상 사용하지 않는 설계 문서 삭제
+- [ ] **테스트 실행**: 불필요한 문서 파일 검증 테스트 통과 확인
 
-### Test 2: 인센티브 공식 상수 분리  
-- [ ] **RED**: `constants/incentiveFormulas.ts`에 대한 테스트 작성 (실패)
-- [ ] **GREEN**: 기본 인센티브 공식 구현 (테스트 통과)
-- [ ] **REFACTOR**: 공식 계산 로직 최적화
-
-### Test 3: 사용자 검증 유틸리티 분리
-- [ ] **RED**: `utils/userValidation.ts`에 대한 테스트 작성 (실패)
-- [ ] **GREEN**: username 검증 함수 구현 (테스트 통과)
-- [ ] **REFACTOR**: 검증 규칙 확장 및 에러 메시지 개선
-
----
-
-## Phase 2: 커스텀 훅 분리
-
-### Test 4: useUserManagement 훅 생성
-- [ ] **RED**: `hooks/useUserManagement.test.ts` 작성 - 사용자 목록 조회 테스트 (실패)
-- [ ] **GREEN**: 기본 useUserManagement 훅 구현 (테스트 통과)
-- [ ] **REFACTOR**: 에러 처리 및 로딩 상태 개선
-
-### Test 5: useUserForm 훅 생성
-- [ ] **RED**: `hooks/useUserForm.test.ts` 작성 - 폼 상태 관리 테스트 (실패)
-- [ ] **GREEN**: 기본 폼 상태 관리 로직 구현 (테스트 통과)
-- [ ] **REFACTOR**: 검증 로직 통합 및 최적화
-
-### Test 6: useUserFilters 훅 생성
-- [ ] **RED**: `hooks/useUserFilters.test.ts` 작성 - 필터링 로직 테스트 (실패)
-- [ ] **GREEN**: 기본 필터링 기능 구현 (테스트 통과)
-- [ ] **REFACTOR**: 검색 성능 최적화
-
-### Test 7: useUserPermissions 훅 생성
-- [ ] **RED**: `hooks/useUserPermissions.test.ts` 작성 - 권한 관리 테스트 (실패)
-- [ ] **GREEN**: 권한 조회/수정 기능 구현 (테스트 통과)
-- [ ] **REFACTOR**: 권한 검증 로직 강화
+### Refactor Phase
+- [ ] **문서 구조 개선**:
+  - `docs/` 디렉토리 정리 및 재구성
+  - 남은 문서들의 명명 규칙 통일
+  - 문서 간 참조 링크 정리
 
 ---
 
-## Phase 3: 컴포넌트 분리
+## 테스트 2: 불필요한 테스트 파일 식별 테스트
+### Red Phase
+- [ ] **테스트 작성**: 테스트 파일들의 상태 확인 스크립트 작성
+  - 실행되지 않는 테스트 파일 검증
+  - 깨진 테스트 케이스 검증  
+  - 중복된 테스트 케이스 검증
+  - 더 이상 존재하지 않는 코드를 테스트하는 파일 검증
+- [ ] **예상 결과**: 테스트 실패 (불필요한 테스트 파일들이 존재함)
 
-### Test 8: UserFilters 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserFilters.test.tsx` 작성 (실패)
-  - 검색어 입력 테스트
-  - 부서 필터 테스트
-  - 상태 필터 테스트
-- [ ] **GREEN**: UserFilters 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: UI 컴포넌트 최적화 및 접근성 개선
+### Green Phase
+- [ ] **테스트 파일 정리 실행**:
+  - 사용하지 않는 테스트 파일 삭제
+  - 깨진 테스트 또는 obsolete 테스트 삭제
+  - 중복된 테스트 케이스 정리
+  - 테스트 설정 파일 정리 (`jest.config.js`, `*.test.backup` 등)
+- [ ] **테스트 실행**: 불필요한 테스트 파일 검증 테스트 통과 확인
 
-### Test 9: UserForm 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserForm.test.tsx` 작성 (실패)
-  - 사용자 생성 폼 테스트
-  - 사용자 수정 폼 테스트
-  - 폼 검증 테스트
-- [ ] **GREEN**: UserForm 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: 폼 레이아웃 최적화 및 UX 개선
-
-### Test 10: UserList 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserList.test.tsx` 작성 (실패)
-  - AG Grid 렌더링 테스트
-  - 사용자 목록 표시 테스트
-  - 정렬/필터링 테스트
-- [ ] **GREEN**: UserList 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: 그리드 성능 최적화
-
-### Test 11: UserDetailDialog 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserDetailDialog.test.tsx` 작성 (실패)
-  - 다이얼로그 열기/닫기 테스트
-  - 사용자 정보 표시 테스트
-- [ ] **GREEN**: UserDetailDialog 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: 다이얼로그 레이아웃 최적화
-
-### Test 12: UserPermissionsDialog 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserPermissionsDialog.test.tsx` 작성 (실패)
-  - 권한 목록 표시 테스트
-  - 권한 수정 테스트
-  - 권한 저장 테스트
-- [ ] **GREEN**: UserPermissionsDialog 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: 권한 UI 개선 및 사용성 향상
-
-### Test 13: UserActions 컴포넌트 분리
-- [ ] **RED**: `components/UserManagement/UserActions.test.tsx` 작성 (실패)
-  - 액션 버튼 렌더링 테스트
-  - 버튼 클릭 이벤트 테스트
-- [ ] **GREEN**: UserActions 컴포넌트 구현 (테스트 통과)
-- [ ] **REFACTOR**: 액션 버튼 그룹화 및 최적화
+### Refactor Phase
+- [ ] **테스트 구조 개선**:
+  - 테스트 파일 명명 규칙 통일
+  - 테스트 디렉토리 구조 정리
+  - 테스트 유틸리티 함수 정리
 
 ---
 
-## Phase 4: 메인 컨테이너 리팩토링
+## 테스트 3: 프로젝트 무결성 검증 테스트
+### Red Phase
+- [ ] **테스트 작성**: 프로젝트 전체 무결성 확인 테스트
+  - 모든 import/require 구문이 유효한 파일을 참조하는지 검증
+  - package.json의 dependencies가 실제 사용되는지 검증
+  - 빌드 프로세스가 정상 작동하는지 검증
+- [ ] **예상 결과**: 테스트 통과 (정리 후에도 프로젝트가 정상 작동해야 함)
 
-### Test 14: 새로운 UserManagement 컨테이너 구성
-- [ ] **RED**: 리팩토링된 UserManagement 통합 테스트 작성 (실패)
-  - 전체 사용자 관리 플로우 테스트
-  - 컴포넌트 간 상호작용 테스트
-- [ ] **GREEN**: 분리된 컴포넌트들을 조합한 메인 컨테이너 구현 (테스트 통과)
-- [ ] **REFACTOR**: 컴포넌트 조합 최적화 및 성능 개선
+### Green Phase
+- [ ] **최종 검증 실행**:
+  - 프론트엔드 빌드 테스트 (`npm run build`)
+  - 백엔드 시작 테스트 (`npm start`)
+  - 모든 기존 테스트 슈트 실행
+  - 린터 검사 통과 확인
+- [ ] **테스트 실행**: 프로젝트 무결성 테스트 통과 확인
 
-### Test 15: 기존 기능 회귀 테스트
-- [ ] **RED**: 기존 UserManagement 모든 기능에 대한 E2E 테스트 작성 (실패)
-  - 사용자 CRUD 전체 플로우
-  - 권한 관리 플로우
-  - 필터링 및 검색 플로우
-- [ ] **GREEN**: 모든 기존 기능이 정상 작동하도록 구현 (테스트 통과)
-- [ ] **REFACTOR**: 성능 최적화 및 사용자 경험 개선
-
----
-
-## Phase 5: 성능 최적화
-
-### Test 16: 컴포넌트 메모이제이션 적용
-- [ ] **RED**: 렌더링 성능 테스트 작성 (실패)
-  - 불필요한 리렌더링 검출 테스트
-- [ ] **GREEN**: React.memo, useMemo, useCallback 적용 (테스트 통과)
-- [ ] **REFACTOR**: 메모이제이션 최적화
-
-### Test 17: 코드 스플리팅 적용
-- [ ] **RED**: 번들 크기 테스트 작성 (실패)
-- [ ] **GREEN**: 동적 import를 통한 코드 스플리팅 구현 (테스트 통과)
-- [ ] **REFACTOR**: 로딩 상태 및 에러 처리 개선
+### Refactor Phase
+- [ ] **최종 구조 최적화**:
+  - `.gitignore` 파일 업데이트
+  - package.json 정리 (unused dependencies 제거)
+  - 프로젝트 README.md 업데이트
 
 ---
 
-## 테스트 실행 규칙
+## 커밋 전략 (TDD 원칙 따름)
+1. **Red 커밋**: 각 테스트 작성 후 커밋
+2. **Green 커밋**: 테스트를 통과시키는 최소한의 변경 후 커밋  
+3. **Refactor 커밋**: 구조 개선 후 별도 커밋
 
-### 각 테스트 단계에서
-1. **테스트 먼저 작성**: 실패하는 테스트부터 시작
-2. **최소 구현**: 테스트를 통과하는 최소한의 코드만 작성
-3. **리팩토링**: 테스트가 통과한 후에만 코드 개선
-4. **전체 테스트 실행**: 각 단계 완료 후 전체 테스트 스위트 실행
+## 실행 순서
+1. 테스트 1 (Red → Green → Refactor)
+2. 테스트 2 (Red → Green → Refactor)  
+3. 테스트 3 (Red → Green → Refactor)
+4. 최종 검증 및 문서화
 
-### 테스트 도구
-- **Unit Tests**: Jest + React Testing Library
-- **Integration Tests**: Jest + React Testing Library
-- **E2E Tests**: 수동 테스트 (TEST_GUIDE.md 기반)
-
-### 성공 기준
-- [ ] 모든 단위 테스트 통과
-- [ ] 테스트 커버리지 80% 이상
-- [ ] 기존 기능 100% 유지
-- [ ] 각 컴포넌트 500줄 이하
-- [ ] 빌드 에러 0개
-- [ ] TypeScript 에러 0개
-
----
-
-## 주의사항
-
-### TDD 원칙 준수
-- **절대 테스트 없이 코드 작성 금지**
-- 각 컴포넌트 분리 시 반드시 테스트 먼저 작성
-- Red-Green-Refactor 사이클 엄격히 준수
-
-### 기능 보존
-- 기존 기능 변경 금지
-- 사용자 인터페이스 동일하게 유지
-- API 호출 로직 변경 최소화
-
-### 성능 고려
-- 컴포넌트 분리로 인한 성능 저하 방지
-- 적절한 메모이제이션 적용
-- 불필요한 리렌더링 최소화
-
----
-
-**작업 시작 조건**: 이 계획서 검토 완료 후  
-**완료 예상**: 17개 테스트 단계 모두 완료 시  
-**검토 포인트**: Phase별 완료 시 전체 기능 테스트 필수
+## 완료 기준
+- [ ] 모든 테스트가 통과함
+- [ ] 프로젝트 빌드가 정상 작동함
+- [ ] 불필요한 파일들이 제거됨
+- [ ] 프로젝트 구조가 개선됨
+- [ ] 모든 변경사항이 적절히 커밋됨

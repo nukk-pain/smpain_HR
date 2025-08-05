@@ -44,7 +44,6 @@ function createUserRoutes(db) {
       // If user doesn't have explicit permission, check if their role should have it
       const roleBasedPermissions = {
         user: ['leave:view'],
-        manager: ['leave:view', 'leave:manage', 'users:view'],
         supervisor: ['leave:view', 'leave:manage', 'users:view'],
         admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
                  'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
@@ -98,6 +97,28 @@ function createUserRoutes(db) {
   const isProduction = process.env.NODE_ENV === 'production';
   
   if (!isProduction) {
+    // Debug endpoint to check MongoDB connection info
+    router.get('/debug/db-info', asyncHandler(async (req, res) => {
+      try {
+        const mongoUri = process.env.MONGODB_URI || 'Not set';
+        const dbName = db.databaseName;
+        const collections = await db.listCollections().toArray();
+        
+        res.json({
+          success: true,
+          data: {
+            mongoUri: mongoUri.replace(/:[^:]*@/, ':****@'), // Hide password
+            databaseName: dbName,
+            collectionsCount: collections.length,
+            environment: process.env.NODE_ENV,
+            isCloudRun: !!process.env.K_SERVICE
+          }
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    }));
+
     // Debug endpoint to check current user permissions
     router.get('/debug/permissions', requireAuth, asyncHandler(async (req, res) => {
     try {
@@ -335,10 +356,14 @@ function createUserRoutes(db) {
     }
 
     // Validate role values
+    console.log('Received role value:', role, 'Type:', typeof role);
     const validRoles = ['admin', 'supervisor', 'user'];
-    if (!validRoles.includes(role)) {
+    const normalizedRole = role?.trim().toLowerCase();
+    
+    if (!validRoles.includes(normalizedRole)) {
+      console.log('Role validation failed. Valid roles:', validRoles);
       return res.status(400).json({ 
-        error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+        error: `Invalid role '${role}'. Must be one of: ${validRoles.join(', ')}` 
       });
     }
     
@@ -350,9 +375,19 @@ function createUserRoutes(db) {
       });
     }
     
-    const existingUser = await db.collection('users').findOne({ username });
+    // Check for username conflicts (case-insensitive)
+    const existingUser = await db.collection('users').findOne({ 
+      username: { $regex: new RegExp(`^${username}$`, 'i') }
+    });
     if (existingUser) {
-      return res.status(400).json({ error: 'Username already exists' });
+      return res.status(400).json({ 
+        error: 'Username already exists',
+        conflict: {
+          field: 'username',
+          value: username,
+          existingUser: existingUser.username
+        }
+      });
     }
     
     const hashedPassword = bcrypt.hashSync(password, 10);
@@ -362,7 +397,6 @@ function createUserRoutes(db) {
     
     const DEFAULT_PERMISSIONS = {
       user: ['leave:view'],
-      manager: ['leave:view', 'leave:manage'], // Legacy support
       supervisor: ['leave:view', 'leave:manage'],
       admin: ['leave:view', 'leave:manage', 'users:view', 'users:manage', 'payroll:view', 'payroll:manage', 'reports:view', 'files:view', 'files:manage', 'departments:view', 'departments:manage', 'admin:permissions']
     };
@@ -375,7 +409,7 @@ function createUserRoutes(db) {
       username,
       password: hashedPassword,
       name,
-      role,
+      role: normalizedRole,
       hireDate: hireDateString,
       department: department || null,
       position: position || null,
@@ -388,7 +422,7 @@ function createUserRoutes(db) {
       birthDate: birthDate || null,
       phoneNumber: phoneNumber || null,
       isActive: true,
-      permissions: DEFAULT_PERMISSIONS[role] || [],
+      permissions: DEFAULT_PERMISSIONS[normalizedRole] || [],
       visibleTeams: (req.user.role === 'admin' && visibleTeams && Array.isArray(visibleTeams)) 
         ? visibleTeams.map(team => ({
             departmentId: team.departmentId ? new ObjectId(team.departmentId) : null,
@@ -447,7 +481,7 @@ function createUserRoutes(db) {
     });
   }));
 
-  // Update user (admin/manager function)
+  // Update user (admin function)
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;

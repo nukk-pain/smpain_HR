@@ -123,7 +123,7 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const loadPendingRequests = async () => {
     try {
-      if (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'manager') {
+      if (user?.role === 'admin' || user?.role === 'supervisor') {
         const response = await apiService.getPendingLeaveRequests();
         setPendingRequests(response.data || []);
       }
@@ -135,7 +135,7 @@ const EmployeeLeaveManagement: React.FC = () => {
 
   const loadPendingCancellations = async () => {
     try {
-      if (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'manager') {
+      if (user?.role === 'admin' || user?.role === 'supervisor') {
         const response = await apiService.getPendingCancellations();
         setPendingCancellations(response.data || []);
       }
@@ -161,7 +161,7 @@ const EmployeeLeaveManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'manager') {
+    if (user?.role === 'admin' || user?.role === 'supervisor') {
       loadData();
     }
   }, [user]);
@@ -323,7 +323,7 @@ const EmployeeLeaveManagement: React.FC = () => {
     setTabValue(newValue);
   };
 
-  if (user?.role !== 'admin' && user?.role !== 'supervisor' && user?.role !== 'manager') {
+  if (user?.role !== 'admin' && user?.role !== 'supervisor') {
     return (
       <Box p={3}>
         <Alert severity="error">

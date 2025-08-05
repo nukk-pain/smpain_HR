@@ -29,7 +29,6 @@ function createSalesRoutes(db) {
       // If user doesn't have explicit permission, check if their role should have it
       const roleBasedPermissions = {
         user: ['leave:view'],
-        manager: ['leave:view', 'leave:manage', 'users:view', 'payroll:view'],
         supervisor: ['leave:view', 'leave:manage', 'users:view', 'payroll:view'],
         admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
                  'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
@@ -55,7 +54,7 @@ function createSalesRoutes(db) {
 
       let matchCondition = { yearMonth: year_month };
 
-      // If not admin/manager, only show own data
+      // If not admin/supervisor, only show own data
       if (userRole === 'user') {
         matchCondition.userId = new ObjectId(userId);
       }
