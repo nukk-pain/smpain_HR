@@ -41,12 +41,12 @@ const VALIDATION_CONFIG = {
     }
   },
   PASSWORD: {
-    MIN_LENGTH: 6,
-    MAX_LENGTH: 50,
+    MIN_LENGTH: 1,
+    MAX_LENGTH: 25,
     MESSAGES: {
       REQUIRED: '비밀번호는 필수입니다.',
-      MIN_LENGTH: '비밀번호는 6자 이상이어야 합니다.',
-      MAX_LENGTH: '비밀번호는 50자 이하여야 합니다.'
+      MIN_LENGTH: '비밀번호는 1자 이상이어야 합니다.',
+      MAX_LENGTH: '비밀번호는 25자 이하여야 합니다.'
     }
   },
   EMAIL: {

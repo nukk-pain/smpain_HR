@@ -17,7 +17,9 @@ import {
   InputAdornment,
   IconButton,
   Typography,
-  Box
+  Box,
+  Chip,
+  Autocomplete
 } from '@mui/material';
 import {
   Visibility,
@@ -48,6 +50,7 @@ interface ContactInfoSectionProps {
   errors: any;
   isSubmitting: boolean;
   departments: string[];
+  positions: {_id: string; name: string}[];
   onFieldChange: (field: string, value: any) => void;
   onFieldBlur: (field: string) => void;
 }
@@ -59,6 +62,8 @@ interface RolePermissionsSectionProps {
   roles: string[];
   supervisors: any[];
   onFieldChange: (field: string, value: any) => void;
+  currentUser?: any;
+  departments?: any[];
 }
 
 interface EmploymentDetailsSectionProps {
@@ -181,13 +186,15 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
         <TextField
           fullWidth
           label="사원번호"
-          value={formData.employeeId}
-          onChange={(e) => onFieldChange('employeeId', e.target.value)}
-          onBlur={() => onFieldBlur('employeeId')}
-          error={Boolean(errors.employeeId)}
-          helperText={errors.employeeId}
-          required
-          disabled={isSubmitting}
+          value="자동 생성됩니다"
+          disabled={true}
+          helperText="입사일 기준으로 자동 생성 (예: 20250001)"
+          InputProps={{
+            style: { 
+              backgroundColor: '#f5f5f5',
+              color: '#666'
+            }
+          }}
         />
       </Grid>
     </Grid>
@@ -203,6 +210,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
   errors,
   isSubmitting,
   departments,
+  positions,
   onFieldChange,
   onFieldBlur
 }) => (
@@ -212,27 +220,6 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
       {FORM_SECTIONS.CONTACT.title}
     </Typography>
     <Grid container spacing={2}>
-      {/* Email */}
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="이메일"
-          type="email"
-          value={formData.email}
-          onChange={(e) => onFieldChange('email', e.target.value)}
-          onBlur={() => onFieldBlur('email')}
-          error={Boolean(errors.email)}
-          helperText={errors.email}
-          disabled={isSubmitting}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Email />
-              </InputAdornment>
-            )
-          }}
-        />
-      </Grid>
 
       {/* Phone Number */}
       <Grid item xs={12} sm={6}>
@@ -279,20 +266,23 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
 
       {/* Position */}
       <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="직책"
-          value={formData.position}
-          onChange={(e) => onFieldChange('position', e.target.value)}
-          disabled={isSubmitting}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Work />
-              </InputAdornment>
-            )
-          }}
-        />
+        <FormControl fullWidth>
+          <InputLabel>직책</InputLabel>
+          <Select
+            value={formData.position}
+            label="직책"
+            onChange={(e) => onFieldChange('position', e.target.value)}
+            disabled={isSubmitting}
+            startAdornment={<Work sx={{ mr: 1, color: 'action.active' }} />}
+          >
+            <MenuItem value="">선택 안함</MenuItem>
+            {positions.map((position) => (
+              <MenuItem key={position._id} value={position.name}>
+                {position.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Grid>
     </Grid>
   </Box>
@@ -308,7 +298,9 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
   isSubmitting,
   roles,
   supervisors,
-  onFieldChange
+  onFieldChange,
+  currentUser,
+  departments = []
 }) => (
   <Box mb={3}>
     <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -342,9 +334,9 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
           <FormControl fullWidth>
             <InputLabel>상급자</InputLabel>
             <Select
-              value={formData.supervisorId || ''}
+              value={formData.managerId || ''}
               label="상급자"
-              onChange={(e) => onFieldChange('supervisorId', e.target.value)}
+              onChange={(e) => onFieldChange('managerId', e.target.value)}
               disabled={isSubmitting}
             >
               <MenuItem value="">선택 안함</MenuItem>
@@ -355,6 +347,51 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
               ))}
             </Select>
           </FormControl>
+        </Grid>
+      )}
+
+      {/* Visible Teams - only for admin users */}
+      {currentUser?.role === 'admin' && (
+        <Grid item xs={12}>
+          <Autocomplete
+            multiple
+            freeSolo
+            value={formData.visibleTeams || []}
+            onChange={(event, newValue) => {
+              const teams = newValue.map(item => 
+                typeof item === 'string' 
+                  ? { departmentId: '', departmentName: item }
+                  : item
+              );
+              onFieldChange('visibleTeams', teams);
+            }}
+            options={departments.map(dept => ({
+              departmentId: dept._id,
+              departmentName: dept.name
+            }))}
+            getOptionLabel={(option) => 
+              typeof option === 'string' ? option : option.departmentName
+            }
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  variant="outlined"
+                  label={typeof option === 'string' ? option : option.departmentName}
+                  {...getTagProps({ index })}
+                  key={index}
+                />
+              ))
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="접근 가능한 팀/부서"
+                placeholder="부서를 선택하거나 직접 입력"
+                helperText="이 사용자가 관리할 수 있는 부서를 설정합니다 (관리자만 설정 가능)"
+                disabled={isSubmitting}
+              />
+            )}
+          />
         </Grid>
       )}
     </Grid>

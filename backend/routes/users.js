@@ -61,32 +61,36 @@ function createUserRoutes(db) {
     };
   };
 
-  // Generate sequential employeeId
-  async function generateEmployeeId() {
+  // Generate sequential employeeId based on hire date year
+  async function generateEmployeeId(hireDate) {
     try {
-      // Get all users with valid EMP*** format employeeIds
+      const year = new Date(hireDate).getFullYear();
+      const yearPrefix = year.toString();
+      
+      // Get all users with employeeIds starting with the same year
       const users = await db.collection('users').find({
-        employeeId: { $regex: /^EMP\d{3}$/ }
+        employeeId: { $regex: new RegExp(`^${yearPrefix}\\d{4}$`) }
       }).toArray();
       
       if (users.length === 0) {
-        return 'EMP001';
+        return `${yearPrefix}0001`;
       }
       
-      // Extract numbers and find the highest
+      // Extract sequence numbers and find the highest
       const numbers = users.map(user => {
-        const match = user.employeeId.match(/^EMP(\d{3})$/);
+        const match = user.employeeId.match(new RegExp(`^${yearPrefix}(\\d{4})$`));
         return match ? parseInt(match[1]) : 0;
       }).filter(num => !isNaN(num));
       
       const maxNumber = Math.max(...numbers, 0);
       const nextNumber = maxNumber + 1;
-      return `EMP${nextNumber.toString().padStart(3, '0')}`;
+      return `${yearPrefix}${nextNumber.toString().padStart(4, '0')}`;
     } catch (error) {
       console.error('Error generating employee ID:', error);
-      // Fallback: generate random number to avoid collision
-      const randomNum = Math.floor(Math.random() * 1000) + 1;
-      return `EMP${randomNum.toString().padStart(3, '0')}`;
+      // Fallback: use current year and random number
+      const currentYear = new Date().getFullYear();
+      const randomNum = Math.floor(Math.random() * 9999) + 1;
+      return `${currentYear}${randomNum.toString().padStart(4, '0')}`;
     }
   }
 
@@ -324,10 +328,18 @@ function createUserRoutes(db) {
 
   // Create new user
   router.post('/', requireAuth, requirePermission('users:create'), asyncHandler(async (req, res) => {
-    const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, birthDate, phoneNumber } = req.body;
+    const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, birthDate, phoneNumber, visibleTeams } = req.body;
     
     if (!username || !password || !name || !role) {
       return res.status(400).json({ error: 'Username, password, name, and role are required' });
+    }
+
+    // Validate role values
+    const validRoles = ['admin', 'supervisor', 'user'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ 
+        error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+      });
     }
     
     // Validate username format (support Korean characters)
@@ -344,7 +356,9 @@ function createUserRoutes(db) {
     }
     
     const hashedPassword = bcrypt.hashSync(password, 10);
-    const employeeId = await generateEmployeeId();
+    // Generate employeeId based on hire date (use today if not provided)
+    const hireDateString = hireDate || new Date().toISOString().split('T')[0];
+    const employeeId = await generateEmployeeId(hireDateString);
     
     const DEFAULT_PERMISSIONS = {
       user: ['leave:view'],
@@ -354,15 +368,15 @@ function createUserRoutes(db) {
     };
     
     // Calculate initial leave balance for new user
-    const userHireDate = hireDate ? new Date(hireDate) : new Date();
-    const initialLeaveBalance = calculateAnnualLeaveEntitlement(userHireDate);
+    const hireDateObj = hireDate ? new Date(hireDate) : new Date();
+    const initialLeaveBalance = calculateAnnualLeaveEntitlement(hireDateObj);
     
     const newUser = {
       username,
       password: hashedPassword,
       name,
       role,
-      hireDate: hireDate || null,
+      hireDate: hireDateString,
       department: department || null,
       position: position || null,
       employeeId,
@@ -375,7 +389,12 @@ function createUserRoutes(db) {
       phoneNumber: phoneNumber || null,
       isActive: true,
       permissions: DEFAULT_PERMISSIONS[role] || [],
-      visibleTeams: [], // Empty by default - managers need explicit permission
+      visibleTeams: (req.user.role === 'admin' && visibleTeams && Array.isArray(visibleTeams)) 
+        ? visibleTeams.map(team => ({
+            departmentId: team.departmentId ? new ObjectId(team.departmentId) : null,
+            departmentName: team.departmentName || ''
+          }))
+        : [], // Empty by default - only admins can set initial visibleTeams
       leaveBalance: initialLeaveBalance, // Initialize with calculated leave balance
       createdAt: new Date(),
       updatedAt: new Date()
@@ -432,6 +451,16 @@ function createUserRoutes(db) {
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;
+    
+    // Validate role values if role is being updated
+    if (role) {
+      const validRoles = ['admin', 'supervisor', 'user'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ 
+          error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+        });
+      }
+    }
     
     const updateData = {
       username,

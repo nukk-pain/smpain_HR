@@ -41,8 +41,10 @@ export interface UserFormProps {
   onSubmit: (userData: any) => void;
   onCancel: () => void;
   departments: string[];
+  positions: {_id: string; name: string}[];
   roles: string[];
   supervisors: User[];
+  currentUser: User;
 }
 
 // Role name mapping
@@ -62,8 +64,10 @@ export const UserForm: React.FC<UserFormProps> = memo(({
   onSubmit,
   onCancel,
   departments,
+  positions,
   roles,
-  supervisors
+  supervisors,
+  currentUser
 }) => {
   // Form state management
   const {
@@ -168,6 +172,7 @@ export const UserForm: React.FC<UserFormProps> = memo(({
             errors={errors}
             isSubmitting={isSubmitting}
             departments={departments}
+            positions={positions}
             onFieldChange={handleChange}
             onFieldBlur={handleBlur}
           />
@@ -179,6 +184,8 @@ export const UserForm: React.FC<UserFormProps> = memo(({
             roles={roles}
             supervisors={supervisors}
             onFieldChange={handleChange}
+            currentUser={currentUser}
+            departments={departments.map(name => ({ _id: name, name }))}
           />
 
           <EmploymentDetailsSection

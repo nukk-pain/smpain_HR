@@ -15,7 +15,7 @@ import {
   Typography,
   Paper
 } from '@mui/material';
-import { User } from '../types';
+import { User, UserForm as UserFormData } from '../types';
 import { UserFilters } from './UserFilters';
 import { UserActions } from './UserActions';
 import { UserList } from './UserList';
@@ -73,6 +73,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
   // State management with performance optimizations
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [positions, setPositions] = useState<{_id: string; name: string}[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [supervisors, setSupervisors] = useState<User[]>([]);
   const [uiState, setUIState] = useState<UIState>(initialUIState);
@@ -80,35 +81,36 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
   // Batched state updates
   const batchUpdates = useBatchedUpdates();
   
-  // Optimized array comparisons
-  const stableUsers = useArrayComparison(users);
-  const stableDepartments = useArrayComparison(departments);
-  const stableRoles = useArrayComparison(roles);
-  const stableSupervisors = useArrayComparison(supervisors);
+  // Temporary: Use direct arrays to avoid infinite render issues
+  // TODO: Re-enable array comparisons after fixing the hook
+  const stableUsers = users;
+  const stableDepartments = departments;
+  const stablePositions = positions;
+  const stableRoles = roles;
+  const stableSupervisors = supervisors;
 
   // Hooks with stable references
   const {
     filteredUsers,
     sortBy,
     sortOrder,
-    searchTerm,
     filters,
-    handleSearch,
-    handleFiltersChange,
-    handleSort,
-    clearFilters
+    setSearch,
+    setFilter,
+    setSortBy,
+    setSortOrder,
+    resetFilters
   } = useUserFilters(stableUsers, {
-    debounceMs: 300,
-    defaultSort: { field: 'name', order: 'asc' }
+    searchFields: ['name', 'username', 'department', 'position'],
+    initialSortBy: 'name',
+    initialSortOrder: 'asc'
   });
 
   const {
     canCreateUser,
-    canEditUser,
+    canUpdateUser,
     canDeleteUser,
-    canViewUser,
-    canExportUsers,
-    canImportUsers
+    canViewUser
   } = useUserPermissions(currentUser, stableUsers);
 
   // Memoized values
@@ -163,6 +165,16 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
     }
   }, []);
 
+  const fetchPositions = useCallback(async () => {
+    try {
+      const response = await apiService.getPositions();
+      const fetchedPositions = response.success ? response.data : [];
+      setPositions(fetchedPositions);
+    } catch (error) {
+      console.error('Failed to fetch positions:', error);
+    }
+  }, []);
+
   const fetchRoles = useCallback(async () => {
     try {
       // Define available roles directly
@@ -182,7 +194,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         isDetailsOpen: false
       });
     });
-  }, [updateUIState]);
+  }, [updateUIState, batchUpdates]);
 
   const handleEditUser = useStableCallback((user: User) => {
     batchUpdates(() => {
@@ -192,7 +204,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         isDetailsOpen: false
       });
     });
-  }, [updateUIState]);
+  }, [updateUIState, batchUpdates]);
 
   const handleDeleteUser = useCallback(async (user: User) => {
     const confirmed = window.confirm('정말로 삭제하시겠습니까?');
@@ -219,7 +231,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
     }
   }, [updateUIState, fetchUsers, showMessage]);
 
-  const handleFormSubmit = useCallback(async (userData: any) => {
+  const handleFormSubmit = useCallback(async (userData: UserFormData) => {
     try {
       updateUIState({ loading: true });
       
@@ -327,23 +339,24 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
       await Promise.all([
         fetchUsers(),
         fetchDepartments(),
+        fetchPositions(),
         fetchRoles()
       ]);
     };
 
     initializeData();
-  }, [fetchUsers, fetchDepartments, fetchRoles]);
+  }, [fetchUsers, fetchDepartments, fetchPositions, fetchRoles]);
 
   // Permission checks for selected user
   const selectedUserPermissions = useMemo(() => {
     if (!uiState.selectedUser) return { canEdit: false, canDelete: false, canView: false };
     
     return {
-      canEdit: canEditUser(uiState.selectedUser),
+      canEdit: uiState.selectedUser ? canUpdateUser(uiState.selectedUser) : false,
       canDelete: canDeleteUser(uiState.selectedUser),
       canView: canViewUser(uiState.selectedUser)
     };
-  }, [uiState.selectedUser, canEditUser, canDeleteUser, canViewUser]);
+  }, [uiState.selectedUser, canUpdateUser, canDeleteUser, canViewUser]);
 
   // Loading state
   if (isLoading && users.length === 0) {
@@ -392,25 +405,25 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
           selectedUser={uiState.selectedUser}
           loading={isLoading}
           canCreate={canCreateUser}
-          canEdit={canEditUser(uiState.selectedUser)}
+          canEdit={uiState.selectedUser ? canUpdateUser(uiState.selectedUser) : false}
           canDelete={canDeleteUser(uiState.selectedUser)}
-          canExport={canExportUsers}
-          canImport={canImportUsers}
+          canExport={false}
+          canImport={false}
           userCount={userCount}
         />
 
         {/* Filters */}
         <UserFilters
-          searchTerm={searchTerm}
+          searchTerm={filters.search}
           filters={filters}
           sortBy={sortBy}
           sortOrder={sortOrder}
           departments={departments}
           roles={roles}
-          onSearch={handleSearch}
-          onFiltersChange={handleFiltersChange}
-          onSort={handleSort}
-          onClearFilters={clearFilters}
+          onSearch={setSearch}
+          onFiltersChange={(key: string, value: string) => setFilter(key, value)}
+          onSort={(field: any) => setSortBy(field)}
+          onClearFilters={resetFilters}
           loading={isLoading}
           totalCount={users.length}
           filteredCount={userCount}
@@ -419,7 +432,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         {/* User List */}
         <Paper elevation={1}>
           <UserList
-            users={filteredUsers}
+            users={filteredUsers as unknown as readonly User[]}
             loading={isLoading}
             selectedUser={uiState.selectedUser}
             sortBy={sortBy}
@@ -429,8 +442,8 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
             onUserEdit={handleUserEdit}
             onUserDelete={handleUserDelete}
             onUserView={handleUserView}
-            onSort={handleSort}
-            canEdit={canEditUser}
+            onSort={(field: any) => setSortBy(field)}
+            canEdit={canUpdateUser}
             canDelete={canDeleteUser}
             canView={canViewUser}
             emptyMessage="등록된 사용자가 없습니다"
@@ -446,9 +459,11 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         isSubmitting={isLoading}
         onSubmit={handleFormSubmit}
         onCancel={handleFormCancel}
-        departments={departments}
+        departments={stableDepartments}
+        positions={stablePositions}
         roles={roles}
         supervisors={supervisors}
+        currentUser={currentUser}
       />
 
       {/* User Details Dialog */}

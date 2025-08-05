@@ -12,8 +12,7 @@ import {
   UserValidationData,
   ValidationOptions 
 } from '../utils/userValidation';
-import { USER_ROLES, UserRole } from '../constants/userRoles';
-import { INCENTIVE_FORMULAS, IncentiveFormulaType } from '../constants/incentiveFormulas';
+// Removed unused imports
 
 // Base user data interface (compatible with existing User type)
 export interface UserData {
@@ -32,7 +31,7 @@ export interface UserData {
   supervisorId?: string;
   contractType?: string;
   phoneNumber?: string;
-  visibleTeams?: any[];
+  visibleTeams?: { departmentId: string; departmentName: string }[];
   [key: string]: any;
 }
 
@@ -41,20 +40,19 @@ export interface UserFormData {
   username: string;
   password: string;
   name: string;
-  role: UserRole | string;
-  employeeId: string;
-  email: string;
-  phoneNumber: string;
+  role: string;
+  hireDate: string;
   department: string;
   position: string;
-  baseSalary: number;
-  incentiveFormula: IncentiveFormulaType | string;
-  hireDate: string;
-  birthDate: string;
+  employeeId: string;
   accountNumber: string;
-  supervisorId: string;
+  managerId: string;
   contractType: string;
-  visibleTeams: string[];
+  baseSalary: number;
+  incentiveFormula: string;
+  birthDate: string;
+  phoneNumber: string;
+  visibleTeams: { departmentId: string; departmentName: string }[];
 }
 
 // Field types for type-safe handling
@@ -72,19 +70,18 @@ const FIELD_CONFIGS: Record<keyof UserFormData, FieldConfig> = {
   username: { type: 'string', defaultValue: '', validate: true },
   password: { type: 'string', defaultValue: '', validate: true },
   name: { type: 'string', defaultValue: '', validate: true },
-  role: { type: 'select', defaultValue: USER_ROLES.USER },
-  employeeId: { type: 'string', defaultValue: '', validate: true },
-  email: { type: 'string', defaultValue: '', validate: true },
-  phoneNumber: { type: 'string', defaultValue: '', validate: true },
+  role: { type: 'select', defaultValue: 'user' },
+  hireDate: { type: 'date', defaultValue: '' },
   department: { type: 'string', defaultValue: '' },
   position: { type: 'string', defaultValue: '' },
-  baseSalary: { type: 'number', defaultValue: 0 },
-  incentiveFormula: { type: 'select', defaultValue: INCENTIVE_FORMULAS.NONE },
-  hireDate: { type: 'date', defaultValue: '' },
-  birthDate: { type: 'date', defaultValue: '' },
+  employeeId: { type: 'string', defaultValue: '', validate: false },
   accountNumber: { type: 'string', defaultValue: '' },
-  supervisorId: { type: 'string', defaultValue: '' },
+  managerId: { type: 'string', defaultValue: '' },
   contractType: { type: 'select', defaultValue: 'regular' },
+  baseSalary: { type: 'number', defaultValue: 0 },
+  incentiveFormula: { type: 'string', defaultValue: '' },
+  birthDate: { type: 'date', defaultValue: '' },
+  phoneNumber: { type: 'string', defaultValue: '' },
   visibleTeams: { type: 'array', defaultValue: [] }
 };
 
@@ -128,19 +125,16 @@ const getInitialFormData = (user?: UserData): UserFormData => {
     if (userValue !== undefined && userValue !== null) {
       // Special handling for arrays
       if (config.type === 'array') {
-        formData[fieldKey] = Array.isArray(userValue) ? userValue : [];
+        (formData as any)[fieldKey] = Array.isArray(userValue) ? userValue : [];
       } else {
-        formData[fieldKey] = userValue;
+        (formData as any)[fieldKey] = userValue;
       }
     } else {
-      formData[fieldKey] = config.defaultValue;
+      (formData as any)[fieldKey] = config.defaultValue;
     }
   });
 
-  // Special handling for email which might not be in user data
-  if (user && 'email' in user) {
-    formData.email = user.email || '';
-  }
+  // Email field removed from UserFormData interface
 
   // Never populate password from existing user
   formData.password = '';
@@ -249,7 +243,6 @@ export const useUserForm = (
       password: formData.password,
       name: formData.name,
       employeeId: formData.employeeId,
-      email: formData.email,
       phoneNumber: formData.phoneNumber
     };
 
@@ -339,9 +332,9 @@ export const useUserForm = (
       return true;
     }
     
-    // For new user, check required fields
+    // For new user, check required fields (employeeId is auto-generated)
     const requiredFields: (keyof UserValidationData)[] = 
-      ['username', 'password', 'name', 'employeeId'];
+      ['username', 'password', 'name'];
     
     return requiredFields.every(field => {
       const value = formData[field];
