@@ -182,7 +182,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         isDetailsOpen: false
       });
     });
-  }, [updateUIState, batchUpdates]);
+  }, [updateUIState]);
 
   const handleEditUser = useStableCallback((user: User) => {
     batchUpdates(() => {
@@ -192,7 +192,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         isDetailsOpen: false
       });
     });
-  }, [updateUIState, batchUpdates]);
+  }, [updateUIState]);
 
   const handleDeleteUser = useCallback(async (user: User) => {
     const confirmed = window.confirm('정말로 삭제하시겠습니까?');

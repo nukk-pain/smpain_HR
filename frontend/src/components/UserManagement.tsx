@@ -1,70 +1,40 @@
 /**
- * UserManagement Component
+ * UserManagement - Refactored wrapper component
  * 
- * Code-split version of the user management system with lazy loading
- * for optimal bundle size and loading performance.
+ * This component now acts as a lightweight wrapper around the modular
+ * UserManagementContainer, maintaining backward compatibility while
+ * providing improved architecture with separated concerns.
  */
 
-import React, { memo, useEffect } from 'react';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import React, { memo } from 'react';
+import { Box } from '@mui/material';
 import { User } from '../types';
 import { useAuth } from './AuthProvider';
-import { 
-  UserManagementContainerWithSuspense,
-  preloadUserManagementComponents
-} from './UserManagement.lazy';
+import { UserManagementContainer } from './UserManagementContainer';
 
-// Component props interface
 export interface UserManagementProps {
   currentUser?: User;
 }
 
-// Main loading fallback component
-const MainLoadingFallback = () => (
-  <Box 
-    component="main" 
-    role="main" 
-    aria-label="사용자 관리 로딩 중"
-    sx={{
-      minHeight: '100vh',
-      backgroundColor: 'background.default',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 3
-    }}
-  >
-    <CircularProgress size={48} />
-    <Typography variant="h6" color="text.secondary">
-      사용자 관리 시스템을 불러오는 중...
-    </Typography>
-    <Typography variant="body2" color="text.secondary">
-      잠시만 기다려주세요
-    </Typography>
-  </Box>
-);
-
 /**
- * UserManagement - Code-split wrapper component
+ * UserManagement Component
  * 
- * Uses lazy loading for optimal performance while maintaining
- * backward compatibility and progressive enhancement.
+ * Main entry point for user management functionality.
+ * Acts as a wrapper that provides authentication context and
+ * delegates to UserManagementContainer for actual functionality.
+ * 
+ * Features:
+ * - Backward compatibility with existing usage
+ * - Automatic current user resolution via auth context
+ * - Semantic HTML structure with proper ARIA labels
+ * - Performance optimization with React.memo
+ * 
+ * @param currentUser - Optional user override (defaults to authenticated user)
  */
-const UserManagement: React.FC<UserManagementProps> = memo(({ currentUser: propCurrentUser }) => {
+export const UserManagement: React.FC<UserManagementProps> = memo(({ currentUser: propCurrentUser }) => {
   const { user: authCurrentUser } = useAuth();
   const currentUser = propCurrentUser || authCurrentUser;
-
-  // Preload commonly used components for better UX
-  useEffect(() => {
-    // Preload components that are likely to be used
-    const preloadTimer = setTimeout(() => {
-      preloadUserManagementComponents().catch(console.warn);
-    }, 1000); // Preload after 1 second
-
-    return () => clearTimeout(preloadTimer);
-  }, []);
-
+  
   if (!currentUser) {
     return (
       <Box 
@@ -75,36 +45,19 @@ const UserManagement: React.FC<UserManagementProps> = memo(({ currentUser: propC
           minHeight: '100vh',
           backgroundColor: 'background.default',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
           p: 3
         }}
       >
-        <Alert severity="warning" sx={{ maxWidth: 400 }}>
-          <Typography variant="h6" gutterBottom>
-            로그인이 필요합니다
-          </Typography>
-          <Typography variant="body2">
-            사용자 관리 기능을 사용하려면 먼저 로그인해 주세요.
-          </Typography>
-        </Alert>
+        <Box>로그인이 필요합니다.</Box>
       </Box>
     );
   }
-
+  
   return (
-    <Box 
-      component="main" 
-      role="main" 
-      aria-label="사용자 관리"
-      sx={{
-        minHeight: '100vh',
-        backgroundColor: 'background.default'
-      }}
-    >
-      <UserManagementContainerWithSuspense currentUser={currentUser} />
+    <Box component="main" role="main" aria-label="사용자 관리">
+      <UserManagementContainer currentUser={currentUser} />
     </Box>
   );
 });
@@ -112,6 +65,5 @@ const UserManagement: React.FC<UserManagementProps> = memo(({ currentUser: propC
 // Display name for debugging
 UserManagement.displayName = 'UserManagement';
 
-// Export for compatibility
-export { UserManagement };
+// Default export for compatibility
 export default UserManagement;

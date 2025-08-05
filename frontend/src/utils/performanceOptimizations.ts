@@ -192,28 +192,11 @@ export const useVirtualization = (
  * Batch state updates to prevent multiple re-renders
  */
 export const useBatchedUpdates = () => {
-  const updates = useRef<Array<() => void>>([]);
-  const isScheduled = useRef(false);
-
-  const scheduleUpdate = useCallback((updateFn: () => void) => {
-    updates.current.push(updateFn);
-
-    if (!isScheduled.current) {
-      isScheduled.current = true;
-      
-      // Use React's automatic batching (React 18) or manual batching
-      Promise.resolve().then(() => {
-        const currentUpdates = updates.current;
-        updates.current = [];
-        isScheduled.current = false;
-
-        // Execute all batched updates
-        currentUpdates.forEach(updateFn => updateFn());
-      });
-    }
+  return useCallback((batchFn: () => void) => {
+    // In React 18+, updates are automatically batched
+    // For older versions, we can use unstable_batchedUpdates
+    batchFn();
   }, []);
-
-  return scheduleUpdate;
 };
 
 /**

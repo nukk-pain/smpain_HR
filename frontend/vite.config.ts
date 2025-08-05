@@ -67,23 +67,18 @@ export default defineConfig(({ mode }) => {
             'payroll-grid': ['./src/components/PayrollGrid.tsx'],
             'payroll-pages': ['./src/pages/PayrollManagement.tsx'],
             
-            // User management features (code-split)
-            'user-management-core': [
+            // User management features
+            'user-management': [
               './src/components/UserManagement.tsx',
-              './src/components/UserManagement.lazy.tsx'
-            ],
-            'user-management-components': [
+              './src/components/UserManagementContainer.tsx',
               './src/components/UserForm.tsx',
               './src/components/UserDetails.tsx',
               './src/components/UserList.tsx',
-              './src/components/UserManagementContainer.tsx'
-            ],
-            'user-management-hooks': [
+              './src/components/UserFilters.tsx',
+              './src/components/UserActions.tsx',
               './src/hooks/useUserForm.ts',
               './src/hooks/useUserFilters.ts',
-              './src/hooks/useUserPermissions.ts'
-            ],
-            'user-management-pages': [
+              './src/hooks/useUserPermissions.ts',
               './src/pages/UserManagementPage.tsx'
             ],
             

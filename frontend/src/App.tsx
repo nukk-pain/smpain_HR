@@ -19,7 +19,6 @@ const Reports = React.lazy(() => import('./pages/Reports'))
 const FileManagement = React.lazy(() => import('./pages/FileManagement'))
 const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview'))
 const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
-const UserManagementTest = React.lazy(() => import('./components/UserManagementTest'))
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
