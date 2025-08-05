@@ -77,7 +77,7 @@ const FIELD_CONFIGS: Record<keyof UserFormData, FieldConfig> = {
   employeeId: { type: 'string', defaultValue: '', validate: false },
   accountNumber: { type: 'string', defaultValue: '' },
   managerId: { type: 'string', defaultValue: '' },
-  contractType: { type: 'select', defaultValue: 'regular' },
+  contractType: { type: 'select', defaultValue: 'fulltime' },
   baseSalary: { type: 'number', defaultValue: 0 },
   incentiveFormula: { type: 'string', defaultValue: '' },
   birthDate: { type: 'date', defaultValue: '' },
