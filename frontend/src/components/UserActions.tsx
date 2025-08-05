@@ -1,7 +1,7 @@
 /**
- * UserActions Component - Simplified Version
+ * UserActions Component
  * 
- * Temporary simplified version to debug the build issue.
+ * Provides user action buttons functionality.
  */
 
 import React, { memo } from 'react';
@@ -10,19 +10,24 @@ import { Add } from '@mui/icons-material';
 import { User } from '../types';
 
 export interface UserActionsProps {
-  currentUser: User;
-  users?: User[];
-  selectedUsers?: User[];
+  onCreateUser?: () => void;
+  onEditUser?: (user: User) => void;
+  onDeleteUser?: (user: User) => void;
+  onExportUsers?: () => void;
+  onImportUsers?: () => void;
+  onRefreshUsers?: () => void;
+  selectedUser?: User | null;
   loading?: boolean;
-  onAdd?: () => void;
-  onEdit?: (user: User) => void;
-  onDelete?: (user: User) => void;
-  onRefresh?: () => void;
-  onBulkDelete?: (users: User[]) => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canExport?: boolean;
+  canImport?: boolean;
+  userCount?: number;
 }
 
 export const UserActions: React.FC<UserActionsProps> = memo(({
-  onAdd,
+  onCreateUser,
   loading = false,
 }) => {
   return (
@@ -30,7 +35,7 @@ export const UserActions: React.FC<UserActionsProps> = memo(({
       <Button
         variant="contained"
         startIcon={<Add />}
-        onClick={onAdd}
+        onClick={onCreateUser}
         disabled={loading}
       >
         사용자 추가
@@ -39,5 +44,4 @@ export const UserActions: React.FC<UserActionsProps> = memo(({
   );
 });
 
-// Display name for debugging
 UserActions.displayName = 'UserActions';

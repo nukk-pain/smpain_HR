@@ -74,8 +74,7 @@ export const UserForm: React.FC<UserFormProps> = memo(({
     handleChange,
     handleBlur,
     handleSubmit,
-    resetForm,
-    validationSummary
+    resetForm
   } = useUserForm(user, {
     validateOnChange: true,
     validateOnBlur: true
@@ -115,10 +114,10 @@ export const UserForm: React.FC<UserFormProps> = memo(({
       
       <Box display="flex" alignItems="center" gap={1}>
         {hasErrors && (
-          <Tooltip title={`검증 오류: ${validationSummary.errorCount}개`}>
+          <Tooltip title={`검증 오류: ${Object.keys(errors).length}개`}>
             <Chip
               icon={<Info />}
-              label={`오류 ${validationSummary.errorCount}개`}
+              label={`오류 ${Object.keys(errors).length}개`}
               color="error"
               size="small"
               variant="outlined"
@@ -134,7 +133,7 @@ export const UserForm: React.FC<UserFormProps> = memo(({
         </IconButton>
       </Box>
     </Box>
-  ), [isEditing, hasErrors, validationSummary.errorCount, handleCancel, isSubmitting]);
+  ), [isEditing, hasErrors, Object.keys(errors).length, handleCancel, isSubmitting]);
 
   if (!isOpen) return null;
 

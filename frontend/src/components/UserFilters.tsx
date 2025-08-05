@@ -33,21 +33,19 @@ import { UserFilters as UserFiltersType, SortField, SortOrder } from '../hooks/u
 
 // Component props interface with performance optimization
 export interface UserFiltersProps {
+  searchTerm: string;
   filters: UserFiltersType;
   departments: readonly string[];
   roles: readonly string[];
   sortBy: SortField;
   sortOrder: SortOrder;
-  activeFilterCount: number;
-  hasActiveFilters: boolean;
-  isFiltering?: boolean;
-  onSearchChange: (search: string) => void;
-  onDepartmentChange: (department: string) => void;
-  onRoleChange: (role: string) => void;
-  onStatusChange: (status: string) => void;
-  onSortByChange: (field: SortField) => void;
-  onSortOrderChange: (order: SortOrder) => void;
-  onResetFilters: () => void;
+  loading?: boolean;
+  totalCount: number;
+  filteredCount: number;
+  onSearch: (search: string) => void;
+  onFiltersChange: (key: string, value: string) => void;
+  onSort: (field: SortField) => void;
+  onClearFilters: () => void;
 }
 
 // Constants memoized for performance
@@ -78,46 +76,44 @@ const SORT_FIELD_OPTIONS = Object.freeze([
  * Optimized UserFilters component with React.memo and performance enhancements
  */
 export const UserFilters: React.FC<UserFiltersProps> = memo(({
+  searchTerm,
   filters,
   departments,
   roles,
   sortBy,
   sortOrder,
-  activeFilterCount,
-  hasActiveFilters,
-  isFiltering = false,
-  onSearchChange,
-  onDepartmentChange,
-  onRoleChange,
-  onStatusChange,
-  onSortByChange,
-  onSortOrderChange,
-  onResetFilters
+  loading = false,
+  totalCount,
+  filteredCount,
+  onSearch,
+  onFiltersChange,
+  onSort,
+  onClearFilters
 }) => {
   // Memoized event handlers to prevent unnecessary re-renders
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    onSearchChange(event.target.value);
-  }, [onSearchChange]);
+    onSearch(event.target.value);
+  }, [onSearch]);
 
   const handleDepartmentChange = useCallback((event: any) => {
-    onDepartmentChange(event.target.value);
-  }, [onDepartmentChange]);
+    onFiltersChange('department', event.target.value);
+  }, [onFiltersChange]);
 
   const handleRoleChange = useCallback((event: any) => {
-    onRoleChange(event.target.value);
-  }, [onRoleChange]);
+    onFiltersChange('role', event.target.value);
+  }, [onFiltersChange]);
 
   const handleStatusChange = useCallback((event: any) => {
-    onStatusChange(event.target.value);
-  }, [onStatusChange]);
+    onFiltersChange('status', event.target.value);
+  }, [onFiltersChange]);
 
   const handleSortByChange = useCallback((event: any) => {
-    onSortByChange(event.target.value as SortField);
-  }, [onSortByChange]);
+    onSort(event.target.value as SortField);
+  }, [onSort]);
 
   const handleSortOrderToggle = useCallback(() => {
-    onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
-  }, [sortOrder, onSortOrderChange]);
+    onSort(sortBy); // Toggle logic handled by parent
+  }, [sortBy, onSort]);
 
   // Memoized department options
   const departmentOptions = useMemo(() => (
@@ -160,6 +156,22 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
     `정렬 순서: ${sortOrder === 'asc' ? '오름차순' : '내림차순'}`
   ), [sortOrder]);
 
+  // Computed values for UI state
+  const hasActiveFilters = useMemo(() => (
+    filters.search || filters.department || filters.role || filters.status !== 'all'
+  ), [filters]);
+  
+  const isFiltering = loading;
+  
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.department) count++;
+    if (filters.role) count++;
+    if (filters.status !== 'all') count++;
+    return count;
+  }, [filters]);
+
   // Active filter chips for better UX
   const activeFilterChips = useMemo(() => {
     const chips: React.ReactElement[] = [];
@@ -170,7 +182,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
           key="search"
           size="small"
           label={`검색: ${filters.search}`}
-          onDelete={() => onSearchChange('')}
+          onDelete={() => onSearch('')}
           color="primary"
           variant="outlined"
         />
@@ -183,7 +195,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
           key="department"
           size="small"
           label={`부서: ${filters.department}`}
-          onDelete={() => onDepartmentChange('')}
+          onDelete={() => onFiltersChange('department', '')}
           color="primary"
           variant="outlined"
         />
@@ -196,7 +208,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
           key="role"
           size="small"
           label={`역할: ${ROLE_NAMES[filters.role as keyof typeof ROLE_NAMES] || filters.role}`}
-          onDelete={() => onRoleChange('')}
+          onDelete={() => onFiltersChange('role', '')}
           color="primary"
           variant="outlined"
         />
@@ -210,7 +222,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
           key="status"
           size="small"
           label={`상태: ${statusLabel}`}
-          onDelete={() => onStatusChange('all')}
+          onDelete={() => onFiltersChange('status', 'all')}
           color="primary"
           variant="outlined"
         />
@@ -218,7 +230,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
     }
     
     return chips;
-  }, [filters, onSearchChange, onDepartmentChange, onRoleChange, onStatusChange]);
+  }, [filters, onSearch, onFiltersChange]);
   return (
     <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
       {/* Filter Controls */}
@@ -229,7 +241,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
             fullWidth
             size="small"
             placeholder="사용자 검색..."
-            value={filters.search}
+            value={searchTerm}
             onChange={handleSearchChange}
             disabled={isFiltering}
             InputProps={{
@@ -340,7 +352,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
                     variant="outlined"
                     size="small"
                     startIcon={<Clear />}
-                    onClick={onResetFilters}
+                    onClick={onClearFilters}
                     disabled={isFiltering}
                     aria-label="필터 초기화"
                     sx={{

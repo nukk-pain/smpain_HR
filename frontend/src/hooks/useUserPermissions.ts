@@ -92,8 +92,8 @@ export const useUserPermissions = (
     return hasRolePermission(currentUserRole, USER_ROLES.SUPERVISOR);
   }, [currentUserRole]);
 
-  const canUpdateUser = useCallback((user: User): boolean => {
-    if (user._id === currentUser._id) return false; // Cannot modify self through this interface
+  const canUpdateUser = useCallback((user: User | null): boolean => {
+    if (!user || !currentUser || user._id === currentUser._id) return false; // Cannot modify self through this interface or null user
     if (currentUserRole === USER_ROLES.ADMIN) return true;
     if (currentUserRole === USER_ROLES.SUPERVISOR) {
       return hasDepartmentAccess(currentUser, user.department || '');
@@ -101,8 +101,8 @@ export const useUserPermissions = (
     return false;
   }, [currentUserRole, currentUser]);
 
-  const canDeleteUser = useCallback((user: User): boolean => {
-    if (user._id === currentUser._id) return false; // Cannot delete self
+  const canDeleteUser = useCallback((user: User | null): boolean => {
+    if (!user || !currentUser || user._id === currentUser._id) return false; // Cannot delete self or null user
     if (currentUserRole === USER_ROLES.ADMIN) {
       // Admin cannot delete other admins
       return user.role !== USER_ROLES.ADMIN;
