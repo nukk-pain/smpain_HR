@@ -104,14 +104,17 @@ function createDepartmentRoutes(db) {
 
       const departmentName = name.trim();
 
-      // Check if department already exists in departments collection
+      // Check if department already exists (case insensitive)
       const existingDepartment = await db.collection('departments').findOne({ 
-        name: departmentName, 
+        name: { $regex: new RegExp(`^${departmentName}$`, 'i') }, 
         isActive: true 
       });
 
       if (existingDepartment) {
-        return res.status(400).json({ error: 'Department already exists' });
+        return res.status(409).json({ 
+          success: false,
+          error: '이미 존재하는 부서명입니다.' 
+        });
       }
 
       // Create department record
@@ -140,7 +143,19 @@ function createDepartmentRoutes(db) {
       });
     } catch (error) {
       console.error('Create department error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      
+      // Handle MongoDB duplicate key error
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          error: '이미 존재하는 부서명입니다.'
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false,
+        error: '부서 생성 중 오류가 발생했습니다.' 
+      });
     }
   }));
 
@@ -155,6 +170,39 @@ function createDepartmentRoutes(db) {
       }
 
       const newDepartmentName = name.trim();
+
+      // Check for duplicate department name (exclude current department)
+      const existingDepartment = await db.collection('departments').findOne({ 
+        _id: { $ne: new ObjectId(id) },
+        name: { $regex: new RegExp(`^${newDepartmentName}$`, 'i') }, 
+        isActive: true 
+      });
+
+      if (existingDepartment) {
+        return res.status(409).json({ 
+          success: false,
+          error: '이미 존재하는 부서명입니다.' 
+        });
+      }
+
+      // Update department record first
+      const updateResult = await db.collection('departments').updateOne(
+        { _id: new ObjectId(id) },
+        { 
+          $set: { 
+            name: newDepartmentName, 
+            description: description || '', 
+            updatedAt: new Date() 
+          } 
+        }
+      );
+
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ 
+          success: false,
+          error: '부서를 찾을 수 없습니다.' 
+        });
+      }
 
       // Update all users with this department
       const result = await db.collection('users').updateMany(
@@ -174,7 +222,19 @@ function createDepartmentRoutes(db) {
       });
     } catch (error) {
       console.error('Update department error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      
+      // Handle MongoDB duplicate key error
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          error: '이미 존재하는 부서명입니다.'
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false,
+        error: '부서 수정 중 오류가 발생했습니다.' 
+      });
     }
   }));
 

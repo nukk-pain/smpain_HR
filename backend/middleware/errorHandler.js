@@ -105,9 +105,13 @@ const validateObjectId = (paramName) => {
 const requireAuth = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('🔍 Auth header:', authHeader ? 'Present' : 'Missing');
+    
     const token = extractTokenFromHeader(authHeader);
+    console.log('🔍 Extracted token:', token ? 'Present' : 'Missing');
     
     if (!token) {
+      console.error('❌ No token found in authorization header');
       return res.status(401).json({
         success: false,
         error: 'Authentication required - No token provided'
@@ -115,10 +119,11 @@ const requireAuth = (req, res, next) => {
     }
     
     const decoded = verifyToken(token);
+    console.log('✅ Token verified successfully:', { userId: decoded.id, role: decoded.role });
     req.user = decoded; // Set user info for route handlers
     next();
   } catch (error) {
-    console.error('JWT Auth error:', error.message);
+    console.error('❌ JWT Auth error:', error.message);
     return res.status(401).json({
       success: false,
       error: 'Invalid or expired token'

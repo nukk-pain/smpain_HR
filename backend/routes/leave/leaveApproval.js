@@ -22,6 +22,14 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
     return res.status(400).json({ error: 'Invalid action' });
   }
   
+  // Validate that rejection requires a reason/comment
+  if (action === 'reject' && (!comment || comment.trim().length === 0)) {
+    return res.status(400).json({ 
+      error: 'Rejection reason is required',
+      message: 'Please provide a reason for rejecting this leave request'
+    });
+  }
+  
   const approver = await db.collection('users').findOne({ _id: new ObjectId(approverId) });
   
   const updateData = {
@@ -42,13 +50,32 @@ router.post('/:id', requireAuth, requirePermission('leave:manage'), asyncHandler
     return res.status(404).json({ error: 'Leave request not found or already processed' });
   }
   
-  // 연차 승인 시 로그만 남기고, 실제 잔여일수는 leaveBalance.js에서 실시간 계산
-  if (action === 'approve') {
-    const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
-    if (leaveRequest && leaveRequest.leaveType === 'annual') {
-      const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
-      if (user) {
-        console.log(`연차 승인: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.daysCount}일`);
+  // 연차 요청 처리: 승인 시 이미 차감된 상태 유지, 거부 시 잔액 복구
+  const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
+  if (leaveRequest && (leaveRequest.leaveType === 'annual' || leaveRequest.leaveType === 'Annual Leave')) {
+    const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
+    if (user) {
+      const currentBalance = user.leaveBalance || 0;
+      const requestDays = leaveRequest.daysCount || leaveRequest.actualLeaveDays || 0;
+      
+      if (action === 'approve') {
+        // 승인: 이미 차감된 상태 유지 (추가 처리 불필요)
+        console.log(`연차 승인: ${user.name} (${user.employeeId}) - 사용: ${requestDays}일, 현재 잔액: ${currentBalance}일 (이미 차감됨)`);
+      } else if (action === 'reject') {
+        // 거부: 차감된 연차를 복구
+        const newBalance = currentBalance + requestDays;
+        
+        await db.collection('users').updateOne(
+          { _id: leaveRequest.userId },
+          { 
+            $set: { 
+              leaveBalance: newBalance,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        console.log(`연차 거부: ${user.name} (${user.employeeId}) - 복구: ${requestDays}일, 잔액: ${currentBalance} → ${newBalance}`);
       }
     }
   }
@@ -96,6 +123,14 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
   // Convert to the format expected by the existing approval logic
   const action = approved ? 'approve' : 'reject';
   const comment = note || rejectionReason || '';
+  
+  // Validate that rejection requires a reason/comment
+  if (action === 'reject' && (!comment || comment.trim().length === 0)) {
+    return res.status(400).json({ 
+      error: 'Rejection reason is required',
+      message: 'Please provide a reason for rejecting this leave request'
+    });
+  }
   
   const approver = await db.collection('users').findOne({ _id: new ObjectId(approverId) });
   

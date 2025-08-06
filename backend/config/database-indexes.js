@@ -125,19 +125,36 @@ async function createLeaveRequestsIndexes(db) {
 async function createDepartmentsIndexes(db) {
   const departments = db.collection('departments');
   
-  // Primary query patterns
-  await departments.createIndex({ code: 1 }, { unique: true, name: 'idx_code_unique' });
-  await departments.createIndex({ name: 1 }, { unique: true, name: 'idx_name_unique' });
-  
-  // Filtering patterns
-  await departments.createIndex({ isActive: 1, name: 1 }, { name: 'idx_active_name' });
-  await departments.createIndex({ managerId: 1 }, { sparse: true, name: 'idx_manager' });
-  await departments.createIndex({ supervisorId: 1 }, { sparse: true, name: 'idx_supervisor' });
-  
-  // Text search for department names
-  await departments.createIndex({ name: 'text', description: 'text' }, { name: 'idx_text_search' });
-  
-  console.log('✅ Departments collection indexes created');
+  try {
+    // Primary query patterns
+    await departments.createIndex({ code: 1 }, { unique: true, name: 'idx_code_unique' });
+    
+    // Department name unique index with case-insensitive collation
+    await departments.createIndex(
+      { name: 1 }, 
+      { 
+        unique: true, 
+        name: 'idx_department_name_unique',
+        collation: { locale: 'ko', strength: 2 } // Case insensitive Korean collation
+      }
+    );
+    
+    // Filtering patterns
+    await departments.createIndex({ isActive: 1, name: 1 }, { name: 'idx_active_name' });
+    await departments.createIndex({ managerId: 1 }, { sparse: true, name: 'idx_manager' });
+    await departments.createIndex({ supervisorId: 1 }, { sparse: true, name: 'idx_supervisor' });
+    
+    // Text search for department names
+    await departments.createIndex({ name: 'text', description: 'text' }, { name: 'idx_text_search' });
+    
+    console.log('✅ Departments collection indexes created');
+  } catch (error) {
+    if (error.code !== 85) { // IndexOptionsConflict - ignore if index already exists
+      console.error('❌ Departments index creation failed:', error);
+      throw error;
+    }
+    console.log('✅ Department indexes already exist');
+  }
 }
 
 /**
@@ -292,9 +309,42 @@ function getQueryOptimizations() {
   };
 }
 
+/**
+ * Create unique index for department names with case-insensitive collation
+ * @param {Object} db - Database instance
+ */
+async function createDepartmentNameUniqueIndex(db = null) {
+  try {
+    const database = db || (await connectToDatabase()).db;
+    const departments = database.collection('departments');
+    
+    // Department name unique index with case-insensitive collation
+    await departments.createIndex(
+      { name: 1 }, 
+      { 
+        unique: true, 
+        name: 'idx_department_name_unique',
+        collation: { locale: 'ko', strength: 2 } // Case insensitive Korean collation
+      }
+    );
+    
+    console.log('✅ Department name unique index created');
+    return { success: true, indexName: 'idx_department_name_unique' };
+    
+  } catch (error) {
+    if (error.code === 85) { // IndexOptionsConflict - index already exists
+      console.log('✅ Department name unique index already exists');
+      return { success: true, indexName: 'idx_department_name_unique', existed: true };
+    }
+    console.error('❌ Department name unique index creation failed:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createOptimizedIndexes,
   dropCustomIndexes,
   analyzeIndexUsage,
-  getQueryOptimizations
+  getQueryOptimizations,
+  createDepartmentNameUniqueIndex
 };

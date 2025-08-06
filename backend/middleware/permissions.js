@@ -2,6 +2,7 @@
 const { ObjectId } = require('mongodb');
 const { getDatabase } = require('../utils/database');
 const { unauthorizedError, forbiddenError } = require('../utils/responses');
+const { verifyToken, extractTokenFromHeader } = require('../utils/jwt');
 
 // Permission constants
 const PERMISSIONS = {
@@ -93,10 +94,31 @@ const PERMISSION_GROUPS = {
 
 // Authentication middleware (JWT-based)
 const requireAuth = (req, res, next) => {
-  if (!req.user) {
-    return unauthorizedError(res, 'Authentication required');
+  try {
+    // Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    const token = extractTokenFromHeader(authHeader);
+    
+    if (!token) {
+      return unauthorizedError(res, 'Authentication required - No token provided');
+    }
+    
+    // Verify JWT token
+    const decoded = verifyToken(token);
+    
+    // Set user info for subsequent middleware
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // Handle JWT verification errors
+    if (error.name === 'JsonWebTokenError') {
+      return unauthorizedError(res, 'Invalid token');
+    }
+    if (error.name === 'TokenExpiredError') {
+      return unauthorizedError(res, 'Token expired');
+    }
+    return unauthorizedError(res, 'Authentication failed');
   }
-  next();
 };
 
 // Permission check middleware factory

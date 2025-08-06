@@ -3,6 +3,7 @@ const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../../middleware/errorHandler');
 const { getUserObjectId, toObjectId, addIdField, requirePermission } = require('./utils/leaveHelpers');
 const { calculateAnnualLeaveEntitlement, getCarryOverLeave, getCurrentPolicy, calculateBusinessDaysWithPolicy } = require('./utils/leaveCalculations');
+const { validateConsecutiveDays } = require('../../utils/leaveUtils');
 
 const router = express.Router();
 
@@ -53,10 +54,15 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   }
   
   // Validate consecutive days limit for annual leave
-  if (leaveType === 'annual' && daysCount > policy.leaveTypes.annual.maxConsecutive) {
-    return res.status(400).json({ 
-      error: `연차는 최대 ${policy.leaveTypes.annual.maxConsecutive}일까지 연속으로 사용할 수 있습니다.` 
-    });
+  if (leaveType === 'annual') {
+    try {
+      validateConsecutiveDays(startDate, endDate, daysCount);
+    } catch (validationError) {
+      return res.status(400).json({ 
+        success: false,
+        error: validationError.message
+      });
+    }
   }
   
   // Check concurrent requests limit
@@ -138,13 +144,25 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     // 현재 사용자의 잔여 연차 확인 (users.leaveBalance 필드 사용)
     const currentBalance = user.leaveBalance || 0;
     
+    // Check for pending/approved requests that would affect balance
+    const existingRequests = await db.collection('leaveRequests').find({
+      userId: userObjectId,
+      leaveType: 'annual',
+      status: { $in: ['pending', 'approved'] }
+    }).toArray();
+    
+    const totalPendingDays = existingRequests.reduce((sum, request) => sum + (request.daysCount || 0), 0);
+    const effectiveBalance = currentBalance - totalPendingDays;
+    
     // 잔여일수 부족 검사 (최대 3일까지 미리 사용 허용)
-    if (currentBalance - daysCount < -3) {
+    if (effectiveBalance - daysCount < -3) {
       return res.status(400).json({ 
-        error: '연차 잔여일수가 부족합니다. 최대 3일까지 미리 사용할 수 있습니다.',
+        error: 'Insufficient leave balance. Maximum advance usage of 3 days exceeded.',
         currentBalance: currentBalance,
+        pendingRequests: totalPendingDays,
+        effectiveBalance: effectiveBalance,
         requestedDays: daysCount,
-        wouldRemain: currentBalance - daysCount,
+        wouldRemain: effectiveBalance - daysCount,
         allowedMinimum: -3
       });
     }
@@ -187,13 +205,24 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     
     const result = await db.collection('leaveRequests').insertOne(leaveRequest);
     
-    res.json({
+    // Calculate final balance after deduction
+    const finalBalance = (user.leaveBalance || 0) - (leaveType === 'annual' ? daysCount : 0);
+    
+    // Prepare response
+    const response = {
       success: true,
       data: { id: result.insertedId, ...leaveRequest },
       message: leaveType === 'annual' ? 
-        `휴가 신청이 완료되었습니다. 잔여 연차: ${(user.leaveBalance || 0) - daysCount}일` :
+        `휴가 신청이 완료되었습니다. 잔여 연차: ${finalBalance}일` :
         '휴가 신청이 완료되었습니다.'
-    });
+    };
+    
+    // Add warning if balance becomes negative (but within allowed limit)
+    if (leaveType === 'annual' && finalBalance < 0 && finalBalance >= -3) {
+      response.warning = `Warning: Your leave balance will become negative (${finalBalance} days). You are using ${Math.abs(finalBalance)} days in advance. Maximum advance usage allowed is 3 days.`;
+    }
+    
+    res.status(201).json(response);
     
   } catch (error) {
     console.error('휴가 신청 오류:', error);

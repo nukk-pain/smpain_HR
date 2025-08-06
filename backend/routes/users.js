@@ -543,6 +543,32 @@ function createUserRoutes(db) {
   // Delete user
   router.delete('/:id', requireAuth, requirePermission('users:delete'), asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const { confirmed } = req.body;
+    
+    // Validate ObjectId format first
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+    
+    // Check if user exists before requiring confirmation
+    const existingUser = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Require explicit confirmation for user deletion
+    if (!confirmed) {
+      return res.status(400).json({
+        error: 'Deletion requires confirmation',
+        requiresConfirmation: true,
+        userInfo: {
+          id: id,
+          name: existingUser.name,
+          email: existingUser.email,
+          message: `This action will permanently delete user "${existingUser.name}". Please confirm.`
+        }
+      });
+    }
     
     const result = await db.collection('users').deleteOne({ _id: new ObjectId(id) });
     

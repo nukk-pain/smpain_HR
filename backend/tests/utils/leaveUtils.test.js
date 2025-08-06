@@ -7,7 +7,8 @@ const {
   checkLeaveBalance,
   getLeaveStatusInfo,
   calculateCarryOverLeave,
-  checkLeaveConflicts
+  checkLeaveConflicts,
+  validateConsecutiveDays
 } = require('../../utils/leaveUtils');
 
 describe('leaveUtils', () => {
@@ -322,6 +323,26 @@ describe('leaveUtils', () => {
       
       expect(result.hasConflicts).toBe(true);
       expect(result.conflicts).toHaveLength(2); // Contains both approved and pending
+    });
+  });
+
+  describe('validateConsecutiveDays', () => {
+    it('should throw error when days exceed 15', () => {
+      expect(() => {
+        validateConsecutiveDays('2025-01-01', '2025-01-18', 17.5);
+      }).toThrow('최대 15일 연속 휴가만 신청 가능합니다.');
+    });
+    
+    it('should pass when days are exactly 15', () => {
+      expect(() => {
+        validateConsecutiveDays('2025-01-01', '2025-01-15', 15);
+      }).not.toThrow();
+    });
+    
+    it('should pass when days are less than 15', () => {
+      expect(() => {
+        validateConsecutiveDays('2025-01-01', '2025-01-05', 5);
+      }).not.toThrow();
     });
   });
 });

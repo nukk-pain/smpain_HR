@@ -253,6 +253,24 @@ function checkLeaveConflicts(startDate, endDate, existingRequests) {
   };
 }
 
+/**
+ * Validate consecutive leave days limit
+ * @param {Date|string} startDate - Leave start date
+ * @param {Date|string} endDate - Leave end date
+ * @param {number} daysCount - Number of leave days
+ * @throws {Error} When days exceed maximum consecutive limit
+ * @returns {boolean} True if valid
+ */
+function validateConsecutiveDays(startDate, endDate, daysCount) {
+  const MAX_CONSECUTIVE_DAYS = 15;
+  
+  if (daysCount > MAX_CONSECUTIVE_DAYS) {
+    throw new Error(`최대 ${MAX_CONSECUTIVE_DAYS}일 연속 휴가만 신청 가능합니다.`);
+  }
+  
+  return true;
+}
+
 module.exports = {
   calculateAnnualLeaveEntitlement,
   calculateYearsOfService,
@@ -261,5 +279,7 @@ module.exports = {
   checkLeaveBalance,
   getLeaveStatusInfo,
   calculateCarryOverLeave,
-  checkLeaveConflicts
+  checkLeaveConflicts,
+  validateConsecutiveDays,
+  MAX_CONSECUTIVE_DAYS: 15
 };

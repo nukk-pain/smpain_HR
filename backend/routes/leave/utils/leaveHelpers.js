@@ -56,6 +56,7 @@ const requirePermission = (permission) => {
   return (req, res, next) => {
     // JWT authentication sets req.user via requireAuth middleware
     if (!req.user) {
+      console.error('❌ Permission check failed: req.user is null/undefined');
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -64,6 +65,14 @@ const requirePermission = (permission) => {
 
     const userPermissions = req.user.permissions || [];
     const userRole = req.user.role;
+    
+    console.log('🔍 Permission check:', {
+      permission,
+      userRole,
+      userPermissions,
+      userId: req.user.id,
+      username: req.user.username
+    });
     
     // Admin role has all permissions
     if (userRole === 'admin' || userRole === 'Admin') {
