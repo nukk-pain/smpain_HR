@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { calculateAnnualLeaveEntitlement } = require('../../utils/leaveUtils');
+const { calculateAnnualLeaveEntitlement } = require('../../../utils/leaveUtils');
 
 describe('Annual Leave Calculation for First Year - Test 3.3.1', () => {
   // Use localhost server that's already running

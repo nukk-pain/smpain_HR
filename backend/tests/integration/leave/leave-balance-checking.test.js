@@ -9,8 +9,8 @@
  */
 
 const request = require('supertest');
-const app = require('../../server');
-const { connectToDatabase } = require('../../utils/database');
+const app = require('../../../server');
+const { connectToDatabase } = require('../../../utils/database');
 const { ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');

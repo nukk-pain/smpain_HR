@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { calculateAnnualLeaveEntitlement } = require('../../utils/leaveUtils');
+const { calculateAnnualLeaveEntitlement } = require('../../../utils/leaveUtils');
 
 describe('Annual Leave Calculation for Subsequent Years - Test 3.3.2', () => {
   const API_BASE = 'http://localhost:5455';

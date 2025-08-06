@@ -1,5 +1,5 @@
 // API Integration tests for consecutive days validation
-const { validateConsecutiveDays } = require('../../utils/leaveUtils');
+const { validateConsecutiveDays } = require('../../../utils/leaveUtils');
 
 describe('Leave API - Consecutive Days Validation Integration', () => {
   

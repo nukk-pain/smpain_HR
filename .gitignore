@@ -103,3 +103,25 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 .vercel
+
+
+# Cleanup and temporary files
+*.tmp
+*.temp
+*-temp.*
+temp-*
+*.backup
+*-backup.*
+backup-*
+
+# TDD phase test files (should not be committed)
+*-red-phase.*
+*-green-phase.*
+*-phase-*.*
+*-duplicate-*.*
+*-fixed-*.*
+
+# Development artifacts
+*.test.backup
+quick-*.test.js
+test-*.temp.js

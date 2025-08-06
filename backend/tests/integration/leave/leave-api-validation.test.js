@@ -1,5 +1,5 @@
 // RED Phase: Test that shows API doesn't use validateConsecutiveDays function yet
-const { validateConsecutiveDays } = require('../../utils/leaveUtils');
+const { validateConsecutiveDays } = require('../../../utils/leaveUtils');
 
 describe('Leave API Validation Integration - RED Phase', () => {
   

@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { getCarryOverLeave } = require('../../routes/leave/utils/leaveCalculations');
+const { getCarryOverLeave } = require('../../../routes/leave/utils/leaveCalculations');
 
 describe('Leave Carryover Limitations - Test 3.3.3', () => {
   const API_BASE = 'http://localhost:5455';
