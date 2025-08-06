@@ -5,7 +5,7 @@
  * Maintains under 500 lines by delegating form sections to separate components.
  */
 
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -81,11 +81,23 @@ export const UserForm: React.FC<UserFormProps> = memo(({
     resetForm
   } = useUserForm(user, {
     validateOnChange: true,
-    validateOnBlur: true
+    validateOnBlur: true,
+    onSubmit: async (data) => {
+      console.log('useUserForm onSubmit called with data:', data);
+      onSubmit(data);
+    }
   });
 
   // Local UI state
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Reset form when dialog opens with no user (new user creation only)
+  useEffect(() => {
+    if (isOpen && !user) {
+      console.log('Resetting form for new user creation');
+      resetForm();
+    }
+  }, [isOpen, user, resetForm]);
   
   // Computed values
   const isEditing = Boolean(user);
@@ -95,10 +107,12 @@ export const UserForm: React.FC<UserFormProps> = memo(({
   // Event handlers
   const handleFormSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    handleSubmit((data) => {
-      onSubmit(data);
-    });
-  }, [handleSubmit, onSubmit]);
+    console.log('UserForm handleFormSubmit called');
+    console.log('canSubmit:', canSubmit, 'isValid:', isValid, 'isDirty:', isDirty, 'isSubmitting:', isSubmitting);
+    
+    // Call handleSubmit without parameters - it will use the onSubmit from useUserForm options
+    handleSubmit();
+  }, [handleSubmit, canSubmit, isValid, isDirty, isSubmitting]);
 
   const handleCancel = useCallback(() => {
     resetForm();
@@ -118,7 +132,14 @@ export const UserForm: React.FC<UserFormProps> = memo(({
       
       <Box display="flex" alignItems="center" gap={1}>
         {hasErrors && (
-          <Tooltip title={`검증 오류: ${Object.keys(errors).length}개`}>
+          <Tooltip title={
+            <div>
+              <div><strong>검증 오류:</strong></div>
+              {Object.entries(errors).map(([field, message]) => (
+                <div key={field}>• {field}: {message}</div>
+              ))}
+            </div>
+          }>
             <Chip
               icon={<Info />}
               label={`오류 ${Object.keys(errors).length}개`}
@@ -221,7 +242,14 @@ export const UserForm: React.FC<UserFormProps> = memo(({
               <Tooltip 
                 title={
                   !canSubmit ? 
-                    (!isValid ? '유효하지 않은 입력이 있습니다' : 
+                    (!isValid ? (
+                      <div>
+                        <div><strong>유효하지 않은 입력:</strong></div>
+                        {Object.entries(errors).map(([field, message]) => (
+                          <div key={field}>• {field}: {message}</div>
+                        ))}
+                      </div>
+                    ) : 
                      !isDirty ? '변경사항이 없습니다' : 
                      isSubmitting ? '처리 중...' : '') 
                     : ''

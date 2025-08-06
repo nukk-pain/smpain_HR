@@ -65,7 +65,6 @@ async function createAdminUser() {
         username: 'admin',
         password: hashedPassword,
         name: '시스템 관리자',
-        email: 'admin@company.com',
         employeeId: 'ADMIN001',
         department: '',
         position: '',

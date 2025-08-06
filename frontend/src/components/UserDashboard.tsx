@@ -74,10 +74,10 @@ const UserDashboard: React.FC = () => {
 
       const userStats: UserStats = {
         leaveBalance: {
-          totalAnnualLeave: leaveBalance.data?.totalAnnualLeave || 0,
-          usedAnnualLeave: leaveBalance.data?.usedAnnualLeave || 0,
-          remainingAnnualLeave: leaveBalance.data?.remainingAnnualLeave || 0,
-          pendingRequests: leaveBalance.data?.pendingAnnualLeave || 0
+          totalAnnualLeave: (leaveBalance.data as any)?.totalAnnualLeave || 0,
+          usedAnnualLeave: (leaveBalance.data as any)?.usedAnnualLeave || 0,
+          remainingAnnualLeave: (leaveBalance.data as any)?.remainingAnnualLeave || 0,
+          pendingRequests: (leaveBalance.data as any)?.pendingAnnualLeave || 0
         },
         payroll: user?.role === 'admin' ? {
           currentMonth: new Date().toISOString().substring(0, 7),
@@ -92,7 +92,7 @@ const UserDashboard: React.FC = () => {
           incentive: 0,
           bonus: 0
         },
-        recentLeaves: recentLeaves.data || []
+        recentLeaves: (recentLeaves.data as any[]) || []
       };
 
       setStats(userStats);

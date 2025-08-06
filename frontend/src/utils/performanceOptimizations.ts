@@ -30,28 +30,29 @@ export const shallowEqual = (obj1: any, obj2: any): boolean => {
 
 /**
  * Custom hook for stable callback references
- * Prevents child components from re-rendering due to callback reference changes
+ * Prevents unnecessary re-renders while keeping callback up-to-date
  */
 export const useStableCallback = <T extends (...args: any[]) => any>(
   callback: T,
   deps: React.DependencyList = []
 ): T => {
+  // Store the latest callback
   const callbackRef = useRef<T>(callback);
-  const stableCallback = useRef<T>();
-
-  // Update callback ref when dependencies change
+  
+  // Update the ref when deps change (callback is always fresh)
   useEffect(() => {
     callbackRef.current = callback;
   }, deps);
-
-  // Create stable callback reference
-  if (!stableCallback.current) {
-    stableCallback.current = ((...args: Parameters<T>) => {
+  
+  // Return a stable callback that always calls the latest version
+  const stableCallback = useCallback(
+    ((...args: Parameters<T>) => {
       return callbackRef.current(...args);
-    }) as T;
-  }
-
-  return stableCallback.current;
+    }) as T,
+    [] // Empty deps to maintain stable reference
+  );
+  
+  return stableCallback;
 };
 
 /**
@@ -63,7 +64,7 @@ export const useDebouncedCallback = <T extends (...args: any[]) => any>(
   deps: React.DependencyList = []
 ): T => {
   const callbackRef = useRef<T>(callback);
-  const debouncedCallback = useRef<T>();
+  const debouncedCallback = useRef<T | undefined>(undefined);
 
   // Update callback ref when dependencies change
   useEffect(() => {
@@ -92,8 +93,8 @@ export const useMemoizedSelector = <T, R>(
   state: T,
   equalityFn: (a: R, b: R) => boolean = Object.is
 ): R => {
-  const lastState = useRef<T>();
-  const lastResult = useRef<R>();
+  const lastState = useRef<T | undefined>(undefined);
+  const lastResult = useRef<R | undefined>(undefined);
 
   const result = useMemo(() => {
     if (lastState.current !== state) {
@@ -244,21 +245,34 @@ export const useIntersectionObserver = (
 };
 
 /**
- * Optimized array comparison for useMemo dependencies
+ * Simple array comparison that returns stable reference when content is the same
+ * Safe implementation that avoids circular dependencies
  */
 export const useArrayComparison = <T>(array: T[]): T[] => {
-  const previousArray = useRef<T[]>(array);
-
-  return useMemo(() => {
-    if (
-      array.length !== previousArray.current.length ||
-      array.some((item, index) => item !== previousArray.current[index])
-    ) {
-      previousArray.current = array;
-      return array;
+  const stableArrayRef = useRef<T[]>(array);
+  
+  // Only update if array actually changed
+  const hasChanged = useRef(true);
+  
+  // Check if content changed (runs on every render, but that's okay for comparison)
+  if (stableArrayRef.current.length !== array.length) {
+    hasChanged.current = true;
+  } else {
+    hasChanged.current = false;
+    for (let i = 0; i < array.length; i++) {
+      if (stableArrayRef.current[i] !== array[i]) {
+        hasChanged.current = true;
+        break;
+      }
     }
-    return previousArray.current;
-  }, [array]);
+  }
+  
+  // Update stable reference only when content changed
+  if (hasChanged.current) {
+    stableArrayRef.current = array;
+  }
+  
+  return stableArrayRef.current;
 };
 
 /**

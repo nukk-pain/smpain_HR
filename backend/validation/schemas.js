@@ -9,7 +9,6 @@ const patterns = {
   employeeId: /^EMP\d{3,}$/,
   yearMonth: /^\d{4}-(0[1-9]|1[0-2])$/,
   phoneNumber: /^01[0-9]-\d{3,4}-\d{4}$/,
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
 };
 
 // Base schemas
@@ -38,7 +37,6 @@ const userSchemas = {
     department: Joi.string().min(1).max(50).optional(),
     position: Joi.string().min(1).max(50).optional(),
     employeeId: Joi.string().pattern(patterns.employeeId).optional(),
-    email: Joi.string().pattern(patterns.email).optional(),
     phone: Joi.string().pattern(patterns.phoneNumber).optional(),
     hireDate: Joi.date().iso().max('now').optional(),
     baseSalary: Joi.number().integer().min(0).optional(),
@@ -54,7 +52,6 @@ const userSchemas = {
     department: Joi.string().min(1).max(50).optional(),
     position: Joi.string().min(1).max(50).optional(),
     employeeId: Joi.string().pattern(patterns.employeeId).optional(),
-    email: Joi.string().pattern(patterns.email).optional(),
     phone: Joi.string().pattern(patterns.phoneNumber).optional(),
     hireDate: Joi.date().iso().max('now').optional(),
     baseSalary: Joi.number().integer().min(0).optional(),
@@ -85,7 +82,6 @@ const userSchemas = {
         role: Joi.string().valid('Admin', 'Manager', 'Supervisor', 'User').required(),
         department: Joi.string().min(1).max(50).optional(),
         position: Joi.string().min(1).max(50).optional(),
-        email: Joi.string().pattern(patterns.email).optional(),
         phone: Joi.string().pattern(patterns.phoneNumber).optional(),
         hireDate: Joi.date().iso().max('now').optional(),
         baseSalary: Joi.number().integer().min(0).optional(),

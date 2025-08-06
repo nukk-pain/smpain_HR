@@ -46,7 +46,6 @@ async function createUsersIndexes(db) {
   // Primary query patterns
   await users.createIndex({ username: 1 }, { unique: true, name: 'idx_username_unique' });
   await users.createIndex({ employeeId: 1 }, { unique: true, sparse: true, name: 'idx_employeeId_unique' });
-  await users.createIndex({ email: 1 }, { unique: true, sparse: true, name: 'idx_email_unique' });
   
   // Filtering and sorting patterns
   await users.createIndex({ role: 1, isActive: 1 }, { name: 'idx_role_active' });

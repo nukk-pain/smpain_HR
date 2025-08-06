@@ -198,7 +198,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       "role": "User",
       "department": "IT",
       "employeeId": "EMP001",
-      "email": "john@company.com",
       "isActive": true,
       "leaveBalance": 15,
       "createdAt": "2025-01-01T00:00:00.000Z",
@@ -229,7 +228,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "role": "User",
   "department": "Sales",
   "employeeId": "EMP002",
-  "email": "newuser@company.com",
   "phone": "010-1234-5678",
   "hireDate": "2025-01-26"
 }
@@ -246,7 +244,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   "name": "Updated Name",
   "department": "Marketing",
-  "email": "updated@company.com",
   "isActive": false
 }
 ```
@@ -603,10 +600,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "message": "Validation failed",
   "errors": [
     {
-      "field": "email",
-      "message": "Email is required"
-    },
-    {
       "field": "password",
       "message": "Password must be at least 8 characters"
     }
@@ -649,7 +642,6 @@ X-Cache: HIT
 ### User Fields
 - `username`: 3-50 characters, alphanumeric and underscore only, unique
 - `password`: 8-100 characters, must contain letter and number
-- `email`: Valid email format, unique
 - `employeeId`: Alphanumeric, unique if provided
 - `role`: Must be one of: Admin, Supervisor, User
 - `phone`: Korean phone number format (010-XXXX-XXXX)

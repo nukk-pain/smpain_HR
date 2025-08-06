@@ -68,7 +68,6 @@ const SORT_FIELD_OPTIONS = Object.freeze([
   { value: 'department' as SortField, label: '부서' },
   { value: 'role' as SortField, label: '역할' },
   { value: 'status' as SortField, label: '상태' },
-  { value: 'email' as SortField, label: '이메일' },
   { value: 'position' as SortField, label: '직책' }
 ]) as const;
 

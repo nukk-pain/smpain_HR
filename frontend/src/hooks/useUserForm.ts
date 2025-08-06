@@ -183,6 +183,18 @@ export const useUserForm = (
     onSuccess
   } = options;
 
+  // Update form data when initialUser changes (for edit mode)
+  useEffect(() => {
+    if (initialUser) {
+      console.log('Updating form data for user edit:', initialUser);
+      const newFormData = getInitialFormData(initialUser);
+      setFormDataState(newFormData);
+      setErrors({});
+      setIsDirty(false);
+      setTouchedFields(new Set());
+    }
+  }, [initialUser]);
+
   /**
    * Validate a single field
    */
@@ -242,7 +254,6 @@ export const useUserForm = (
       username: formData.username,
       password: formData.password,
       name: formData.name,
-      employeeId: formData.employeeId,
       phoneNumber: formData.phoneNumber
     };
 
@@ -250,6 +261,12 @@ export const useUserForm = (
     const result = validateUserForm(validationData, validationOptions);
     
     setErrors(result.errors);
+    
+    // Debug: Log validation errors to console
+    if (!result.isValid) {
+      console.log('Form validation errors:', result.errors);
+      console.log('Form data:', formData);
+    }
     
     // Mark all validated fields as touched
     Object.keys(validationData).forEach(field => {
@@ -263,10 +280,15 @@ export const useUserForm = (
    * Handle form submission
    */
   const handleSubmit = useCallback(async () => {
+    console.log('handleSubmit called');
+    console.log('Current form data:', formData);
+    
     if (!validateForm()) {
+      console.log('Form validation failed, aborting submit');
       return;
     }
 
+    console.log('Form validation passed, submitting...');
     setIsSubmitting(true);
     
     try {
@@ -325,7 +347,10 @@ export const useUserForm = (
   // Compute validation state
   const isValid = useMemo(() => {
     // No errors and either dirty or all required fields filled
-    if (Object.keys(errors).length > 0) return false;
+    if (Object.keys(errors).length > 0) {
+      console.log('Form invalid due to errors:', errors);
+      return false;
+    }
     
     if (isEdit) {
       // For edit mode, just check no errors
@@ -336,10 +361,20 @@ export const useUserForm = (
     const requiredFields: (keyof UserValidationData)[] = 
       ['username', 'password', 'name'];
     
-    return requiredFields.every(field => {
+    const isValidResult = requiredFields.every(field => {
       const value = formData[field];
       return value && value.toString().trim() !== '';
     });
+    
+    console.log('Form validity check:', {
+      hasErrors: Object.keys(errors).length > 0,
+      isEdit,
+      requiredFields,
+      fieldValues: requiredFields.map(field => ({ [field]: formData[field] })),
+      isValidResult
+    });
+    
+    return isValidResult;
   }, [errors, formData, isEdit]);
 
   return {

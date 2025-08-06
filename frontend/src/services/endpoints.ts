@@ -10,7 +10,6 @@ export interface User {
   department?: string;
   position?: string;
   employeeId?: string;
-  email?: string;
   phone?: string;
   isActive: boolean;
   hireDate?: string;

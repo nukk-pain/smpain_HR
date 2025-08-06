@@ -17,7 +17,6 @@ export interface UserValidationData {
   readonly password?: string;
   readonly name?: string;
   readonly employeeId?: string;
-  readonly email?: string;
   readonly phoneNumber?: string;
 }
 
@@ -47,13 +46,6 @@ const VALIDATION_CONFIG = {
       REQUIRED: '비밀번호는 필수입니다.',
       MIN_LENGTH: '비밀번호는 1자 이상이어야 합니다.',
       MAX_LENGTH: '비밀번호는 25자 이하여야 합니다.'
-    }
-  },
-  EMAIL: {
-    PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    MESSAGES: {
-      REQUIRED: '이메일은 필수입니다.',
-      INVALID_FORMAT: '올바른 이메일 형식이 아닙니다.'
     }
   },
   PHONE: {
@@ -129,22 +121,6 @@ export const validatePassword = (password: string): ValidationResult => {
   return { isValid: true, message: '' };
 };
 
-/**
- * Validate email format
- */
-export const validateEmail = (email: string): ValidationResult => {
-  if (isEmpty(email)) {
-    return { isValid: false, message: VALIDATION_CONFIG.EMAIL.MESSAGES.REQUIRED };
-  }
-
-  const trimmed = email.trim();
-  
-  if (!VALIDATION_CONFIG.EMAIL.PATTERN.test(trimmed)) {
-    return { isValid: false, message: VALIDATION_CONFIG.EMAIL.MESSAGES.INVALID_FORMAT };
-  }
-
-  return { isValid: true, message: '' };
-};
 
 /**
  * Validate phone number (optional field)
@@ -217,7 +193,6 @@ const FIELD_VALIDATORS = {
   password: validatePassword,
   name: validateName,
   employeeId: validateEmployeeId,
-  email: validateEmail,
   phoneNumber: validatePhoneNumber
 } as const;
 

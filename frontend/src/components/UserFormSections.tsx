@@ -25,7 +25,6 @@ import {
   Visibility,
   VisibilityOff,
   Person,
-  Email,
   Phone,
   Business,
   Work,
@@ -81,7 +80,7 @@ export const FORM_SECTIONS = {
   },
   CONTACT: {
     title: '연락처 정보',
-    icon: <Email sx={{ fontSize: 20 }} />
+    icon: <Phone sx={{ fontSize: 20 }} />
   },
   ROLE: {
     title: '역할 및 권한',
@@ -203,7 +202,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
 
 /**
  * Contact Information Section
- * Email, Phone, Department, Position
+ * Phone, Department, Position
  */
 export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
   formData,

@@ -17,7 +17,6 @@ export interface FilterableUser {
   department?: string;
   position?: string;
   status?: string;
-  email?: string;
   [key: string]: any;
 }
 
@@ -31,7 +30,7 @@ export interface UserFilters {
 }
 
 // Sort configuration
-export type SortField = 'id' | 'name' | 'username' | 'department' | 'role' | 'status' | 'email' | 'position';
+export type SortField = 'id' | 'name' | 'username' | 'department' | 'role' | 'status' | 'position';
 export type SortOrder = 'asc' | 'desc';
 
 // Filter configuration
@@ -80,7 +79,7 @@ const DEFAULT_FILTERS: UserFilters = {
 };
 
 // Default search fields
-const DEFAULT_SEARCH_FIELDS = ['name', 'username', 'email'];
+const DEFAULT_SEARCH_FIELDS = ['name', 'username'];
 
 // Debounce hook for search
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -231,8 +230,6 @@ export const useUserFilters = (
 
   // Filter and sort users
   const filteredUsers = useMemo(() => {
-    setIsFiltering(true);
-    
     const filtered = filterUsers(
       users,
       effectiveFilters,
@@ -242,7 +239,6 @@ export const useUserFilters = (
     
     const sorted = sortUsers(filtered, sortBy, sortOrder);
     
-    setIsFiltering(false);
     return sorted;
   }, [users, effectiveFilters, searchFields, customFilters, sortBy, sortOrder]);
 
@@ -255,6 +251,13 @@ export const useUserFilters = (
   }, [effectiveFilters]);
 
   const hasActiveFilters = activeFilterCount > 0;
+
+  // Update filtering state when dependencies change
+  useEffect(() => {
+    setIsFiltering(true);
+    const timer = setTimeout(() => setIsFiltering(false), 0);
+    return () => clearTimeout(timer);
+  }, [users, effectiveFilters, searchFields, customFilters, sortBy, sortOrder]);
 
   // Filter setters
   const setSearch = useCallback((search: string) => {

@@ -38,6 +38,7 @@
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
     "lodash-es": "^4.17.21",
+    "playwright": "^1.54.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",

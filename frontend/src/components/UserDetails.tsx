@@ -27,7 +27,6 @@ import {
 } from '@mui/material';
 import {
   Person,
-  Email,
   Phone,
   Business,
   Work,
@@ -330,11 +329,6 @@ export const UserDetails: React.FC<UserDetailsProps> = memo(({
 
         {/* Contact Information */}
         <InfoSection title="연락처 정보" icon={<ContactMail />}>
-          <InfoRow
-            label="이메일"
-            value={user.email}
-            icon={<Email fontSize="small" />}
-          />
           <InfoRow
             label="전화번호"
             value={user.phoneNumber}

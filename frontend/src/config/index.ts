@@ -23,7 +23,6 @@ export const appConfig = {
   // 개발자 정보
   developer: {
     name: 'Development Team',
-    email: 'dev@company.com',
   },
   
   // 기본 설정

@@ -41,7 +41,6 @@ export interface UserFormData {
   name?: string;
   role?: string;
   employeeId?: string;
-  email?: string;
   phoneNumber?: string;
   department?: string;
   position?: string;

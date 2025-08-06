@@ -233,6 +233,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
 
   const handleFormSubmit = useCallback(async (userData: UserFormData) => {
     try {
+      console.log('Submitting user data:', userData);
       updateUIState({ loading: true });
       
       if (uiState.editingUser) {
@@ -261,11 +262,14 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
       });
     } catch (error: any) {
       console.error('Failed to save user:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       updateUIState({ loading: false });
       
+      const serverError = error.response?.data?.error || error.message;
       const errorMessage = uiState.editingUser 
-        ? '사용자 수정에 실패했습니다.'
-        : '사용자 생성에 실패했습니다.';
+        ? `사용자 수정에 실패했습니다: ${serverError}`
+        : `사용자 생성에 실패했습니다: ${serverError}`;
       showMessage(errorMessage, 'error');
     }
   }, [uiState.editingUser, updateUIState, fetchUsers, showMessage]);

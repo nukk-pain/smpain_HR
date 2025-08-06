@@ -8,7 +8,6 @@ const userSchemas = {
     }),
     password: Joi.string().min(6).max(100).required(),
     name: Joi.string().min(2).max(50).required(),
-    email: Joi.string().email().required(),
     role: Joi.string().valid('admin', 'supervisor', 'user').required(),
     department: Joi.string().min(1).max(50).required(),
     position: Joi.string().min(1).max(50).required(),
@@ -25,7 +24,6 @@ const userSchemas = {
 
   update: Joi.object({
     name: Joi.string().min(2).max(50),
-    email: Joi.string().email(),
     department: Joi.string().min(1).max(50),
     position: Joi.string().min(1).max(50),
     phone: Joi.string().pattern(/^01[0-9]-\d{4}-\d{4}$/),
