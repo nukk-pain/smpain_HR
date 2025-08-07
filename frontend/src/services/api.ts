@@ -43,19 +43,23 @@ class ApiService {
         const token = getValidToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('🔑 Token added to request', {
-            url: config.url,
-            method: config.method,
-            hasToken: true,
-            tokenLength: token.length,
-            timestamp: new Date().toISOString()
-          });
+          if (import.meta.env.DEV) {
+            console.log('🔑 Token added to request', {
+              url: config.url,
+              method: config.method,
+              hasToken: true,
+              tokenLength: token.length,
+              timestamp: new Date().toISOString()
+            });
+          }
         } else {
-          console.warn('⚠️ No token available for request', {
-            url: config.url,
-            method: config.method,
-            timestamp: new Date().toISOString()
-          });
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ No token available for request', {
+              url: config.url,
+              method: config.method,
+              timestamp: new Date().toISOString()
+            });
+          }
         }
         return config;
       },
@@ -76,17 +80,21 @@ class ApiService {
           const isLoginRequest = error.config?.url?.includes('/auth/login');
           const isOnLoginPage = window.location.pathname === '/login';
           
-          console.warn('🚫 401 Unauthorized received', {
-            url: error.config?.url,
-            isLoginRequest,
-            isOnLoginPage,
-            currentPath: window.location.pathname,
-            willClearToken: !isLoginRequest && !isOnLoginPage,
-            timestamp: new Date().toISOString()
-          });
+          if (import.meta.env.DEV) {
+            console.warn('🚫 401 Unauthorized received', {
+              url: error.config?.url,
+              isLoginRequest,
+              isOnLoginPage,
+              currentPath: window.location.pathname,
+              willClearToken: !isLoginRequest && !isOnLoginPage,
+              timestamp: new Date().toISOString()
+            });
+          }
           
           if (!isLoginRequest && !isOnLoginPage) {
-            console.warn('🗑️ Clearing token due to 401 error');
+            if (import.meta.env.DEV) {
+              console.warn('🗑️ Clearing token due to 401 error');
+            }
             clearAuth();
             window.location.href = '/login';
           }
@@ -179,8 +187,8 @@ class ApiService {
     return this.put(`/users/profile/${id}`, data);
   }
 
-  async deleteUser(id: string, permanent: boolean = false) {
-    return this.delete(`/users/${id}`, { permanent });
+  async deleteUser(id: string, confirmed: boolean = false) {
+    return this.delete(`/users/${id}`, { confirmed });
   }
 
   async activateUser(id: string) {

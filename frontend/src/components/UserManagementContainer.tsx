@@ -212,7 +212,7 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
 
     try {
       updateUIState({ loading: true });
-      const response = await apiService.deleteUser(user._id, false);
+      const response = await apiService.deleteUser(user._id, true);
       if (response.success) {
         await fetchUsers();
         showMessage('사용자가 성공적으로 삭제되었습니다.', 'success');

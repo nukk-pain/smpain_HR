@@ -231,9 +231,9 @@ export class ApiService {
     return apiClient.put<User>(API_ENDPOINTS.USERS.PROFILE(id), profileData);
   }
 
-  static async deleteUser(id: string, permanent: boolean = false) {
+  static async deleteUser(id: string, confirmed: boolean = false) {
     return apiClient.delete(API_ENDPOINTS.USERS.BY_ID(id), {
-      data: { permanent }
+      data: { confirmed }
     });
   }
 
