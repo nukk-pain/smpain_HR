@@ -243,15 +243,45 @@ function createDepartmentRoutes(db) {
     try {
       const { id } = req.params;
 
-      // Check if department has employees
+      // First get the department to check its name
+      const department = await db.collection('departments').findOne({
+        _id: new ObjectId(id),
+        isActive: true
+      });
+
+      if (!department) {
+        return res.status(404).json({ 
+          error: 'Department not found' 
+        });
+      }
+
+      // Check if department has employees using the department name
       const employeeCount = await db.collection('users').countDocuments({
-        department: id,
+        department: department.name,
         isActive: true
       });
 
       if (employeeCount > 0) {
         return res.status(400).json({ 
           error: `Cannot delete department with ${employeeCount} active employees. Please reassign or deactivate employees first.` 
+        });
+      }
+
+      // Actually delete the department (soft delete)
+      const deleteResult = await db.collection('departments').updateOne(
+        { _id: new ObjectId(id) },
+        { 
+          $set: { 
+            isActive: false, 
+            deletedAt: new Date(),
+            deletedBy: req.user.id
+          } 
+        }
+      );
+
+      if (deleteResult.matchedCount === 0) {
+        return res.status(404).json({ 
+          error: 'Department not found' 
         });
       }
 

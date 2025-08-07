@@ -103,7 +103,7 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: false, // 디버깅을 위해 임시로 console.log 유지
+          drop_console: mode === 'production', // Drop console logs in production
           drop_debugger: true
         }
       },

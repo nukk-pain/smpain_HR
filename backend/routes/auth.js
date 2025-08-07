@@ -5,6 +5,8 @@ const { requireAuth } = require('../middleware/errorHandler');
 const { generateToken, verifyToken } = require('../utils/jwt');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/refreshToken');
 const { tokenBlacklist, TokenBlacklist } = require('../utils/tokenBlacklist');
+const { authSchemas, validate } = require('../validation/schemas');
+const { sanitizeValue } = require('../utils/mongoSanitizer');
 
 const router = express.Router();
 
@@ -49,16 +51,18 @@ function createAuthRoutes(db) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     };
   };
-  // Login endpoint
-  router.post('/login', async (req, res) => {
+  // Login endpoint with validation middleware
+  router.post('/login', validate.body(authSchemas.login), async (req, res) => {
     try {
       const { username, password } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
+      // Additional type checking for security (belt and suspenders approach)
+      if (typeof username !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ error: 'Invalid input format' });
       }
       
-      const user = await db.collection('users').findOne({ username });
+      // Sanitized query - username is now guaranteed to be a string
+      const user = await db.collection('users').findOne({ username: String(username) });
       
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });

@@ -106,7 +106,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       // Token verification failed, clear it
-      console.error('Auth check failed:', error)
+      if (import.meta.env.DEV) {
+        console.error('Auth check failed:', error)
+      }
       clearAuth()
       setAuthState({
         isAuthenticated: false,
@@ -143,7 +145,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             })
           }
         } catch (userError) {
-          console.warn('Failed to fetch complete user info after login:', userError)
+          if (import.meta.env.DEV) {
+            console.warn('Failed to fetch complete user info after login:', userError)
+          }
           // Keep the basic user info from login response
         }
         
@@ -151,7 +155,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       return false
     } catch (error) {
-      console.error('Login error:', error)
+      if (import.meta.env.DEV) {
+        console.error('Login error:', error)
+      }
       return false
     }
   }
@@ -162,7 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // But we still call it for any server-side cleanup
       await apiService.logout()
     } catch (error) {
-      console.error('Logout error:', error)
+      if (import.meta.env.DEV) {
+        console.error('Logout error:', error)
+      }
     } finally {
       // Clear JWT token from client storage
       clearAuth()
@@ -183,7 +191,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }))
       }
     } catch (error) {
-      console.error('Refresh user error:', error)
+      if (import.meta.env.DEV) {
+        console.error('Refresh user error:', error)
+      }
     }
   }
 
