@@ -178,13 +178,48 @@ router.get('/pending', requireAuth, requirePermission('leave:manage'), asyncHand
     };
     
     // Supervisors can only see their department
-    if (userRole === 'supervisor') {
-      const departmentUserIds = await db.collection('users').find({
-        department: userDepartment
-      }).project({ _id: 1 }).toArray();
+    if (userRole === 'supervisor' && req.user.visibleTeams) {
+      const visibleDepartments = req.user.visibleTeams.map(team => team.departmentName);
+      // Filter by userDepartment field in leaveRequests instead of userId lookup
+      const pendingCancellationsWithDept = await db.collection('leaveRequests').aggregate([
+        { $match: matchCondition },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId', 
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $match: {
+            'user.department': { $in: visibleDepartments }
+          }
+        },
+        {
+          $project: {
+            id: '$_id',
+            userId: '$userId',
+            userName: { $arrayElemAt: ['$user.name', 0] },
+            userDepartment: { $arrayElemAt: ['$user.department', 0] },
+            leaveType: '$leaveType',
+            startDate: '$startDate',
+            endDate: '$endDate',
+            daysCount: '$daysCount',
+            reason: '$reason',
+            status: '$status',
+            cancellationRequestedAt: '$cancellationRequestedAt',
+            cancellationReason: '$cancellationReason',
+            cancellationStatus: '$cancellationStatus'
+          }
+        },
+        { $sort: { cancellationRequestedAt: 1 } }
+      ]).toArray();
       
-      const userIds = departmentUserIds.map(user => user._id);
-      matchCondition.userId = { $in: userIds };
+      return res.json({
+        success: true,
+        data: pendingCancellationsWithDept.map(addIdField)
+      });
     }
     
     const pendingCancellations = await db.collection('leaveRequests').aggregate([
