@@ -134,36 +134,35 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
         />
       </Grid>
 
-      {/* Password - only show for new users */}
-      {!isEditing && (
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="비밀번호"
-            type={showPassword ? 'text' : 'password'}
-            value={formData.password}
-            onChange={(e) => onFieldChange('password', e.target.value)}
-            onBlur={() => onFieldBlur('password')}
-            error={Boolean(errors.password)}
-            helperText={errors.password}
-            required
-            disabled={isSubmitting}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={onTogglePassword}
-                    edge="end"
-                    disabled={isSubmitting}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
-      )}
+      {/* Password - required for new users, optional for editing */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label={isEditing ? "비밀번호 (변경 시에만 입력)" : "비밀번호"}
+          type={showPassword ? 'text' : 'password'}
+          value={formData.password || ''}
+          onChange={(e) => onFieldChange('password', e.target.value)}
+          onBlur={() => onFieldBlur('password')}
+          error={Boolean(errors.password)}
+          helperText={errors.password || (isEditing ? "비워두면 기존 비밀번호를 유지합니다" : "")}
+          required={!isEditing}
+          disabled={isSubmitting}
+          placeholder={isEditing ? "새 비밀번호 (선택사항)" : ""}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={onTogglePassword}
+                  edge="end"
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
+        />
+      </Grid>
 
       {/* Name */}
       <Grid item xs={12} sm={6}>
@@ -333,9 +332,9 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
           <FormControl fullWidth>
             <InputLabel>상급자</InputLabel>
             <Select
-              value={formData.managerId || ''}
+              value={formData.supervisorId || ''}
               label="상급자"
-              onChange={(e) => onFieldChange('managerId', e.target.value)}
+              onChange={(e) => onFieldChange('supervisorId', e.target.value)}
               disabled={isSubmitting}
             >
               <MenuItem value="">선택 안함</MenuItem>

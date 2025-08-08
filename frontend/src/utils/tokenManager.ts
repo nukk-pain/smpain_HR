@@ -84,17 +84,101 @@ export const decodeToken = (token: string): DecodedToken | null => {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
+      console.error('❌ Token decode failed: Invalid JWT format (expected 3 parts, got ' + parts.length + ')');
       return null;
     }
     
     const payload = parts[1];
-    const decodedPayload = JSON.parse(atob(payload));
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 Token decode attempt:', {
+        tokenLength: token.length,
+        payloadLength: payload.length,
+        payload: payload.substring(0, 50) + '...'
+      });
+    }
+    
+    // Try direct atob first
+    try {
+      const decodedPayload = JSON.parse(atob(payload));
+      if (import.meta.env.DEV) {
+        console.log('✅ Direct atob decode success:', decodedPayload);
+      }
+      return decodedPayload as DecodedToken;
+    } catch (directError) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ Direct atob failed, trying base64url conversion:', directError.message);
+      }
+    }
+    
+    // Convert base64url to base64
+    let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 Base64 conversion:', {
+        original: payload.substring(0, 30) + '...',
+        converted: base64.substring(0, 30) + '...'
+      });
+    }
+    
+    // Try atob with converted base64
+    const binaryString = atob(base64);
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 atob result:', {
+        length: binaryString.length,
+        preview: binaryString.substring(0, 50) + '...'
+      });
+    }
+    
+    // Try direct JSON parse
+    try {
+      const decodedPayload = JSON.parse(binaryString);
+      if (import.meta.env.DEV) {
+        console.log('✅ JSON parse success (direct):', decodedPayload);
+      }
+      return decodedPayload as DecodedToken;
+    } catch (jsonError) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ Direct JSON parse failed, trying UTF-8 decode:', jsonError.message);
+      }
+    }
+    
+    // Decode base64 to UTF-8 string properly
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const utf8String = new TextDecoder('utf-8').decode(bytes);
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 UTF-8 decode result:', {
+        length: utf8String.length,
+        preview: utf8String.substring(0, 50) + '...'
+      });
+    }
+    
+    const decodedPayload = JSON.parse(utf8String);
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Token decode success (UTF-8):', decodedPayload);
+    }
     
     return decodedPayload as DecodedToken;
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('❌ Failed to decode token:', error);
-    }
+  } catch (error: any) {
+    const errorDetails = {
+      error: error.message,
+      stack: error.stack,
+      token: token.substring(0, 50) + '...'
+    };
+    console.error('❌ Token decode failed:', errorDetails);
+    
+    // Store error for display in UI
+    localStorage.setItem('token_decode_error', error.message);
+    
     return null;
   }
 };
@@ -149,9 +233,12 @@ export const getValidToken = (): string | null => {
   if (expired === null) {
     if (import.meta.env.DEV) {
       console.warn('❌ Invalid token format, removing from storage', {
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        tokenPreview: token.substring(0, 50) + '...'
       });
     }
+    // Store error for UI
+    localStorage.setItem('token_decode_error', 'Invalid token format - could not check expiration');
     removeToken();
     return null;
   }

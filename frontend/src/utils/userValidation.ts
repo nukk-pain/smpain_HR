@@ -185,6 +185,7 @@ export const validateName = (name: string): ValidationResult => {
 export interface ValidationOptions {
   readonly isEdit?: boolean;
   readonly skipRequired?: boolean;
+  readonly skipPasswordValidation?: boolean;
 }
 
 // Field validators mapping
@@ -204,11 +205,16 @@ export const validateUserForm = (
   options: ValidationOptions = {}
 ): FormValidationResult => {
   const errors: Record<string, string> = {};
-  const { isEdit = false, skipRequired = false } = options;
+  const { isEdit = false, skipRequired = false, skipPasswordValidation = false } = options;
 
   // Validate each field if present
   Object.entries(userData).forEach(([field, value]) => {
     if (value !== undefined && field in FIELD_VALIDATORS) {
+      // Skip password validation if explicitly requested (edit mode with empty password)
+      if (field === 'password' && skipPasswordValidation) {
+        return;
+      }
+      
       const validator = FIELD_VALIDATORS[field as keyof typeof FIELD_VALIDATORS];
       const result = validator(value as string);
       

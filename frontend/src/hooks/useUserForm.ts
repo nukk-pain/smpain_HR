@@ -16,7 +16,8 @@ import {
 
 // Base user data interface (compatible with existing User type)
 export interface UserData {
-  id?: number | string;
+  _id?: string;
+  id?: number | string;  // Keep for backward compatibility
   username?: string;
   name?: string;
   role?: string;
@@ -46,7 +47,7 @@ export interface UserFormData {
   position: string;
   employeeId: string;
   accountNumber: string;
-  managerId: string;
+  supervisorId: string;
   contractType: string;
   baseSalary: number;
   incentiveFormula: string;
@@ -76,7 +77,7 @@ const FIELD_CONFIGS: Record<keyof UserFormData, FieldConfig> = {
   position: { type: 'string', defaultValue: '' },
   employeeId: { type: 'string', defaultValue: '', validate: false },
   accountNumber: { type: 'string', defaultValue: '' },
-  managerId: { type: 'string', defaultValue: '' },
+  supervisorId: { type: 'string', defaultValue: '' },
   contractType: { type: 'select', defaultValue: 'fulltime' },
   baseSalary: { type: 'number', defaultValue: 0 },
   incentiveFormula: { type: 'string', defaultValue: '' },
@@ -172,7 +173,7 @@ export const useUserForm = (
 
   // Refs for stable callbacks
   const initialFormData = useRef(getInitialFormData(initialUser));
-  const isEdit = useMemo(() => !!initialUser?.id, [initialUser]);
+  const isEdit = useMemo(() => !!(initialUser?._id || initialUser?.id), [initialUser]);
 
   // Options with defaults
   const {
@@ -195,12 +196,34 @@ export const useUserForm = (
     }
   }, [initialUser]);
 
+  // 편집 모드에서 초기 로드 시 비밀번호 검증 오류 제거
+  useEffect(() => {
+    if (isEdit) {
+      console.log('Edit mode detected - clearing password validation errors');
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.password;
+        return newErrors;
+      });
+    }
+  }, [isEdit]);
+
   /**
    * Validate a single field
    */
   const validateSingleField = useCallback((field: keyof UserFormData): boolean => {
     const fieldConfig = FIELD_CONFIGS[field];
     if (!fieldConfig.validate) return true;
+
+    // 편집 모드에서 비밀번호가 비어있으면 검증하지 않음
+    if (field === 'password' && isEdit && !formData.password) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+      return true;
+    }
 
     const validationField = field as keyof UserValidationData;
     const result = validateField(validationField, formData[field] as string);
@@ -216,7 +239,7 @@ export const useUserForm = (
       setErrors(prev => ({ ...prev, [field]: result.message }));
       return false;
     }
-  }, [formData]);
+  }, [formData, isEdit]);
 
   /**
    * Handle field value changes
@@ -230,10 +253,20 @@ export const useUserForm = (
 
     // Validate on change if enabled
     if (validateOnChange && fieldConfig.validate) {
-      // Use setTimeout to validate with the updated value
-      setTimeout(() => validateSingleField(field), 0);
+      // 편집 모드에서 비밀번호가 비어있으면 검증하지 않음
+      if (field === 'password' && isEdit && !convertedValue) {
+        // 비밀번호 필드의 오류 제거
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.password;
+          return newErrors;
+        });
+      } else {
+        // Use setTimeout to validate with the updated value
+        setTimeout(() => validateSingleField(field), 0);
+      }
     }
-  }, [validateOnChange, validateSingleField]);
+  }, [validateOnChange, validateSingleField, isEdit]);
 
   /**
    * Handle field blur
@@ -250,14 +283,18 @@ export const useUserForm = (
    * Validate entire form
    */
   const validateForm = useCallback((): boolean => {
+    // 편집 모드에서는 비밀번호가 입력된 경우만 검증
     const validationData: UserValidationData = {
       username: formData.username,
-      password: formData.password,
+      password: isEdit && !formData.password ? '' : formData.password, // 편집 모드에서 빈 비밀번호는 검증하지 않음
       name: formData.name,
       phoneNumber: formData.phoneNumber
     };
 
-    const validationOptions: ValidationOptions = { isEdit };
+    const validationOptions: ValidationOptions = { 
+      isEdit,
+      skipPasswordValidation: isEdit && !formData.password // 편집 모드에서 비밀번호가 비어있으면 검증 스킵
+    };
     const result = validateUserForm(validationData, validationOptions);
     
     setErrors(result.errors);
@@ -266,6 +303,9 @@ export const useUserForm = (
     if (!result.isValid) {
       console.log('Form validation errors:', result.errors);
       console.log('Form data:', formData);
+      console.log('Validation options:', validationOptions);
+    } else {
+      console.log('Form validation passed:', { isEdit, hasPassword: !!formData.password });
     }
     
     // Mark all validated fields as touched
@@ -346,35 +386,51 @@ export const useUserForm = (
 
   // Compute validation state
   const isValid = useMemo(() => {
-    // No errors and either dirty or all required fields filled
-    if (Object.keys(errors).length > 0) {
+    const hasValidationErrors = Object.keys(errors).length > 0;
+    
+    if (hasValidationErrors) {
       console.log('Form invalid due to errors:', errors);
       return false;
     }
     
+    // 편집 모드와 생성 모드 구분된 검증
     if (isEdit) {
-      // For edit mode, just check no errors
-      return true;
+      // 편집 모드: 오류가 없고 기본 필드들이 채워져 있으면 유효
+      // 비밀번호는 선택사항이므로 검증하지 않음
+      const requiredFieldsForEdit: (keyof UserValidationData)[] = 
+        ['username', 'name'];
+      
+      const isValidForEdit = requiredFieldsForEdit.every(field => {
+        const value = formData[field];
+        return value && value.toString().trim() !== '';
+      });
+      
+      console.log('Edit mode validation:', {
+        hasValidationErrors,
+        requiredFieldsForEdit,
+        fieldValues: requiredFieldsForEdit.map(field => ({ [field]: formData[field] })),
+        isValidForEdit
+      });
+      
+      return isValidForEdit;
+    } else {
+      // 생성 모드: 필수 필드 모두 채워져야 함 (비밀번호 포함)
+      const requiredFields: (keyof UserValidationData)[] = 
+        ['username', 'password', 'name'];
+      
+      const isValidResult = requiredFields.every(field => {
+        const value = formData[field];
+        return value && value.toString().trim() !== '';
+      });
+      
+      console.log('Create mode validation:', {
+        requiredFields,
+        fieldValues: requiredFields.map(field => ({ [field]: formData[field] })),
+        isValidResult
+      });
+      
+      return isValidResult;
     }
-    
-    // For new user, check required fields (employeeId is auto-generated)
-    const requiredFields: (keyof UserValidationData)[] = 
-      ['username', 'password', 'name'];
-    
-    const isValidResult = requiredFields.every(field => {
-      const value = formData[field];
-      return value && value.toString().trim() !== '';
-    });
-    
-    console.log('Form validity check:', {
-      hasErrors: Object.keys(errors).length > 0,
-      isEdit,
-      requiredFields,
-      fieldValues: requiredFields.map(field => ({ [field]: formData[field] })),
-      isValidResult
-    });
-    
-    return isValidResult;
   }, [errors, formData, isEdit]);
 
   return {

@@ -52,15 +52,25 @@ const Login: React.FC = () => {
     setError('')
 
     try {
+      console.log('🔐 로그인 시도:', formData.username)
       const success = await login(formData.username, formData.password)
       if (success) {
         showSuccess('로그인되었습니다')
         navigate('/dashboard')
       } else {
-        setError('사용자명 또는 비밀번호가 올바르지 않습니다.')
+        // 더 상세한 에러 메시지 표시
+        const tokenError = localStorage.getItem('token_decode_error')
+        if (tokenError) {
+          setError(`토큰 디코딩 실패: ${tokenError}`)
+          localStorage.removeItem('token_decode_error')
+        } else {
+          setError('사용자명 또는 비밀번호가 올바르지 않습니다.')
+        }
       }
-    } catch (error) {
-      setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
+    } catch (error: any) {
+      console.error('로그인 오류:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || '로그인 중 오류가 발생했습니다.'
+      setError(`로그인 실패: ${errorMessage}`)
     } finally {
       setLoading(false)
     }

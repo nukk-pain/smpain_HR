@@ -76,8 +76,8 @@ class UserRepository extends BaseRepository {
     });
   }
 
-  async findUsersByManager(managerId) {
-    return await this.findAll({ managerId });
+  async findUsersBySupervisor(supervisorId) {
+    return await this.findAll({ supervisorId });
   }
 
   async getUserStats() {
