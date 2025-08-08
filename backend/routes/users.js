@@ -7,6 +7,13 @@ const { successResponse, errorResponse, notFoundError, serverError } = require('
 const { userRepository } = require('../repositories');
 const { userSchemas, validate } = require('../validation/schemas');
 const { formatDateForDisplay, calculateAge } = require('../utils/dateUtils');
+const { 
+  createDeactivationData, 
+  createReactivationData, 
+  validateDeactivation, 
+  validateReactivation,
+  QueryFilters 
+} = require('../utils/userDeactivation');
 
 // Import shared utility function
 const { calculateAnnualLeaveEntitlement } = require('../utils/leaveUtils');
@@ -292,9 +299,14 @@ function createUserRoutes(db) {
   }));
   } // End of debug endpoints protection
 
-  // Get all users
+  // Get all users with filtering support
   router.get('/', requireAuth, requirePermission(PERMISSIONS.USERS_VIEW), asyncHandler(async (req, res) => {
-    const users = await db.collection('users').find({}).toArray();
+    const { includeInactive, status } = req.query;
+    
+    // Build filter query using utility function
+    const filter = QueryFilters.byStatus(status, includeInactive === 'true');
+    
+    const users = await db.collection('users').find(filter).toArray();
     
     const usersWithCalculatedFields = users.map(user => {
       const hireDate = user.hireDate ? new Date(user.hireDate) : null;
@@ -314,7 +326,15 @@ function createUserRoutes(db) {
     
     res.json({
       success: true,
-      data: usersWithCalculatedFields
+      data: usersWithCalculatedFields,
+      meta: {
+        total: usersWithCalculatedFields.length,
+        filter: {
+          includeInactive: includeInactive === 'true',
+          status: status || 'active_only',
+          appliedFilter: filter
+        }
+      }
     });
   }));
 
@@ -637,6 +657,99 @@ function createUserRoutes(db) {
     res.json({
       success: true,
       message: 'User activated successfully'
+    });
+  }));
+
+  // Deactivate user
+  router.put('/:id/deactivate', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    // Validate ObjectId format first
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+    
+    // Check if user exists
+    const existingUser = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Validate deactivation using utility function
+    const validation = validateDeactivation(existingUser, req.user.id || req.user.userId);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
+    }
+    
+    // Create deactivation data using utility function
+    const updateData = createDeactivationData(req.user.id || req.user.userId, reason);
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Return the updated user data
+    const updatedUser = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    
+    res.json({
+      success: true,
+      message: 'User deactivated successfully',
+      data: {
+        ...updatedUser,
+        password: undefined // Remove password from response
+      }
+    });
+  }));
+
+  // Reactivate user
+  router.put('/:id/reactivate', requireAuth, requirePermission(PERMISSIONS.USERS_MANAGE), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    // Validate ObjectId format first
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+    
+    // Check if user exists
+    const existingUser = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Validate reactivation using utility function
+    const validation = validateReactivation(existingUser);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
+    }
+    
+    // Create reactivation data using utility function
+    const updateData = createReactivationData();
+    
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Return the updated user data
+    const updatedUser = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    
+    res.json({
+      success: true,
+      message: 'User reactivated successfully',
+      data: {
+        ...updatedUser,
+        password: undefined // Remove password from response
+      }
     });
   }));
 

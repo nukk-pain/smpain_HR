@@ -110,7 +110,9 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
     canCreateUser,
     canUpdateUser,
     canDeleteUser,
-    canViewUser
+    canViewUser,
+    canDeactivateUser,
+    canReactivateUser
   } = useUserPermissions(currentUser, stableUsers);
 
   // Memoized values
@@ -228,6 +230,45 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
       console.error('Failed to delete user:', error);
       updateUIState({ loading: false });
       showMessage('사용자 삭제에 실패했습니다.', 'error');
+    }
+  }, [updateUIState, fetchUsers, showMessage]);
+
+  // Deactivation handlers
+  const handleUserDeactivate = useCallback(async (user: User, reason?: string) => {
+    try {
+      updateUIState({ loading: true });
+      const response = await apiService.deactivateUser(user._id, reason);
+      if (response.success) {
+        await fetchUsers();
+        showMessage(`${user.name} 사용자가 성공적으로 비활성화되었습니다.`, 'success');
+      } else {
+        throw new Error(response.error || 'Deactivation failed');
+      }
+    } catch (error: any) {
+      console.error('Failed to deactivate user:', error);
+      const errorMessage = error.response?.data?.error || error.message || '알 수 없는 오류';
+      showMessage(`사용자 비활성화에 실패했습니다: ${errorMessage}`, 'error');
+    } finally {
+      updateUIState({ loading: false });
+    }
+  }, [updateUIState, fetchUsers, showMessage]);
+
+  const handleUserReactivate = useCallback(async (user: User) => {
+    try {
+      updateUIState({ loading: true });
+      const response = await apiService.reactivateUser(user._id);
+      if (response.success) {
+        await fetchUsers();
+        showMessage(`${user.name} 사용자가 성공적으로 재활성화되었습니다.`, 'success');
+      } else {
+        throw new Error(response.error || 'Reactivation failed');
+      }
+    } catch (error: any) {
+      console.error('Failed to reactivate user:', error);
+      const errorMessage = error.response?.data?.error || error.message || '알 수 없는 오류';
+      showMessage(`사용자 재활성화에 실패했습니다: ${errorMessage}`, 'error');
+    } finally {
+      updateUIState({ loading: false });
     }
   }, [updateUIState, fetchUsers, showMessage]);
 
@@ -446,10 +487,14 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
             onUserEdit={handleUserEdit}
             onUserDelete={handleUserDelete}
             onUserView={handleUserView}
+            onUserDeactivate={handleUserDeactivate}
+            onUserReactivate={handleUserReactivate}
             onSort={(field: any) => setSortBy(field)}
             canEdit={canUpdateUser}
             canDelete={canDeleteUser}
             canView={canViewUser}
+            canDeactivate={canDeactivateUser}
+            canReactivate={canReactivateUser}
             emptyMessage="등록된 사용자가 없습니다"
             error={uiState.error}
           />

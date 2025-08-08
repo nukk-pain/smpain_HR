@@ -1,5 +1,6 @@
 const BaseRepository = require('./BaseRepository');
 const bcrypt = require('bcryptjs');
+const { createDeactivationData, createReactivationData } = require('../utils/userDeactivation');
 
 class UserRepository extends BaseRepository {
   constructor() {
@@ -122,18 +123,14 @@ class UserRepository extends BaseRepository {
     );
   }
 
-  async deactivateUser(userId, terminationDate = new Date()) {
-    return await this.update(userId, {
-      isActive: false,
-      terminationDate
-    });
+  async deactivateUser(userId, deactivatedBy, reason = null) {
+    const deactivationData = createDeactivationData(deactivatedBy, reason);
+    return await this.update(userId, deactivationData);
   }
 
   async reactivateUser(userId) {
-    return await this.update(userId, {
-      isActive: true,
-      terminationDate: null
-    });
+    const reactivationData = createReactivationData();
+    return await this.update(userId, reactivationData);
   }
 }
 

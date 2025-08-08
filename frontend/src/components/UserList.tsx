@@ -31,7 +31,9 @@ import {
   Edit,
   Delete,
   PersonOutline,
-  MoreVert
+  MoreVert,
+  BlockOutlined,
+  CheckCircleOutline
 } from '@mui/icons-material';
 import { User } from '../types';
 import { SortField, SortOrder } from '../hooks/useUserFilters';
@@ -48,10 +50,14 @@ export interface UserListProps {
   onUserEdit: (user: User) => void;
   onUserDelete: (user: User) => void;
   onUserView: (user: User) => void;
+  onUserDeactivate?: (user: User) => void;
+  onUserReactivate?: (user: User) => void;
   onSort?: (field: SortField) => void;
   canEdit: (user: User) => boolean;
   canDelete: (user: User) => boolean;
   canView: (user: User) => boolean;
+  canDeactivate?: (user: User) => boolean;
+  canReactivate?: (user: User) => boolean;
   virtualized?: boolean;
   maxHeight?: number;
   emptyMessage?: string;
@@ -103,15 +109,26 @@ export const UserList: React.FC<UserListProps> = memo(({
   onUserEdit,
   onUserDelete,
   onUserView,
+  onUserDeactivate,
+  onUserReactivate,
   onSort,
   canEdit,
   canDelete,
   canView,
+  canDeactivate,
+  canReactivate,
   virtualized = false,
   maxHeight = 600,
   emptyMessage = '등록된 사용자가 없습니다',
   error
 }) => {
+  console.log('🔍 UserList rendering with props:', {
+    userCount: users.length,
+    hasCanDeactivate: !!canDeactivate,
+    hasCanReactivate: !!canReactivate,
+    hasOnUserDeactivate: !!onUserDeactivate,
+    hasOnUserReactivate: !!onUserReactivate
+  });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -127,7 +144,7 @@ export const UserList: React.FC<UserListProps> = memo(({
     }
   }, [onSort]);
 
-  const handleActionClick = useCallback((e: React.MouseEvent, action: 'view' | 'edit' | 'delete', user: User) => {
+  const handleActionClick = useCallback((e: React.MouseEvent, action: 'view' | 'edit' | 'delete' | 'deactivate' | 'reactivate', user: User) => {
     e.stopPropagation();
     switch (action) {
       case 'view':
@@ -139,8 +156,18 @@ export const UserList: React.FC<UserListProps> = memo(({
       case 'delete':
         onUserDelete(user);
         break;
+      case 'deactivate':
+        if (onUserDeactivate) {
+          onUserDeactivate(user);
+        }
+        break;
+      case 'reactivate':
+        if (onUserReactivate) {
+          onUserReactivate(user);
+        }
+        break;
     }
-  }, [onUserView, onUserEdit, onUserDelete]);
+  }, [onUserView, onUserEdit, onUserDelete, onUserDeactivate, onUserReactivate]);
 
   // Memoized helper functions
   const isSelected = useCallback((user: User) => {
@@ -380,6 +407,43 @@ export const UserList: React.FC<UserListProps> = memo(({
                             </IconButton>
                           </span>
                         </Tooltip>
+                        
+                        {(() => {
+                          const hasDeactivateFunction = !!canDeactivate;
+                          const canDeactivateResult = hasDeactivateFunction ? canDeactivate(user) : false;
+                          
+                          console.log(`🔍 UserList deactivate check: ${user.username} | hasFunction: ${hasDeactivateFunction} | canDeactivate: ${canDeactivateResult}`);
+                          
+                          return hasDeactivateFunction && canDeactivateResult && (
+                            <Tooltip title="사용자 비활성화">
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => handleActionClick(e, 'deactivate', user)}
+                                  aria-label="사용자 비활성화"
+                                  color="warning"
+                                >
+                                  <BlockOutlined fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          );
+                        })()}
+                        
+                        {canReactivate && canReactivate(user) && (
+                          <Tooltip title="사용자 재활성화">
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleActionClick(e, 'reactivate', user)}
+                                aria-label="사용자 재활성화"
+                                color="success"
+                              >
+                                <CheckCircleOutline fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
                       </Box>
                     </TableCell>
                   );

@@ -195,6 +195,14 @@ class ApiService {
     return this.post(`/users/${id}/activate`);
   }
 
+  async deactivateUser(id: string, reason?: string) {
+    return this.put(`/users/${id}/deactivate`, { reason });
+  }
+
+  async reactivateUser(id: string) {
+    return this.put(`/users/${id}/reactivate`);
+  }
+
   async resetUserPassword(id: string, password: string) {
     return this.post(`/users/${id}/reset-password`, { password });
   }

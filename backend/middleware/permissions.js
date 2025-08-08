@@ -93,7 +93,7 @@ const PERMISSION_GROUPS = {
 };
 
 // Authentication middleware (JWT-based)
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   try {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
@@ -105,6 +105,23 @@ const requireAuth = (req, res, next) => {
     
     // Verify JWT token
     const decoded = verifyToken(token);
+    
+    // Check if user exists and is active in database
+    const db = await getDatabase();
+    const { ObjectId } = require('mongodb');
+    
+    let user = null;
+    if (ObjectId.isValid(decoded.id)) {
+      user = await db.collection('users').findOne({ _id: new ObjectId(decoded.id) });
+    }
+    
+    if (!user) {
+      return unauthorizedError(res, 'User not found');
+    }
+    
+    if (user.isActive === false) {
+      return unauthorizedError(res, 'Account is deactivated');
+    }
     
     // Set user info for subsequent middleware
     req.user = decoded;

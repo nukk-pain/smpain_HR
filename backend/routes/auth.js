@@ -105,7 +105,9 @@ function createAuthRoutes(db) {
             birthDate: user.birthDate,
             phoneNumber: user.phoneNumber,
             contractType: user.contractType,
-            permissions: user.permissions || []
+            permissions: user.permissions || [],
+            isActive: user.isActive,
+            leaveBalance: user.leaveBalance
           }
         });
       } else {
@@ -129,7 +131,9 @@ function createAuthRoutes(db) {
           birthDate: user.birthDate,
           phoneNumber: user.phoneNumber,
           contractType: user.contractType,
-          permissions: user.permissions || []
+          permissions: user.permissions || [],
+          isActive: user.isActive,
+          leaveBalance: user.leaveBalance
         }
         });
       }

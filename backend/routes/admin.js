@@ -852,6 +852,57 @@ function createAdminRoutes(db) {
     }
   }));
 
+  // User Migration Endpoints
+  // Migrate existing users to have isActive field set to true
+  router.post('/migrate-users-isactive', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    try {
+      // Find users without isActive field or with undefined/null isActive
+      const usersWithoutIsActive = await db.collection('users').find({
+        $or: [
+          { isActive: { $exists: false } },
+          { isActive: null },
+          { isActive: undefined }
+        ]
+      }).toArray();
+
+      if (usersWithoutIsActive.length === 0) {
+        return res.json({
+          success: true,
+          migratedCount: 0,
+          message: 'No users found requiring isActive field migration'
+        });
+      }
+
+      // Update users to set isActive: true
+      const updateResult = await db.collection('users').updateMany(
+        {
+          $or: [
+            { isActive: { $exists: false } },
+            { isActive: null },
+            { isActive: undefined }
+          ]
+        },
+        {
+          $set: { isActive: true }
+        }
+      );
+
+      res.json({
+        success: true,
+        migratedCount: updateResult.modifiedCount,
+        message: `Successfully migrated ${updateResult.modifiedCount} users with isActive: true`
+      });
+
+    } catch (error) {
+      console.error('User migration error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to migrate user isActive fields',
+        details: error.message 
+      });
+    }
+  }));
+
   return router;
 }
 

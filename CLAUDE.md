@@ -296,3 +296,7 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 ## Project Structure Guidelines
 
 - 수정 계획은 root 폴더에 만들고 docs에는 영구적으로 남길 파일만 남겨줘.
+
+## Development Notes
+
+- frontend, backend 실행은 사용자에게 따로 요청할 것 

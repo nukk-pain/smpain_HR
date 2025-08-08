@@ -19,6 +19,17 @@ export const useAuth = (): AuthContextType => {
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
+  
+  if (import.meta.env.DEV) {
+    console.log('🔍 useAuth called, returning:', {
+      isAuthenticated: context.isAuthenticated,
+      hasUser: !!context.user,
+      userName: context.user?.name,
+      userRole: context.user?.role,
+      loading: context.loading
+    })
+  }
+  
   return context
 }
 
@@ -76,11 +87,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
+      if (import.meta.env.DEV) {
+        console.log('🔍 AuthProvider: Starting checkAuthStatus')
+      }
+      
       // First check if we have a valid token
       const token = getValidToken()
       
       if (!token) {
         // No valid token, user is not authenticated
+        if (import.meta.env.DEV) {
+          console.log('🔍 AuthProvider: No valid token found')
+        }
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -89,25 +107,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return
       }
 
+      if (import.meta.env.DEV) {
+        console.log('🔍 AuthProvider: Valid token found, calling getCurrentUser')
+      }
+
       // We have a valid token, verify with server and get user info
       const response = await apiService.getCurrentUser()
+      
+      if (import.meta.env.DEV) {
+        console.log('🔍 AuthProvider: getCurrentUser response:', {
+          authenticated: response.authenticated,
+          hasUser: !!response.user,
+          userName: response.user?.name,
+          userRole: response.user?.role,
+          isActive: response.user?.isActive
+        })
+      }
+      
       if (response.authenticated && response.user) {
+        // Check if user is active
+        if (response.user.isActive === false) {
+          if (import.meta.env.DEV) {
+            console.warn('Token valid but user is deactivated:', response.user.username)
+          }
+          clearAuth()
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+          })
+          return
+        }
+
+        if (import.meta.env.DEV) {
+          console.log('✅ AuthProvider: Setting authenticated user state:', {
+            userName: response.user.name,
+            userRole: response.user.role
+          })
+        }
+
         setAuthState({
           isAuthenticated: true,
           user: response.user as User,
         })
+        
+        if (import.meta.env.DEV) {
+          console.log('✅ AuthProvider: Auth state set successfully')
+        }
       } else {
         // Server rejected the token, clear it
+        if (import.meta.env.DEV) {
+          console.warn('🔍 AuthProvider: Server rejected token')
+        }
         clearAuth()
         setAuthState({
           isAuthenticated: false,
           user: null,
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       // Token verification failed, clear it
       if (import.meta.env.DEV) {
-        console.error('Auth check failed:', error)
+        console.error('❌ AuthProvider: Auth check failed:', error)
+        
+        // Log specific deactivation errors
+        if (error?.response?.status === 401 && 
+            error?.response?.data?.error?.includes('deactivated')) {
+          console.warn('Authentication failed: User account is deactivated')
+        }
       }
       clearAuth()
       setAuthState({
@@ -116,6 +182,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       })
     } finally {
       setLoading(false)
+      if (import.meta.env.DEV) {
+        console.log('🔍 AuthProvider: checkAuthStatus completed, loading set to false')
+      }
     }
   }
 
@@ -123,6 +192,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiService.login(username, password)
       if (response.success && response.token && response.user) {
+        // Check if user is active before storing token
+        if (response.user.isActive === false) {
+          if (import.meta.env.DEV) {
+            console.warn('Login attempted for deactivated user:', response.user.username)
+          }
+          return false
+        }
+
         // Store the JWT token
         storeToken(response.token)
         
@@ -139,25 +216,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await new Promise(resolve => setTimeout(resolve, 100))
           const userResponse = await apiService.getCurrentUser()
           if (userResponse.authenticated && userResponse.user) {
+            // Double-check user is still active
+            if (userResponse.user.isActive === false) {
+              if (import.meta.env.DEV) {
+                console.warn('User became deactivated during login process')
+              }
+              clearAuth()
+              setAuthState({
+                isAuthenticated: false,
+                user: null,
+              })
+              return false
+            }
             setAuthState({
               isAuthenticated: true,
               user: userResponse.user as User,
             })
           }
-        } catch (userError) {
+        } catch (userError: any) {
           if (import.meta.env.DEV) {
             console.warn('Failed to fetch complete user info after login:', userError)
           }
-          // Keep the basic user info from login response
+          
+          // Check if error is due to account deactivation
+          if (userError?.response?.status === 401 && 
+              userError?.response?.data?.error?.includes('deactivated')) {
+            if (import.meta.env.DEV) {
+              console.warn('User deactivated after token was issued')
+            }
+            clearAuth()
+            setAuthState({
+              isAuthenticated: false,
+              user: null,
+            })
+            return false
+          }
+          
+          // Keep the basic user info from login response for other errors
         }
         
         return true
       }
       return false
-    } catch (error) {
+    } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error('Login error:', error)
       }
+      
+      // Don't store any tokens if login failed
+      clearAuth()
+      
       return false
     }
   }
@@ -185,14 +293,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiService.getCurrentUser()
       if (response.authenticated && response.user) {
+        // Check if user became deactivated
+        if (response.user.isActive === false) {
+          if (import.meta.env.DEV) {
+            console.warn('User became deactivated, logging out:', response.user.username)
+          }
+          // Auto-logout if user was deactivated
+          await logout()
+          return
+        }
+
         setAuthState(prev => ({
           ...prev,
           user: response.user as User,
         }))
+      } else {
+        // If not authenticated, logout
+        if (import.meta.env.DEV) {
+          console.warn('User refresh failed: not authenticated, logging out')
+        }
+        await logout()
       }
-    } catch (error) {
+    } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error('Refresh user error:', error)
+        
+        // Check if error is due to deactivation
+        if (error?.response?.status === 401 && 
+            error?.response?.data?.error?.includes('deactivated')) {
+          console.warn('User deactivated during refresh, logging out')
+        }
+      }
+      
+      // If refresh fails with 401 (including deactivation), logout
+      if (error?.response?.status === 401) {
+        await logout()
       }
     }
   }

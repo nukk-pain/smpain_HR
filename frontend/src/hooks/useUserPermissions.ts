@@ -40,6 +40,8 @@ export interface UseUserPermissionsReturn {
   readonly canUpdateUser: (user: User) => boolean;
   readonly canDeleteUser: (user: User) => boolean;
   readonly canViewUser: (user: User) => boolean;
+  readonly canDeactivateUser: (user: User) => boolean;
+  readonly canReactivateUser: (user: User) => boolean;
   readonly visibleUsers: readonly User[];
   readonly editableUsers: readonly User[];
   readonly deletableUsers: readonly User[];
@@ -49,6 +51,32 @@ export interface UseUserPermissionsReturn {
   readonly getPermissionReason: (action: PermissionAction, resource: PermissionResource, context?: PermissionContext) => string;
   readonly permissions: PermissionSummary;
 }
+
+// Role normalization map - handles various role values that mean the same thing
+const ROLE_NORMALIZATION: Record<string, UserRole> = {
+  // Admin variations
+  'admin': USER_ROLES.ADMIN,
+  'Admin': USER_ROLES.ADMIN,
+  '관리자': USER_ROLES.ADMIN,
+  
+  // Supervisor variations
+  'supervisor': USER_ROLES.SUPERVISOR,
+  'Supervisor': USER_ROLES.SUPERVISOR,
+  'manager': USER_ROLES.SUPERVISOR,
+  'Manager': USER_ROLES.SUPERVISOR,
+  '수퍼바이저': USER_ROLES.SUPERVISOR,
+  '팀장': USER_ROLES.SUPERVISOR,
+  
+  // User variations
+  'user': USER_ROLES.USER,
+  'User': USER_ROLES.USER,
+  '사용자': USER_ROLES.USER
+};
+
+// Helper function to normalize role values
+const normalizeRole = (role: string): UserRole => {
+  return ROLE_NORMALIZATION[role] || USER_ROLES.USER;
+};
 
 // Role hierarchy for comparison (higher number = higher privilege)
 const ROLE_HIERARCHY: Record<UserRole, number> = {
@@ -84,7 +112,7 @@ export const useUserPermissions = (
   currentUser: User,
   users: User[]
 ): UseUserPermissionsReturn => {
-  const currentUserRole = currentUser.role as UserRole;
+  const currentUserRole = normalizeRole(currentUser.role);
   const currentRoleLevel = ROLE_HIERARCHY[currentUserRole] || 0;
 
   // Memoized role check functions for performance
@@ -105,7 +133,8 @@ export const useUserPermissions = (
     if (!user || !currentUser || user._id === currentUser._id) return false; // Cannot delete self or null user
     if (currentUserRole === USER_ROLES.ADMIN) {
       // Admin cannot delete other admins
-      return user.role !== USER_ROLES.ADMIN;
+      const targetUserRole = normalizeRole(user.role);
+      return targetUserRole !== USER_ROLES.ADMIN;
     }
     return false; // Only admins can delete users
   }, [currentUserRole, currentUser]);
@@ -114,9 +143,34 @@ export const useUserPermissions = (
     return true; // All users can view other users (basic info)
   }, []);
 
+  const canDeactivateUser = useCallback((user: User | null): boolean => {
+    if (!user || !currentUser || user._id === currentUser._id) return false; // Cannot deactivate self or null user
+    if (!user.isActive) return false; // User is already deactivated
+    if (currentUserRole === USER_ROLES.ADMIN) {
+      // Admin cannot deactivate other admins
+      const targetUserRole = normalizeRole(user.role);
+      const result = targetUserRole !== USER_ROLES.ADMIN;
+      if (import.meta.env.DEV) {
+        console.log(`🔍 canDeactivateUser: ${user.username} | currentRole: ${currentUserRole} | targetRole: ${user.role} -> ${targetUserRole} | canDeactivate: ${result}`);
+      }
+      return result;
+    }
+    return false; // Only admins can deactivate users
+  }, [currentUserRole, currentUser]);
+
+  const canReactivateUser = useCallback((user: User | null): boolean => {
+    if (!user || !currentUser || user._id === currentUser._id) return false; // Cannot reactivate self or null user
+    if (user.isActive) return false; // User is already active
+    if (currentUserRole === USER_ROLES.ADMIN) {
+      return true; // Admin can reactivate any deactivated user
+    }
+    return false; // Only admins can reactivate users
+  }, [currentUserRole, currentUser]);
+
   // Enhanced role comparison with caching
   const hasHigherRole = useCallback((user: User): boolean => {
-    const userRoleLevel = ROLE_HIERARCHY[user.role as UserRole] || 0;
+    const userRole = normalizeRole(user.role);
+    const userRoleLevel = ROLE_HIERARCHY[userRole] || 0;
     return currentRoleLevel > userRoleLevel;
   }, [currentRoleLevel]);
 
@@ -222,10 +276,11 @@ export const useUserPermissions = (
 
   const deletableUsers = useMemo(() => {
     if (currentUserRole === USER_ROLES.ADMIN) {
-      return users.filter(user => 
-        user._id !== currentUser._id && 
-        user.role !== USER_ROLES.ADMIN
-      );
+      return users.filter(user => {
+        if (user._id === currentUser._id) return false;
+        const targetUserRole = normalizeRole(user.role);
+        return targetUserRole !== USER_ROLES.ADMIN;
+      });
     }
     return []; // Only admins can delete users
   }, [users, currentUserRole, currentUser]);
@@ -248,6 +303,8 @@ export const useUserPermissions = (
     canUpdateUser,
     canDeleteUser,
     canViewUser,
+    canDeactivateUser,
+    canReactivateUser,
     visibleUsers: Object.freeze(visibleUsers) as readonly User[],
     editableUsers: Object.freeze(editableUsers) as readonly User[],
     deletableUsers: Object.freeze(deletableUsers) as readonly User[],
