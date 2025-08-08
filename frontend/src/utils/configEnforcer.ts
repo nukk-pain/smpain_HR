@@ -253,7 +253,7 @@ export function getLeaveStatusLabel(status: LeaveStatus): string {
 export function getUserRoleLabel(role: UserRole): string {
   const labels = {
     [USER_ROLES.ADMIN]: '관리자',
-    [USER_ROLES.MANAGER]: '매니저',
+    [USER_ROLES.SUPERVISOR]: '슈퍼바이저',
     [USER_ROLES.USER]: '사용자',
   };
   return labels[role] || role;
@@ -296,7 +296,7 @@ export function migrateHardcodedValues(code: string): string {
     { from: /"approved"/g, to: 'LEAVE_CONFIG.STATUS.APPROVED' },
     { from: /"rejected"/g, to: 'LEAVE_CONFIG.STATUS.REJECTED' },
     { from: /"admin"/g, to: 'USER_ROLES.ADMIN' },
-    { from: /"manager"/g, to: 'USER_ROLES.MANAGER' },
+    { from: /"supervisor"/g, to: 'USER_ROLES.SUPERVISOR' },
     { from: /"user"/g, to: 'USER_ROLES.USER' },
   ];
 

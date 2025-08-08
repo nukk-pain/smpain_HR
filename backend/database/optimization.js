@@ -89,7 +89,7 @@ class DatabaseOptimizer {
       // Departments collection indexes
       await this.db.collection('departments').createIndexes([
         { key: { name: 1 }, unique: true },
-        { key: { manager_id: 1 } },
+        { key: { supervisor_id: 1 } },
         { key: { created_at: 1 } },
       ]);
 

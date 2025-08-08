@@ -62,8 +62,6 @@ const ROLE_NORMALIZATION: Record<string, UserRole> = {
   // Supervisor variations
   'supervisor': USER_ROLES.SUPERVISOR,
   'Supervisor': USER_ROLES.SUPERVISOR,
-  'manager': USER_ROLES.SUPERVISOR,
-  'Manager': USER_ROLES.SUPERVISOR,
   '수퍼바이저': USER_ROLES.SUPERVISOR,
   '팀장': USER_ROLES.SUPERVISOR,
   

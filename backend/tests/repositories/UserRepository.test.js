@@ -2,6 +2,13 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
+
+// Mock getDatabase function at module level
+const mockDb = {};
+jest.mock('../../utils/database', () => ({
+  getDatabase: jest.fn(() => Promise.resolve(mockDb))
+}));
+
 const UserRepository = require('../../repositories/UserRepository');
 
 describe('UserRepository', () => {
@@ -16,10 +23,8 @@ describe('UserRepository', () => {
     connection = await MongoClient.connect(uri);
     db = connection.db();
 
-    // Mock getDatabase function
-    jest.mock('../../utils/database', () => ({
-      getDatabase: jest.fn(() => Promise.resolve(db))
-    }));
+    // Update the mock to use the actual database
+    Object.assign(mockDb, db);
 
     userRepository = new UserRepository();
   });
@@ -153,7 +158,7 @@ describe('UserRepository', () => {
         username: 'active2',
         password: 'password123',
         name: 'Active User 2',
-        role: 'Manager',
+        role: 'Supervisor',
         isActive: true
       });
 
@@ -191,7 +196,7 @@ describe('UserRepository', () => {
         username: 'it2',
         password: 'password123',
         name: 'IT User 2',
-        role: 'Manager',
+        role: 'Supervisor',
         department: 'IT'
       });
 
@@ -231,15 +236,15 @@ describe('UserRepository', () => {
       await userRepository.createUser({
         username: 'manager1',
         password: 'password123',
-        name: 'Manager User 1',
-        role: 'Manager'
+        name: 'Supervisor User 1',
+        role: 'Supervisor'
       });
 
       await userRepository.createUser({
         username: 'manager2',
         password: 'password123',
-        name: 'Manager User 2',
-        role: 'Manager'
+        name: 'Supervisor User 2',
+        role: 'Supervisor'
       });
 
       await userRepository.createUser({
@@ -408,16 +413,16 @@ describe('UserRepository', () => {
       await userRepository.createUser({
         username: 'manager1',
         password: 'pass123',
-        name: 'Manager 1',
-        role: 'Manager',
+        name: 'Supervisor 1',
+        role: 'Supervisor',
         isActive: true
       });
 
       await userRepository.createUser({
         username: 'manager2',
         password: 'pass123',
-        name: 'Manager 2',
-        role: 'Manager',
+        name: 'Supervisor 2',
+        role: 'Supervisor',
         isActive: false
       });
 
@@ -441,15 +446,15 @@ describe('UserRepository', () => {
     it('should return correct user statistics', async () => {
       const stats = await userRepository.getUserStats();
 
-      expect(stats).toHaveLength(3); // Admin, Manager, User
+      expect(stats).toHaveLength(3); // Admin, Supervisor, User
       
       const adminStats = stats.find(s => s._id === 'Admin');
       expect(adminStats.count).toBe(1);
       expect(adminStats.activeCount).toBe(1);
 
-      const managerStats = stats.find(s => s._id === 'Manager');
-      expect(managerStats.count).toBe(2);
-      expect(managerStats.activeCount).toBe(1);
+      const supervisorStats = stats.find(s => s._id === 'Supervisor');
+      expect(supervisorStats.count).toBe(2);
+      expect(supervisorStats.activeCount).toBe(1);
 
       const userStats = stats.find(s => s._id === 'User');
       expect(userStats.count).toBe(2);

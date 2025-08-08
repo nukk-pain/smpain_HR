@@ -193,7 +193,7 @@ export const useUserConfig = () => {
   const getRoleLabel = useCallback((role: UserRole): string => {
     const labels = {
       [USER_ROLES.ADMIN]: '관리자',
-      [USER_ROLES.MANAGER]: '매니저',
+      [USER_ROLES.SUPERVISOR]: '슈퍼바이저',
       [USER_ROLES.USER]: '사용자',
     };
     return labels[role] || role;
@@ -202,7 +202,7 @@ export const useUserConfig = () => {
   const hasPermission = useCallback((userRole: UserRole, requiredRole: UserRole): boolean => {
     const roleHierarchy = {
       [USER_ROLES.ADMIN]: 3,
-      [USER_ROLES.MANAGER]: 2,
+      [USER_ROLES.SUPERVISOR]: 2,
       [USER_ROLES.USER]: 1,
     };
     

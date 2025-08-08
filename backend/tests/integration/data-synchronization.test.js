@@ -30,7 +30,7 @@ describe('Data Synchronization Tests - Test 9.2', () => {
       }
 
       const apiEndpoints = [
-        { name: 'Users', path: '/api/users', expectedFields: ['_id', 'username', 'name', 'email', 'role', 'department'] },
+        { name: 'Users', path: '/api/users', expectedFields: ['_id', 'username', 'name', 'role', 'department'] },
         { name: 'Departments', path: '/api/departments', expectedFields: ['_id', 'name', 'employeeCount', 'managers', 'isActive'] },
         { name: 'Leave Pending', path: '/api/leave/pending', expectedFields: ['_id', 'userId', 'startDate', 'endDate', 'status'] }
       ];

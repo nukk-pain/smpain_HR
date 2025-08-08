@@ -15,7 +15,6 @@ const userSchemas = {
     phone: Joi.string().pattern(/^01[0-9]-\d{4}-\d{4}$/).required(),
     accountNumber: Joi.string().min(10).max(20),
     hireDate: Joi.date().required(),
-    managerId: Joi.string().allow(null),
     supervisorId: Joi.string().allow(null),
     contractType: Joi.string().valid('regular', 'contract', 'intern').required(),
     baseSalary: Joi.number().min(0),
@@ -28,7 +27,6 @@ const userSchemas = {
     position: Joi.string().min(1).max(50),
     phone: Joi.string().pattern(/^01[0-9]-\d{4}-\d{4}$/),
     accountNumber: Joi.string().min(10).max(20),
-    managerId: Joi.string().allow(null),
     supervisorId: Joi.string().allow(null),
     contractType: Joi.string().valid('regular', 'contract', 'intern'),
     baseSalary: Joi.number().min(0),
@@ -125,13 +123,13 @@ const departmentSchemas = {
   create: Joi.object({
     name: Joi.string().min(1).max(50).required(),
     description: Joi.string().max(200).allow(''),
-    manager_id: Joi.string().allow(null),
+    supervisor_id: Joi.string().allow(null),
   }),
 
   update: Joi.object({
     name: Joi.string().min(1).max(50),
     description: Joi.string().max(200).allow(''),
-    manager_id: Joi.string().allow(null),
+    supervisor_id: Joi.string().allow(null),
   }),
 };
 

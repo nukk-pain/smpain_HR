@@ -204,7 +204,6 @@ const departmentSchemas = {
   create: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     description: Joi.string().max(500).optional(),
-    managerId: baseSchemas.optionalObjectId,
     supervisorId: baseSchemas.optionalObjectId,
     isActive: Joi.boolean().default(true),
     budget: Joi.number().integer().min(0).optional(),
@@ -214,7 +213,6 @@ const departmentSchemas = {
   update: Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     description: Joi.string().max(500).optional(),
-    managerId: baseSchemas.optionalObjectId,
     supervisorId: baseSchemas.optionalObjectId,
     isActive: Joi.boolean().optional(),
     budget: Joi.number().integer().min(0).optional(),

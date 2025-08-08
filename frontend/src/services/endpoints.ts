@@ -6,7 +6,7 @@ export interface User {
   _id: string;
   username: string;
   name: string;
-  role: 'Admin' | 'Manager' | 'User';
+  role: 'Admin' | 'Supervisor' | 'User';
   department?: string;
   position?: string;
   employeeId?: string;

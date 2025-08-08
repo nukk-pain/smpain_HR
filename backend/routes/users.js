@@ -369,7 +369,7 @@ function createUserRoutes(db) {
 
   // Create new user
   router.post('/', requireAuth, requirePermission('users:create'), asyncHandler(async (req, res) => {
-    const { username, password, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, birthDate, phoneNumber, visibleTeams } = req.body;
+    const { username, password, name, role, hireDate, department, position, accountNumber, supervisorId, contractType, baseSalary, incentiveFormula, birthDate, phoneNumber, visibleTeams } = req.body;
     
     if (!username || !password || !name || !role) {
       return res.status(400).json({ error: 'Username, password, name, and role are required' });
@@ -435,7 +435,9 @@ function createUserRoutes(db) {
       position: position || null,
       employeeId,
       accountNumber: accountNumber || null,
-      managerId: managerId ? new ObjectId(managerId) : null,
+      supervisorId: (supervisorId && supervisorId.trim() && ObjectId.isValid(supervisorId)) 
+        ? new ObjectId(supervisorId) 
+        : null,
       contractType: contractType || 'fulltime',
       baseSalary: baseSalary || 0,
       incentiveFormula: incentiveFormula || null,
@@ -445,7 +447,9 @@ function createUserRoutes(db) {
       permissions: DEFAULT_PERMISSIONS[normalizedRole] || [],
       visibleTeams: (req.user.role === 'admin' && visibleTeams && Array.isArray(visibleTeams)) 
         ? visibleTeams.map(team => ({
-            departmentId: team.departmentId ? new ObjectId(team.departmentId) : null,
+            departmentId: (team.departmentId && team.departmentId.trim() && ObjectId.isValid(team.departmentId))
+              ? new ObjectId(team.departmentId) 
+              : null,
             departmentName: team.departmentName || ''
           }))
         : [], // Empty by default - only admins can set initial visibleTeams
@@ -504,7 +508,7 @@ function createUserRoutes(db) {
   // Update user (admin function)
   router.put('/:id', requireAuth, requirePermission('users:edit'), asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { username, name, role, hireDate, department, position, accountNumber, managerId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;
+    const { username, name, role, hireDate, department, position, accountNumber, supervisorId, contractType, baseSalary, incentiveFormula, isActive, birthDate, phoneNumber, visibleTeams } = req.body;
     
     // Validate role values if role is being updated
     if (role) {
@@ -524,7 +528,9 @@ function createUserRoutes(db) {
       department: department || null,
       position: position || null,
       accountNumber: accountNumber || null,
-      managerId: managerId ? new ObjectId(managerId) : null,
+      supervisorId: (supervisorId && supervisorId.trim() && ObjectId.isValid(supervisorId)) 
+        ? new ObjectId(supervisorId) 
+        : null,
       contractType: contractType || 'fulltime',
       baseSalary: baseSalary || 0,
       incentiveFormula: incentiveFormula || null,
@@ -584,7 +590,6 @@ function createUserRoutes(db) {
         userInfo: {
           id: id,
           name: existingUser.name,
-          email: existingUser.email,
           message: `This action will permanently delete user "${existingUser.name}". Please confirm.`
         }
       });

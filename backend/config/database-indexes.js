@@ -141,7 +141,6 @@ async function createDepartmentsIndexes(db) {
     
     // Filtering patterns
     await departments.createIndex({ isActive: 1, name: 1 }, { name: 'idx_active_name' });
-    await departments.createIndex({ managerId: 1 }, { sparse: true, name: 'idx_manager' });
     await departments.createIndex({ supervisorId: 1 }, { sparse: true, name: 'idx_supervisor' });
     
     // Text search for department names

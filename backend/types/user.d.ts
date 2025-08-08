@@ -23,7 +23,6 @@ export interface User {
   employeeId: string;
   role: UserRole;
   department: string;
-  email?: string;
   phoneNumber?: string;
   hireDate?: Date | string;
   birthDate?: Date | string;
@@ -33,7 +32,7 @@ export interface User {
   permissions?: string[];
   isActive: boolean;
   terminationDate?: Date | string | null;
-  managerId?: string | ObjectId | null;
+  supervisorId?: string | ObjectId | null;
   contractType?: string;
   accountNumber?: string | null;
   incentiveFormula?: string | null;
@@ -61,7 +60,6 @@ export interface CreateUserData {
   employeeId: string;
   role: UserRole;
   department: string;
-  email?: string;
   phoneNumber?: string;
   hireDate?: Date | string;
   birthDate?: Date | string;
@@ -70,7 +68,7 @@ export interface CreateUserData {
   leaveBalance?: number;
   permissions?: string[];
   isActive?: boolean;
-  managerId?: string | ObjectId | null;
+  supervisorId?: string | ObjectId | null;
   contractType?: string;
   accountNumber?: string | null;
   incentiveFormula?: string | null;
