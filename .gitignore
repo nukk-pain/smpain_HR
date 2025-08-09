@@ -125,3 +125,12 @@ backup-*
 *.test.backup
 quick-*.test.js
 test-*.temp.js
+
+# Sample Data - 실제 급여 데이터 폴더 전체 제외
+# 노무사에게 받은 실제 급여명세서, 급여이체 파일들 보안을 위해 Git 추적 제외
+sample-data/
+
+# 실제 업로드된 파일들 (uploads 폴더)
+uploads/payroll/
+uploads/payslips/
+!uploads/.gitkeep

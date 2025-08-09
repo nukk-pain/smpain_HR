@@ -140,49 +140,58 @@ const leaveSchemas = {
 const payrollSchemas = {
   create: Joi.object({
     userId: baseSchemas.objectId,
-    yearMonth: Joi.string().pattern(patterns.yearMonth).required(),
     year: Joi.number().integer().min(2020).max(2030).required(),
     month: Joi.number().integer().min(1).max(12).required(),
     baseSalary: Joi.number().integer().min(0).required(),
-    incentive: Joi.number().integer().min(0).default(0),
     
-    // Allowances
-    transportAllowance: Joi.number().integer().min(0).default(0),
-    mealAllowance: Joi.number().integer().min(0).default(0),
-    overtimeAllowance: Joi.number().integer().min(0).default(0),
-    specialAllowance: Joi.number().integer().min(0).default(0),
+    // Allowances object structure
+    allowances: Joi.object({
+      overtime: Joi.number().integer().min(0).default(0),
+      position: Joi.number().integer().min(0).default(0),
+      meal: Joi.number().integer().min(0).default(0),
+      transportation: Joi.number().integer().min(0).default(0),
+      other: Joi.number().integer().min(0).default(0)
+    }).default({}),
     
-    // Deductions
-    nationalPension: Joi.number().integer().min(0).default(0),
-    healthInsurance: Joi.number().integer().min(0).default(0),
-    employmentInsurance: Joi.number().integer().min(0).default(0),
-    incomeTax: Joi.number().integer().min(0).default(0),
+    // Deductions object structure  
+    deductions: Joi.object({
+      nationalPension: Joi.number().integer().min(0).default(0),
+      healthInsurance: Joi.number().integer().min(0).default(0),
+      employmentInsurance: Joi.number().integer().min(0).default(0),
+      incomeTax: Joi.number().integer().min(0).default(0),
+      localIncomeTax: Joi.number().integer().min(0).default(0),
+      other: Joi.number().integer().min(0).default(0)
+    }).default({}),
     
-    totalAllowances: Joi.number().integer().min(0).optional(),
-    totalDeductions: Joi.number().integer().min(0).optional(),
-    netPay: Joi.number().integer().min(0).optional(),
-    
-    status: Joi.string().valid('pending', 'processed').default('pending'),
+    paymentStatus: Joi.string().valid('pending', 'approved', 'paid').default('pending'),
+    paymentDate: Joi.date().iso().optional(),
     notes: Joi.string().max(1000).optional(),
   }),
 
   update: Joi.object({
     baseSalary: Joi.number().integer().min(0).optional(),
-    incentive: Joi.number().integer().min(0).optional(),
     
-    // Allowances
-    transportAllowance: Joi.number().integer().min(0).optional(),
-    mealAllowance: Joi.number().integer().min(0).optional(),
-    overtimeAllowance: Joi.number().integer().min(0).optional(),
-    specialAllowance: Joi.number().integer().min(0).optional(),
+    // Allowances object structure
+    allowances: Joi.object({
+      overtime: Joi.number().integer().min(0).optional(),
+      position: Joi.number().integer().min(0).optional(),
+      meal: Joi.number().integer().min(0).optional(),
+      transportation: Joi.number().integer().min(0).optional(),
+      other: Joi.number().integer().min(0).optional()
+    }).optional(),
     
-    // Deductions
-    nationalPension: Joi.number().integer().min(0).optional(),
-    healthInsurance: Joi.number().integer().min(0).optional(),
-    employmentInsurance: Joi.number().integer().min(0).optional(),
-    incomeTax: Joi.number().integer().min(0).optional(),
+    // Deductions object structure
+    deductions: Joi.object({
+      nationalPension: Joi.number().integer().min(0).optional(),
+      healthInsurance: Joi.number().integer().min(0).optional(),
+      employmentInsurance: Joi.number().integer().min(0).optional(),
+      incomeTax: Joi.number().integer().min(0).optional(),
+      localIncomeTax: Joi.number().integer().min(0).optional(),
+      other: Joi.number().integer().min(0).optional()
+    }).optional(),
     
-    status: Joi.string().valid('pending', 'processed').optional(),
+    paymentStatus: Joi.string().valid('pending', 'approved', 'paid').optional(),
+    paymentDate: Joi.date().iso().optional(),
     notes: Joi.string().max(1000).optional(),
   }),
 
