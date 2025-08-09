@@ -379,6 +379,135 @@ class PayrollRepository extends BaseRepository {
       ]
     });
   }
+
+  /**
+   * Calculate payroll totals from base salary, allowances, and deductions
+   * @param {Object} payrollData - Object with baseSalary, allowances, deductions
+   * @returns {Object} - Object with totalAllowances, totalDeductions, netSalary
+   */
+  calculatePayrollTotals(payrollData) {
+    const { baseSalary = 0, allowances = {}, deductions = {} } = payrollData;
+    
+    const totalAllowances = Object.values(allowances).reduce((sum, value) => sum + (value || 0), 0);
+    const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + (value || 0), 0);
+    const netSalary = baseSalary + totalAllowances - totalDeductions;
+    
+    return {
+      totalAllowances,
+      totalDeductions,
+      netSalary
+    };
+  }
+
+  /**
+   * Validate payroll data
+   * @param {Object} data - Payroll data to validate
+   * @param {boolean} strict - Whether to perform strict validation
+   * @throws {Error} - If validation fails
+   */
+  validatePayrollData(data, strict = false) {
+    const errors = [];
+    
+    if (strict) {
+      if (!data.userId) errors.push('userId is required');
+      if (!data.year) errors.push('year is required');
+      if (!data.month) errors.push('month is required');
+    }
+    
+    if (data.baseSalary !== undefined && data.baseSalary < 0) {
+      errors.push('baseSalary cannot be negative');
+    }
+    
+    if (data.year !== undefined) {
+      const currentYear = new Date().getFullYear();
+      if (data.year < 2020 || data.year > currentYear + 1) {
+        errors.push('year must be between 2020 and next year');
+      }
+    }
+    
+    if (data.month !== undefined) {
+      if (data.month < 1 || data.month > 12) {
+        errors.push('month must be between 1 and 12');
+      }
+    }
+    
+    if (errors.length > 0) {
+      throw new Error(`Validation failed: ${errors.join(', ')}`);
+    }
+  }
+
+  /**
+   * Check for duplicate payroll period
+   * @param {Object} data - Object with userId, year, month
+   * @throws {Error} - If duplicate exists
+   */
+  async checkDuplicatePeriod(data) {
+    const existing = await this.findByUserAndPeriod(data.userId, data.year, data.month);
+    if (existing) {
+      throw new Error(`Payroll record already exists for ${data.year}-${data.month}`);
+    }
+  }
+
+  /**
+   * Validate payroll status transition
+   * @param {string} fromStatus - Current status
+   * @param {string} toStatus - Target status
+   * @throws {Error} - If transition is invalid
+   */
+  validateStatusTransition(fromStatus, toStatus) {
+    const validTransitions = {
+      'pending': ['approved', 'cancelled'],
+      'approved': ['paid', 'cancelled'],
+      'paid': [], // No transitions from paid
+      'cancelled': [] // No transitions from cancelled
+    };
+    
+    if (!validTransitions[fromStatus]) {
+      throw new Error(`Invalid current status: ${fromStatus}`);
+    }
+    
+    if (!validTransitions[fromStatus].includes(toStatus)) {
+      throw new Error(`Invalid status transition from ${fromStatus} to ${toStatus}`);
+    }
+  }
+
+  /**
+   * Calculate monthly summary from payroll records
+   * @param {Array} records - Array of payroll records
+   * @returns {Object} - Summary statistics
+   */
+  calculateMonthlySummary(records) {
+    if (!records || records.length === 0) {
+      return {
+        totalEmployees: 0,
+        totalBaseSalary: 0,
+        totalAllowances: 0,
+        totalDeductions: 0,
+        totalNetSalary: 0,
+        paidCount: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        cancelledCount: 0,
+        averageNetSalary: 0
+      };
+    }
+    
+    const summary = {
+      totalEmployees: records.length,
+      totalBaseSalary: records.reduce((sum, r) => sum + (r.baseSalary || 0), 0),
+      totalAllowances: records.reduce((sum, r) => sum + (r.totalAllowances || 0), 0),
+      totalDeductions: records.reduce((sum, r) => sum + (r.totalDeductions || 0), 0),
+      totalNetSalary: records.reduce((sum, r) => sum + (r.netSalary || 0), 0),
+      paidCount: records.filter(r => r.paymentStatus === 'paid').length,
+      pendingCount: records.filter(r => r.paymentStatus === 'pending').length,
+      approvedCount: records.filter(r => r.paymentStatus === 'approved').length,
+      cancelledCount: records.filter(r => r.paymentStatus === 'cancelled').length
+    };
+    
+    summary.averageNetSalary = summary.totalNetSalary / summary.totalEmployees;
+    
+    return summary;
+  }
 }
 
 module.exports = PayrollRepository;

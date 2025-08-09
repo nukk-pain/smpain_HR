@@ -399,6 +399,78 @@ class ApiService {
     return this.get(`/payroll/stats/${yearMonth}`);
   }
 
+  // Enhanced Payroll Management (Phase 1)
+  async getPayrollRecords(params?: {
+    year?: number;
+    month?: number;
+    userId?: string;
+    paymentStatus?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.get('/payroll', params);
+  }
+
+  async getPayrollRecord(id: string) {
+    return this.get(`/payroll/${id}`);
+  }
+
+  async createPayrollRecord(data: any) {
+    return this.post('/payroll', data);
+  }
+
+  async updatePayrollRecord(id: string, data: any) {
+    return this.put(`/payroll/${id}`, data);
+  }
+
+  async deletePayrollRecord(id: string) {
+    return this.delete(`/payroll/${id}`);
+  }
+
+  // Excel Upload/Export
+  async uploadPayrollExcel(file: File) {
+    const formData = new FormData();
+    formData.append('payrollFile', file);
+    return this.upload('/payroll/excel/upload', formData);
+  }
+
+  async exportPayrollExcel(params?: {
+    year?: number;
+    month?: number;
+    userId?: string;
+  }) {
+    const response = await this.api.get('/payroll/excel/export', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async downloadPayrollTemplate() {
+    const response = await this.api.get('/payroll/excel/template', {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Payslip Management
+  async uploadPayslip(payrollId: string, file: File) {
+    const formData = new FormData();
+    formData.append('payslip', file);
+    return this.upload(`/payroll/${payrollId}/payslip/upload`, formData);
+  }
+
+  async downloadPayslipPdf(payrollId: string) {
+    const response = await this.api.get(`/payroll/${payrollId}/payslip`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async deletePayslip(payrollId: string) {
+    return this.delete(`/payroll/${payrollId}/payslip`);
+  }
+
   // Departments
   async getDepartments(): Promise<ApiResponse<Department[]>> {
     return this.get<Department[]>('/departments/');

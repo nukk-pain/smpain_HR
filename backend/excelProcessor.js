@@ -414,6 +414,153 @@ class ExcelProcessor {
       }
     };
   }
+
+  /**
+   * Generate payroll Excel template
+   * DomainMeaning: Creates downloadable Excel template for payroll data entry
+   * MisleadingNames: None
+   * SideEffects: None
+   * Invariants: Returns Excel buffer with template structure
+   * RAG_Keywords: excel, template, payroll, download, headers
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_generate_payroll_template_001
+   */
+  async generatePayrollTemplate() {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Main template sheet
+    const templateSheet = workbook.addWorksheet('Payroll Template');
+    
+    // Define headers (Korean)
+    const headers = [
+      '사원번호',
+      '성명',
+      '부서',
+      '직급',
+      '년도',
+      '월',
+      '기본급',
+      '시간외수당',
+      '직책수당',
+      '식대',
+      '교통비',
+      '기타수당',
+      '국민연금',
+      '건강보험',
+      '고용보험',
+      '소득세',
+      '지방소득세',
+      '기타공제'
+    ];
+    
+    // Add headers
+    templateSheet.addRow(headers);
+    
+    // Style headers
+    const headerRow = templateSheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+    
+    // Add sample data row
+    const sampleData = [
+      'EMP001',
+      '홍길동',
+      '개발팀',
+      '대리',
+      2024,
+      1,
+      3000000,
+      200000,
+      150000,
+      100000,
+      50000,
+      0,
+      135000,
+      120000,
+      27000,
+      180000,
+      18000,
+      0
+    ];
+    
+    templateSheet.addRow(sampleData);
+    
+    // Set column widths
+    templateSheet.columns.forEach((column, index) => {
+      if (index < 4) {
+        column.width = 15; // Text columns
+      } else {
+        column.width = 12; // Number columns
+      }
+    });
+    
+    // Add number formatting to salary columns
+    for (let col = 7; col <= 18; col++) {
+      templateSheet.getColumn(col).numFmt = '#,##0';
+    }
+    
+    // Add borders
+    const lastRow = templateSheet.lastRow.number;
+    for (let row = 1; row <= lastRow; row++) {
+      for (let col = 1; col <= headers.length; col++) {
+        const cell = templateSheet.getCell(row, col);
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      }
+    }
+    
+    // Instructions sheet
+    const instructionSheet = workbook.addWorksheet('사용 안내');
+    
+    instructionSheet.addRow(['급여 데이터 입력 안내']);
+    instructionSheet.addRow([]);
+    instructionSheet.addRow(['1. 필수 입력 항목']);
+    instructionSheet.addRow(['   - 사원번호: 고유한 사원 식별 번호']);
+    instructionSheet.addRow(['   - 성명: 사원 이름']);
+    instructionSheet.addRow(['   - 부서: 소속 부서명']);
+    instructionSheet.addRow(['   - 년도: 급여 년도 (예: 2024)']);
+    instructionSheet.addRow(['   - 월: 급여 월 (1-12)']);
+    instructionSheet.addRow(['   - 기본급: 기본 급여 금액']);
+    instructionSheet.addRow([]);
+    instructionSheet.addRow(['2. 선택 입력 항목']);
+    instructionSheet.addRow(['   - 각종 수당: 해당하는 경우 입력']);
+    instructionSheet.addRow(['   - 각종 공제: 자동 계산되거나 직접 입력']);
+    instructionSheet.addRow([]);
+    instructionSheet.addRow(['3. 주의사항']);
+    instructionSheet.addRow(['   - 금액은 숫자만 입력 (콤마 제외)']);
+    instructionSheet.addRow(['   - 한 행에 한 명의 급여 정보만 입력']);
+    instructionSheet.addRow(['   - 동일 사원의 동일 년월 중복 입력 불가']);
+    instructionSheet.addRow([]);
+    instructionSheet.addRow(['4. 파일 저장']);
+    instructionSheet.addRow(['   - Excel 형식(.xlsx)으로 저장']);
+    instructionSheet.addRow(['   - 파일명 예: payroll_2024_01.xlsx']);
+    
+    // Style instruction sheet
+    const titleCell = instructionSheet.getCell('A1');
+    titleCell.font = { bold: true, size: 14 };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    titleCell.font.color = { argb: 'FFFFFFFF' };
+    
+    instructionSheet.getColumn(1).width = 50;
+    
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
 }
 
 module.exports = ExcelProcessor;

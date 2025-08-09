@@ -19,6 +19,15 @@ const PayrollDocumentRepository = require('../repositories/PayrollDocumentReposi
 const LaborConsultantParser = require('../utils/laborConsultantParser');
 const ExcelProcessor = require('../excelProcessor');
 const { payrollSchemas, validate, validateObjectId } = require('../validation/schemas');
+const {
+  payrollRateLimiter,
+  strictRateLimiter,
+  sanitizePayrollInput,
+  validateFileUpload,
+  addSecurityHeaders,
+  validateObjectId: validateMongoId,
+  preventNoSQLInjection
+} = require('../middleware/payrollSecurity');
 
 const router = express.Router();
 
@@ -35,6 +44,9 @@ const router = express.Router();
 function createPayrollRoutes(db) {
   const payrollRepo = new PayrollRepository();
   const documentRepo = new PayrollDocumentRepository();
+
+  // Apply security headers to all routes
+  router.use(addSecurityHeaders);
 
   // Permission middleware
   const requirePermission = (permission) => {
@@ -83,7 +95,12 @@ function createPayrollRoutes(db) {
    * DuplicatePolicy: canonical
    * FunctionIdentity: hash_post_payroll_create_001
    */
-  router.post('/', requireAuth, requirePermission('payroll:manage'), 
+  router.post('/', 
+    requireAuth, 
+    requirePermission('payroll:manage'),
+    payrollRateLimiter,
+    preventNoSQLInjection,
+    sanitizePayrollInput,
     validate.body(payrollSchemas.create), 
     asyncHandler(async (req, res) => {
       try {
@@ -491,7 +508,11 @@ function createPayrollRoutes(db) {
    * DuplicatePolicy: canonical
    * FunctionIdentity: hash_post_excel_upload_001
    */
-  router.post('/excel/upload', requireAuth, requirePermission('payroll:manage'),
+  router.post('/excel/upload', 
+    requireAuth, 
+    requirePermission('payroll:manage'),
+    strictRateLimiter,
+    preventNoSQLInjection,
     upload.single('file'),
     asyncHandler(async (req, res) => {
       try {
@@ -749,6 +770,53 @@ function createPayrollRoutes(db) {
   );
 
   /**
+   * GET /api/payroll/excel/template - Download Excel template
+   * DomainMeaning: Download Excel template with headers and sample data for payroll entry
+   * MisleadingNames: None
+   * SideEffects: None
+   * Invariants: Returns properly formatted Excel file with template structure
+   * RAG_Keywords: excel template, download, payroll headers, sample data
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_excel_template_001
+   */
+  router.get('/excel/template', 
+    requireAuth, 
+    requirePermission('payroll:manage'),
+    payrollRateLimiter,
+    asyncHandler(async (req, res) => {
+      try {
+        console.log(`📥 Excel template download requested by: ${req.user.name}`);
+
+        // Generate template using ExcelProcessor
+        const excelProcessor = new ExcelProcessor();
+        const templateBuffer = await excelProcessor.generatePayrollTemplate();
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `payroll-template-${timestamp}.xlsx`;
+
+        // Set response headers for Excel file download
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Content-Length', templateBuffer.length);
+
+        // Send the Excel template
+        res.send(templateBuffer);
+
+        console.log(`📊 Excel template downloaded: ${filename}`);
+
+      } catch (error) {
+        console.error('Excel template generation error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to generate template: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
    * Configure multer for PDF payslip uploads
    * DomainMeaning: File upload middleware for PDF payslip document processing
    * MisleadingNames: None
@@ -788,7 +856,12 @@ function createPayrollRoutes(db) {
    * DuplicatePolicy: canonical
    * FunctionIdentity: hash_post_payslip_upload_001
    */
-  router.post('/:id/payslip/upload', requireAuth, requirePermission('payroll:manage'), validateObjectId,
+  router.post('/:id/payslip/upload', 
+    requireAuth, 
+    requirePermission('payroll:manage'), 
+    validateMongoId,
+    strictRateLimiter,
+    preventNoSQLInjection,
     (req, res, next) => {
       payslipUpload.single('payslip')(req, res, (err) => {
         if (err) {
