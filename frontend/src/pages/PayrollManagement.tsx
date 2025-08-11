@@ -135,7 +135,7 @@ const PayrollManagement: React.FC = () => {
               {title}
             </Typography>
             <Typography variant="h5" component="div">
-              {typeof value === 'number' ? value.toLocaleString() : value}
+              {typeof value === 'number' && value !== null && value !== undefined ? value.toLocaleString() : (value || '0')}
               {typeof value === 'number' && '원'}
             </Typography>
           </Box>
@@ -218,10 +218,10 @@ const PayrollManagement: React.FC = () => {
           {stats && (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                직원 수: {stats.employee_count}명
+                직원 수: {stats.employee_count || 0}명
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                총 지급액: {stats.grand_total.toLocaleString()}원
+                총 지급액: {stats.grand_total && typeof stats.grand_total === 'number' ? stats.grand_total.toLocaleString() : '0'}원
               </Typography>
             </Box>
           )}

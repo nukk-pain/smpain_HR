@@ -13,14 +13,14 @@
 
 import React from 'react';
 import { Box, Alert } from '@mui/material';
-import { PayrollExcelUpload } from '../../components/PayrollExcelUpload';
-import { useAuth } from '../../hooks/useAuth';
+import { PayrollExcelUploadWithPreview } from '../../components/PayrollExcelUploadWithPreview';
+import { useAuth } from '../../components/AuthProvider';
 
 export const PayrollExcelUploadPage: React.FC = () => {
   const { user } = useAuth();
 
   // Check if user has permission to upload payroll data
-  const canUpload = user?.permissions?.includes('payroll:manage') || user?.role === 'Admin';
+  const canUpload = user?.permissions?.includes('payroll:manage') || user?.role === 'admin';
 
   if (!canUpload) {
     return (
@@ -32,5 +32,18 @@ export const PayrollExcelUploadPage: React.FC = () => {
     );
   }
 
-  return <PayrollExcelUpload />;
+  try {
+    return <PayrollExcelUploadWithPreview />;
+  } catch (error) {
+    console.error('PayrollExcelUploadWithPreview component error:', error);
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          컴포넌트 로드 중 오류가 발생했습니다: {String(error)}
+        </Alert>
+      </Box>
+    );
+  }
 };
+
+export default PayrollExcelUploadPage;

@@ -9,6 +9,7 @@ import UserProfile from './pages/UserProfile'
 
 // Lazy load heavy components to reduce initial bundle size
 const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
+const PayrollExcelUploadPage = React.lazy(() => import('./pages/Payroll/PayrollExcelUpload'))
 const LeaveManagement = React.lazy(() => import('./pages/LeaveManagement'))
 const EmployeeLeaveManagement = React.lazy(() => import('./pages/EmployeeLeaveManagement'))
 const LeaveCalendarPage = React.lazy(() => import('./pages/LeaveCalendarPage'))
@@ -84,7 +85,6 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        
         <Route path="leave" element={
           <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
             <LeaveManagement />
@@ -103,6 +103,25 @@ const AppContent: React.FC = () => {
         <Route path="employee-leave" element={<Navigate to="/supervisor/leave/requests" replace />} />
         <Route path="admin/leave-overview" element={<Navigate to="/admin/leave/overview" replace />} />
         <Route path="admin/leave-policy" element={<Navigate to="/admin/leave/policy" replace />} />
+        
+      </Route>
+      
+      {/* Specific payroll routes - must come BEFORE general payroll redirect */}
+      <Route path="/payroll/excel-upload" element={
+        <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+          <Layout>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <PayrollExcelUploadPage />
+            </React.Suspense>
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      }>
         
         {/* Role-based redirects for old management pages - Admin now uses supervisor routes */}
         <Route path="users" element={<Navigate to="/supervisor/users" replace />} />

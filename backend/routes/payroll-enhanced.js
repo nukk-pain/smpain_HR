@@ -13,6 +13,7 @@ const express = require('express');
 const { ObjectId } = require('mongodb');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
 const PayrollRepository = require('../repositories/PayrollRepository');
 const PayrollDocumentRepository = require('../repositories/PayrollDocumentRepository');
@@ -44,6 +45,24 @@ const router = express.Router();
 function createPayrollRoutes(db) {
   const payrollRepo = new PayrollRepository();
   const documentRepo = new PayrollDocumentRepository();
+
+  // Temporary storage for preview data (In production, use Redis or MongoDB)
+  const previewStorage = new Map();
+  const PREVIEW_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+  
+  // Cleanup expired preview data
+  const cleanupExpiredPreviews = () => {
+    const now = Date.now();
+    for (const [token, data] of previewStorage.entries()) {
+      if (data.expiresAt < now) {
+        previewStorage.delete(token);
+        console.log(`🧹 Cleaned up expired preview: ${token}`);
+      }
+    }
+  };
+  
+  // Run cleanup every 5 minutes
+  setInterval(cleanupExpiredPreviews, 5 * 60 * 1000);
 
   // Apply security headers to all routes
   router.use(addSecurityHeaders);
@@ -497,6 +516,315 @@ function createPayrollRoutes(db) {
       }
     }
   });
+
+  /**
+   * POST /api/payroll/excel/preview - Preview Excel payroll file without saving
+   * DomainMeaning: Parse and validate payroll data from Excel, return preview without DB save
+   * MisleadingNames: None
+   * SideEffects: Creates temporary preview data in memory, no DB writes
+   * Invariants: Only Admin can preview, validates Excel structure and employee matching
+   * RAG_Keywords: excel preview, payroll validation, employee matching, temporary data
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_post_excel_preview_001
+   */
+  router.post('/excel/preview',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    strictRateLimiter,
+    preventNoSQLInjection,
+    upload.single('file'),
+    asyncHandler(async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            error: 'No file uploaded. Please select an Excel file.'
+          });
+        }
+
+        console.log(`📋 Previewing file: ${req.file.originalname}`);
+
+        // Initialize parser and process Excel file
+        const parser = new LaborConsultantParser();
+        const parsedData = await parser.parsePayrollFile(req.file.path);
+        
+        // Convert to PayrollRepository format
+        const { year = new Date().getFullYear(), month = new Date().getMonth() + 1 } = req.body;
+        const payrollRecords = parser.toPayrollRepositoryFormat(parsedData, parseInt(year), parseInt(month));
+
+        // Prepare preview data
+        const previewRecords = [];
+        const errors = [];
+        const warnings = [];
+        let validCount = 0;
+        let invalidCount = 0;
+        let warningCount = 0;
+
+        // Get users collection for matching
+        const userCollection = db.collection('users');
+        const payrollCollection = db.collection('payroll');
+
+        // Process each record for preview
+        for (let i = 0; i < payrollRecords.length; i++) {
+          const record = payrollRecords[i];
+          const previewRecord = {
+            rowIndex: i + 1,
+            employeeName: record.employeeName || '',
+            employeeId: record.employeeId || '',
+            baseSalary: record.baseSalary || 0,
+            totalAllowances: Object.values(record.allowances || {}).reduce((sum, val) => sum + (val || 0), 0),
+            totalDeductions: Object.values(record.deductions || {}).reduce((sum, val) => sum + (val || 0), 0),
+            netSalary: record.netSalary || 0,
+            matchedUser: {
+              found: false
+            },
+            status: 'valid'
+          };
+
+          // Try to match employee
+          let user = null;
+          if (record.employeeId) {
+            user = await userCollection.findOne({ employeeId: record.employeeId });
+          }
+          if (!user && record.employeeName) {
+            user = await userCollection.findOne({ name: record.employeeName });
+          }
+
+          if (user) {
+            previewRecord.matchedUser = {
+              found: true,
+              userId: user._id.toString(),
+              name: user.name,
+              employeeId: user.employeeId
+            };
+
+            // Check for duplicate payroll record
+            const existingPayroll = await payrollCollection.findOne({
+              userId: user._id,
+              year: parseInt(year),
+              month: parseInt(month)
+            });
+
+            if (existingPayroll) {
+              previewRecord.status = 'warning';
+              warningCount++;
+              warnings.push({
+                row: i + 1,
+                message: `Payroll record already exists for ${user.name} in ${year}/${month}`
+              });
+            } else {
+              validCount++;
+            }
+          } else {
+            previewRecord.matchedUser.found = false;
+            previewRecord.status = 'invalid';
+            invalidCount++;
+            errors.push({
+              row: i + 1,
+              message: `Employee not found: ${record.employeeName || record.employeeId}`
+            });
+          }
+
+          previewRecords.push(previewRecord);
+        }
+
+        // Generate preview token
+        const previewToken = crypto.randomBytes(32).toString('hex');
+        
+        // Store preview data temporarily
+        previewStorage.set(previewToken, {
+          parsedRecords: payrollRecords,
+          fileName: req.file.originalname,
+          uploadedBy: req.user.id,
+          year: parseInt(year),
+          month: parseInt(month),
+          createdAt: new Date(),
+          expiresAt: Date.now() + PREVIEW_EXPIRY_TIME
+        });
+
+        // Clean up uploaded file
+        const fs = require('fs');
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+
+        // Return preview data
+        res.json({
+          success: true,
+          previewToken,
+          expiresIn: PREVIEW_EXPIRY_TIME / 1000, // in seconds
+          summary: {
+            totalRecords: payrollRecords.length,
+            validRecords: validCount,
+            invalidRecords: invalidCount,
+            warningRecords: warningCount,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            year: parseInt(year),
+            month: parseInt(month)
+          },
+          records: previewRecords,
+          errors,
+          warnings
+        });
+
+      } catch (error) {
+        console.error('Preview error:', error);
+        
+        // Clean up file on error
+        if (req.file && req.file.path) {
+          const fs = require('fs');
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        }
+
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Failed to preview Excel file'
+        });
+      }
+    })
+  );
+
+  /**
+   * POST /api/payroll/excel/confirm - Confirm and save previewed payroll data
+   * DomainMeaning: Save previously previewed payroll data to database
+   * MisleadingNames: None
+   * SideEffects: Creates multiple payroll records in database, cleans up preview data
+   * Invariants: Only Admin can confirm, requires valid preview token
+   * RAG_Keywords: payroll confirm, save preview, bulk import, token validation
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_post_excel_confirm_001
+   */
+  router.post('/excel/confirm',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    preventNoSQLInjection,
+    asyncHandler(async (req, res) => {
+      try {
+        const { previewToken } = req.body;
+
+        if (!previewToken) {
+          return res.status(400).json({
+            success: false,
+            error: 'Preview token is required'
+          });
+        }
+
+        // Retrieve preview data
+        const previewData = previewStorage.get(previewToken);
+        
+        if (!previewData) {
+          return res.status(404).json({
+            success: false,
+            error: 'Preview data not found or expired. Please upload the file again.'
+          });
+        }
+
+        // Verify user authorization
+        if (previewData.uploadedBy !== req.user.id) {
+          return res.status(403).json({
+            success: false,
+            error: 'Unauthorized to confirm this preview'
+          });
+        }
+
+        // Check if expired
+        if (previewData.expiresAt < Date.now()) {
+          previewStorage.delete(previewToken);
+          return res.status(410).json({
+            success: false,
+            error: 'Preview data has expired. Please upload the file again.'
+          });
+        }
+
+        console.log(`✅ Confirming payroll data from preview: ${previewToken}`);
+
+        // Process and save records
+        const payrollRecords = previewData.parsedRecords;
+        let successfulImports = 0;
+        let errors = [];
+        
+        // Get users collection for matching
+        const userCollection = db.collection('users');
+
+        for (const record of payrollRecords) {
+          try {
+            // Find user by employeeId or name
+            let user = null;
+            
+            if (record.employeeId) {
+              user = await userCollection.findOne({ employeeId: record.employeeId });
+            }
+            
+            if (!user && record.employeeName) {
+              user = await userCollection.findOne({ name: record.employeeName });
+            }
+
+            if (!user) {
+              errors.push({
+                record: record.employeeName || record.employeeId,
+                error: 'Employee not found in system'
+              });
+              continue;
+            }
+
+            // Create payroll record
+            const payrollData = {
+              userId: user._id,
+              year: previewData.year,
+              month: previewData.month,
+              baseSalary: record.baseSalary,
+              allowances: record.allowances,
+              deductions: record.deductions,
+              netSalary: record.netSalary,
+              paymentStatus: 'pending',
+              createdBy: new ObjectId(req.user.id),
+              sourceFile: previewData.fileName,
+              extractedAt: record.extractedAt
+            };
+
+            await payrollRepo.createPayroll(payrollData);
+            successfulImports++;
+
+          } catch (error) {
+            console.error(`Failed to import record for ${record.employeeName}:`, error);
+            errors.push({
+              record: record.employeeName || record.employeeId,
+              error: error.message.includes('already exists') ? 
+                'Payroll record already exists for this period' : 
+                'Failed to create payroll record'
+            });
+          }
+        }
+
+        // Clean up preview data
+        previewStorage.delete(previewToken);
+
+        res.json({
+          success: true,
+          message: `Payroll data confirmed and saved. ${successfulImports} records imported.`,
+          totalRecords: payrollRecords.length,
+          successfulImports,
+          errors: errors.length > 0 ? errors : undefined,
+          summary: {
+            fileName: previewData.fileName,
+            processedAt: new Date(),
+            year: previewData.year,
+            month: previewData.month
+          }
+        });
+
+      } catch (error) {
+        console.error('Confirm error:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Failed to confirm and save payroll data'
+        });
+      }
+    })
+  );
 
   /**
    * POST /api/payroll/excel/upload - Upload and process Excel payroll file

@@ -434,6 +434,18 @@ class ApiService {
     return this.upload('/payroll/excel/upload', formData);
   }
 
+  async previewPayrollExcel(file: File, year?: number, month?: number) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (year) formData.append('year', year.toString());
+    if (month) formData.append('month', month.toString());
+    return this.upload('/payroll/excel/preview', formData);
+  }
+
+  async confirmPayrollExcel(previewToken: string) {
+    return this.post('/payroll/excel/confirm', { previewToken });
+  }
+
   async exportPayrollExcel(params?: {
     year?: number;
     month?: number;
