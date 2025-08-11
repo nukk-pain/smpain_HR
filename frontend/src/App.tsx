@@ -109,11 +109,11 @@ const AppContent: React.FC = () => {
       {/* Specific payroll routes - must come BEFORE general payroll redirect */}
       <Route path="/payroll/excel-upload" element={
         <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
-          <Layout>
+          <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <PayrollExcelUploadPage />
             </React.Suspense>
-          </Layout>
+          </Box>
         </ProtectedRoute>
       } />
       

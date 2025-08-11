@@ -32,18 +32,19 @@ export const PayrollExcelUploadPage: React.FC = () => {
     );
   }
 
-  try {
-    return <PayrollExcelUploadWithPreview />;
-  } catch (error) {
-    console.error('PayrollExcelUploadWithPreview component error:', error);
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          컴포넌트 로드 중 오류가 발생했습니다: {String(error)}
-        </Alert>
+  return (
+    <Box sx={{ p: 3, minHeight: '100vh', bgcolor: 'background.paper' }}>
+      <Alert severity="info">
+        급여 Excel 업로드 페이지 (단순 테스트)
+      </Alert>
+      <Box sx={{ mt: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+        <h2>사용자 정보</h2>
+        <p>이름: {user?.name}</p>
+        <p>역할: {user?.role}</p>
+        <p>권한: {user?.permissions?.join(', ') || '없음'}</p>
       </Box>
-    );
-  }
+    </Box>
+  );
 };
 
 export default PayrollExcelUploadPage;
