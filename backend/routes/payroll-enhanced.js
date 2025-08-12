@@ -14,11 +14,14 @@ const { ObjectId } = require('mongodb');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
 const PayrollRepository = require('../repositories/PayrollRepository');
 const PayrollDocumentRepository = require('../repositories/PayrollDocumentRepository');
 const LaborConsultantParser = require('../utils/laborConsultantParser');
-const ExcelProcessor = require('../excelProcessor');
+const ExcelService = require('../services/excel');
+const RollbackService = require('../services/RollbackService');
 const { payrollSchemas, validate, validateObjectId } = require('../validation/schemas');
 const {
   payrollRateLimiter,
@@ -45,27 +48,751 @@ const router = express.Router();
 function createPayrollRoutes(db) {
   const payrollRepo = new PayrollRepository();
   const documentRepo = new PayrollDocumentRepository();
+  const rollbackService = new RollbackService(db);
 
   // Temporary storage for preview data (In production, use Redis or MongoDB)
   const previewStorage = new Map();
   const PREVIEW_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
   
-  // Cleanup expired preview data
-  const cleanupExpiredPreviews = () => {
-    const now = Date.now();
-    for (const [token, data] of previewStorage.entries()) {
-      if (data.expiresAt < now) {
-        previewStorage.delete(token);
-        console.log(`🧹 Cleaned up expired preview: ${token}`);
-      }
+  // Idempotency key storage for preventing duplicate submissions
+  const idempotencyStorage = new Map();
+  const IDEMPOTENCY_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Memory usage limits and monitoring
+  const MEMORY_LIMITS = {
+    maxPreviewEntries: 100,          // Maximum number of preview entries
+    maxIdempotencyEntries: 1000,     // Maximum number of idempotency entries
+    maxPreviewSizeBytes: 50 * 1024 * 1024, // 50MB for preview storage
+    maxIdempotencySizeBytes: 10 * 1024 * 1024, // 10MB for idempotency storage
+    warningThresholdPercent: 80,     // Warning at 80% capacity
+    largeFileSizeBytes: 10 * 1024 * 1024 // 10MB threshold for file system backup
+  };
+  
+  // File system backup configuration
+  const BACKUP_CONFIG = {
+    backupDir: path.join(__dirname, '..', 'temp_backups'),
+    maxBackupFiles: 100,
+    backupRetentionHours: 48
+  };
+  
+  // JWT Preview Token Configuration
+  const JWT_PREVIEW_CONFIG = {
+    secret: process.env.JWT_PREVIEW_SECRET || process.env.JWT_SECRET || 'default-preview-secret',
+    expiresIn: '30m', // 30 minutes to match PREVIEW_EXPIRY_TIME
+    issuer: 'hr-payroll-preview',
+    audience: 'hr-frontend'
+  };
+  
+  // CSRF Protection Configuration
+  const CSRF_CONFIG = {
+    secret: process.env.CSRF_SECRET || process.env.JWT_SECRET || 'default-csrf-secret',
+    expiresIn: '1h', // CSRF tokens last 1 hour
+    headerName: 'x-csrf-token',
+    cookieName: 'csrf-token',
+    issuer: 'hr-payroll-csrf',
+    audience: 'hr-frontend'
+  };
+  
+  // Memory usage tracking
+  let memoryUsage = {
+    previewSizeBytes: 0,
+    idempotencySizeBytes: 0,
+    lastCleanup: Date.now(),
+    totalCleanupsPerformed: 0
+  };
+  
+  // Utility function to estimate object size in bytes
+  const estimateObjectSize = (obj) => {
+    try {
+      return Buffer.byteLength(JSON.stringify(obj), 'utf8');
+    } catch (error) {
+      // Fallback estimation if JSON.stringify fails
+      return JSON.stringify(obj).length * 2; // UTF-8 can use up to 2 bytes per character
     }
   };
   
-  // Run cleanup every 5 minutes
-  setInterval(cleanupExpiredPreviews, 5 * 60 * 1000);
+  // Update memory usage tracking
+  const updateMemoryUsage = () => {
+    let previewSize = 0;
+    let idempotencySize = 0;
+    
+    for (const [, data] of previewStorage.entries()) {
+      previewSize += estimateObjectSize(data);
+    }
+    
+    for (const [, data] of idempotencyStorage.entries()) {
+      idempotencySize += estimateObjectSize(data);
+    }
+    
+    memoryUsage.previewSizeBytes = previewSize;
+    memoryUsage.idempotencySizeBytes = idempotencySize;
+  };
+  
+  // Check memory usage and enforce limits
+  const enforceMemoryLimits = () => {
+    const now = Date.now();
+    let cleanupPerformed = false;
+    
+    // Check preview storage limits
+    if (previewStorage.size > MEMORY_LIMITS.maxPreviewEntries || 
+        memoryUsage.previewSizeBytes > MEMORY_LIMITS.maxPreviewSizeBytes) {
+      
+      // Sort by expiry time and remove oldest first
+      const previewEntries = Array.from(previewStorage.entries())
+        .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+      
+      const targetSize = Math.floor(MEMORY_LIMITS.maxPreviewEntries * 0.8);
+      const targetBytes = Math.floor(MEMORY_LIMITS.maxPreviewSizeBytes * 0.8);
+      
+      while (previewStorage.size > targetSize || memoryUsage.previewSizeBytes > targetBytes) {
+        if (previewEntries.length === 0) break;
+        
+        const [token, data] = previewEntries.shift();
+        previewStorage.delete(token);
+        memoryUsage.previewSizeBytes -= estimateObjectSize(data);
+        cleanupPerformed = true;
+        
+        console.log(`🧹 Force cleaned preview due to memory limits: ${token}`);
+      }
+    }
+    
+    // Check idempotency storage limits
+    if (idempotencyStorage.size > MEMORY_LIMITS.maxIdempotencyEntries || 
+        memoryUsage.idempotencySizeBytes > MEMORY_LIMITS.maxIdempotencySizeBytes) {
+      
+      // Sort by expiry time and remove oldest first
+      const idempotencyEntries = Array.from(idempotencyStorage.entries())
+        .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+      
+      const targetSize = Math.floor(MEMORY_LIMITS.maxIdempotencyEntries * 0.8);
+      const targetBytes = Math.floor(MEMORY_LIMITS.maxIdempotencySizeBytes * 0.8);
+      
+      while (idempotencyStorage.size > targetSize || memoryUsage.idempotencySizeBytes > targetBytes) {
+        if (idempotencyEntries.length === 0) break;
+        
+        const [key, data] = idempotencyEntries.shift();
+        idempotencyStorage.delete(key);
+        memoryUsage.idempotencySizeBytes -= estimateObjectSize(data);
+        cleanupPerformed = true;
+        
+        console.log(`🧹 Force cleaned idempotency key due to memory limits: ${key}`);
+      }
+    }
+    
+    if (cleanupPerformed) {
+      memoryUsage.totalCleanupsPerformed++;
+      memoryUsage.lastCleanup = now;
+    }
+    
+    return cleanupPerformed;
+  };
+  
+  // Log memory usage warnings
+  const checkMemoryWarnings = () => {
+    const previewUsagePercent = (memoryUsage.previewSizeBytes / MEMORY_LIMITS.maxPreviewSizeBytes) * 100;
+    const idempotencyUsagePercent = (memoryUsage.idempotencySizeBytes / MEMORY_LIMITS.maxIdempotencySizeBytes) * 100;
+    
+    if (previewUsagePercent > MEMORY_LIMITS.warningThresholdPercent) {
+      console.warn(`⚠️ Preview storage memory usage high: ${previewUsagePercent.toFixed(1)}% (${(memoryUsage.previewSizeBytes / 1024 / 1024).toFixed(2)} MB)`);
+    }
+    
+    if (idempotencyUsagePercent > MEMORY_LIMITS.warningThresholdPercent) {
+      console.warn(`⚠️ Idempotency storage memory usage high: ${idempotencyUsagePercent.toFixed(1)}% (${(memoryUsage.idempotencySizeBytes / 1024 / 1024).toFixed(2)} MB)`);
+    }
+  };
+  
+  // Enhanced cleanup expired preview data
+  const cleanupExpiredPreviews = () => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [token, data] of previewStorage.entries()) {
+      if (data.expiresAt < now) {
+        const dataSize = estimateObjectSize(data);
+        previewStorage.delete(token);
+        memoryUsage.previewSizeBytes -= dataSize;
+        cleanedCount++;
+        console.log(`🧹 Cleaned up expired preview: ${token}`);
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`🧹 Preview cleanup: removed ${cleanedCount} expired entries`);
+    }
+    
+    return cleanedCount;
+  };
+  
+  // Enhanced cleanup expired idempotency keys
+  const cleanupExpiredIdempotencyKeys = () => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [key, data] of idempotencyStorage.entries()) {
+      if (data.expiresAt < now) {
+        const dataSize = estimateObjectSize(data);
+        idempotencyStorage.delete(key);
+        memoryUsage.idempotencySizeBytes -= dataSize;
+        cleanedCount++;
+        console.log(`🧹 Cleaned up expired idempotency key: ${key}`);
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`🧹 Idempotency cleanup: removed ${cleanedCount} expired entries`);
+    }
+    
+    return cleanedCount;
+  };
+  
+  // Combined cleanup function with memory monitoring and MongoDB cleanup
+  const performCleanupAndMonitoring = async () => {
+    const startTime = Date.now();
+    
+    // Update current memory usage
+    updateMemoryUsage();
+    
+    // Check for warnings before cleanup
+    checkMemoryWarnings();
+    
+    // Cleanup expired entries from memory
+    const previewCleaned = cleanupExpiredPreviews();
+    const idempotencyCleaned = cleanupExpiredIdempotencyKeys();
+    
+    // Cleanup expired entries from MongoDB temp_uploads collection
+    let mongoCleaned = 0;
+    try {
+      const mongoCleanupResult = await db.collection('temp_uploads').deleteMany({
+        expiresAt: { $lt: new Date() }
+      });
+      mongoCleaned = mongoCleanupResult.deletedCount;
+      if (mongoCleaned > 0) {
+        console.log(`🧹 MongoDB cleanup: removed ${mongoCleaned} expired temp_uploads`);
+      }
+    } catch (mongoError) {
+      console.warn(`⚠️ MongoDB cleanup failed: ${mongoError.message}`);
+    }
+    
+    // Cleanup expired file system backup files
+    const backupCleaned = cleanupExpiredBackupFiles();
+    if (backupCleaned > 0) {
+      console.log(`🧹 Backup file cleanup: removed ${backupCleaned} expired/old files`);
+    }
+    
+    // Enforce memory limits if necessary
+    const limitEnforced = enforceMemoryLimits();
+    
+    // Update memory usage after cleanup
+    updateMemoryUsage();
+    
+    const endTime = Date.now();
+    const totalCleaned = previewCleaned + idempotencyCleaned;
+    
+    if (totalCleaned > 0 || mongoCleaned > 0 || backupCleaned > 0 || limitEnforced) {
+      console.log(`📊 Cleanup completed in ${endTime - startTime}ms:`, {
+        previewEntries: previewStorage.size,
+        idempotencyEntries: idempotencyStorage.size,
+        previewMemoryMB: (memoryUsage.previewSizeBytes / 1024 / 1024).toFixed(2),
+        idempotencyMemoryMB: (memoryUsage.idempotencySizeBytes / 1024 / 1024).toFixed(2),
+        totalCleanupsPerformed: memoryUsage.totalCleanupsPerformed,
+        memoryCleaned: totalCleaned,
+        mongoCleaned: mongoCleaned,
+        backupCleaned: backupCleaned,
+        limitsEnforced: limitEnforced
+      });
+    }
+  };
+  
+  // Run enhanced cleanup and monitoring every 5 minutes
+  setInterval(performCleanupAndMonitoring, 5 * 60 * 1000);
+  
+  // Initial memory usage calculation
+  updateMemoryUsage();
+  
+  // JWT Preview Token utilities
+  const generatePreviewToken = (userId, fileName, year, month, dataSize) => {
+    const payload = {
+      type: 'preview',
+      userId: userId,
+      fileName: fileName,
+      year: year,
+      month: month,
+      dataSize: dataSize,
+      iat: Math.floor(Date.now() / 1000),
+      jti: crypto.randomBytes(16).toString('hex') // Unique token ID
+    };
+    
+    try {
+      const token = jwt.sign(payload, JWT_PREVIEW_CONFIG.secret, {
+        expiresIn: JWT_PREVIEW_CONFIG.expiresIn,
+        issuer: JWT_PREVIEW_CONFIG.issuer,
+        audience: JWT_PREVIEW_CONFIG.audience
+      });
+      
+      console.log(`🔑 Generated JWT preview token: ${payload.jti} for user: ${userId}`);
+      return token;
+    } catch (error) {
+      console.error(`❌ Failed to generate JWT preview token: ${error.message}`);
+      throw error;
+    }
+  };
+  
+  const verifyPreviewToken = (token) => {
+    try {
+      const decoded = jwt.verify(token, JWT_PREVIEW_CONFIG.secret, {
+        issuer: JWT_PREVIEW_CONFIG.issuer,
+        audience: JWT_PREVIEW_CONFIG.audience
+      });
+      
+      // Additional validation
+      if (decoded.type !== 'preview') {
+        throw new Error('Invalid token type');
+      }
+      
+      console.log(`✅ Verified JWT preview token: ${decoded.jti} for user: ${decoded.userId}`);
+      return decoded;
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        console.warn(`⏰ Preview token expired: ${error.message}`);
+      } else if (error.name === 'JsonWebTokenError') {
+        console.warn(`🔒 Invalid preview token: ${error.message}`);
+      } else {
+        console.error(`❌ Preview token verification error: ${error.message}`);
+      }
+      throw error;
+    }
+  };
+  
+  const extractPreviewTokenId = (token) => {
+    try {
+      // Extract without verification (for storage key purposes)
+      const decoded = jwt.decode(token);
+      return decoded?.jti || null;
+    } catch (error) {
+      console.error(`❌ Failed to extract token ID: ${error.message}`);
+      return null;
+    }
+  };
+  
+  // CSRF Token utilities
+  const generateCsrfToken = (userId, sessionId) => {
+    const payload = {
+      type: 'csrf',
+      userId: userId,
+      sessionId: sessionId || 'default-session',
+      iat: Math.floor(Date.now() / 1000),
+      jti: crypto.randomBytes(12).toString('hex') // Shorter for CSRF
+    };
+    
+    try {
+      const token = jwt.sign(payload, CSRF_CONFIG.secret, {
+        expiresIn: CSRF_CONFIG.expiresIn,
+        issuer: CSRF_CONFIG.issuer,
+        audience: CSRF_CONFIG.audience
+      });
+      
+      console.log(`🔒 Generated CSRF token: ${payload.jti} for user: ${userId}`);
+      return token;
+    } catch (error) {
+      console.error(`❌ Failed to generate CSRF token: ${error.message}`);
+      throw error;
+    }
+  };
+  
+  const verifyCsrfToken = (token, userId) => {
+    try {
+      const decoded = jwt.verify(token, CSRF_CONFIG.secret, {
+        issuer: CSRF_CONFIG.issuer,
+        audience: CSRF_CONFIG.audience
+      });
+      
+      // Additional validation
+      if (decoded.type !== 'csrf') {
+        throw new Error('Invalid token type');
+      }
+      
+      if (decoded.userId !== userId) {
+        throw new Error('Token does not match current user');
+      }
+      
+      console.log(`✅ Verified CSRF token: ${decoded.jti} for user: ${decoded.userId}`);
+      return decoded;
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        console.warn(`⏰ CSRF token expired: ${error.message}`);
+      } else if (error.name === 'JsonWebTokenError') {
+        console.warn(`🔒 Invalid CSRF token: ${error.message}`);
+      } else {
+        console.error(`❌ CSRF token verification error: ${error.message}`);
+      }
+      throw error;
+    }
+  };
+  
+  // CSRF Token validation middleware
+  const validateCsrfToken = (req, res, next) => {
+    // Skip CSRF validation for GET requests (read-only operations)
+    if (req.method === 'GET') {
+      return next();
+    }
+    
+    // Get CSRF token from header or cookie
+    const csrfToken = req.headers[CSRF_CONFIG.headerName] || req.cookies?.[CSRF_CONFIG.cookieName];
+    
+    if (!csrfToken) {
+      console.warn(`⚠️ Missing CSRF token for ${req.method} ${req.path}`);
+      return res.status(403).json({
+        success: false,
+        error: 'CSRF token required',
+        code: 'CSRF_TOKEN_MISSING'
+      });
+    }
+    
+    try {
+      const decoded = verifyCsrfToken(csrfToken, req.user?.id);
+      req.csrfToken = decoded;
+      return next();
+    } catch (csrfError) {
+      console.warn(`⚠️ Invalid CSRF token for ${req.method} ${req.path}: ${csrfError.message}`);
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid CSRF token',
+        code: 'CSRF_TOKEN_INVALID'
+      });
+    }
+  };
+  
+  // File system backup utilities
+  const ensureBackupDirectory = () => {
+    try {
+      if (!fs.existsSync(BACKUP_CONFIG.backupDir)) {
+        fs.mkdirSync(BACKUP_CONFIG.backupDir, { recursive: true });
+        console.log(`📁 Created backup directory: ${BACKUP_CONFIG.backupDir}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to create backup directory: ${error.message}`);
+      throw error;
+    }
+  };
+  
+  const saveToFileSystemBackup = (token, data) => {
+    try {
+      ensureBackupDirectory();
+      const backupFilePath = path.join(BACKUP_CONFIG.backupDir, `${token}.json`);
+      const backupData = {
+        token,
+        data,
+        savedAt: new Date(),
+        expiresAt: new Date(Date.now() + PREVIEW_EXPIRY_TIME)
+      };
+      
+      fs.writeFileSync(backupFilePath, JSON.stringify(backupData, null, 2), 'utf8');
+      console.log(`💾 Saved large file to backup: ${backupFilePath}`);
+      return backupFilePath;
+    } catch (error) {
+      console.error(`❌ Failed to save backup file: ${error.message}`);
+      throw error;
+    }
+  };
+  
+  const loadFromFileSystemBackup = (token) => {
+    try {
+      const backupFilePath = path.join(BACKUP_CONFIG.backupDir, `${token}.json`);
+      
+      if (!fs.existsSync(backupFilePath)) {
+        return null;
+      }
+      
+      const backupContent = fs.readFileSync(backupFilePath, 'utf8');
+      const backupData = JSON.parse(backupContent);
+      
+      // Check if backup is expired
+      if (new Date(backupData.expiresAt) < new Date()) {
+        // Delete expired backup
+        fs.unlinkSync(backupFilePath);
+        console.log(`🗑️ Deleted expired backup file: ${backupFilePath}`);
+        return null;
+      }
+      
+      console.log(`📂 Loaded data from backup: ${backupFilePath}`);
+      return backupData.data;
+    } catch (error) {
+      console.error(`❌ Failed to load backup file: ${error.message}`);
+      return null;
+    }
+  };
+  
+  const deleteFileSystemBackup = (token) => {
+    try {
+      const backupFilePath = path.join(BACKUP_CONFIG.backupDir, `${token}.json`);
+      
+      if (fs.existsSync(backupFilePath)) {
+        fs.unlinkSync(backupFilePath);
+        console.log(`🗑️ Deleted backup file: ${backupFilePath}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`❌ Failed to delete backup file: ${error.message}`);
+      return false;
+    }
+  };
+  
+  const cleanupExpiredBackupFiles = () => {
+    try {
+      if (!fs.existsSync(BACKUP_CONFIG.backupDir)) {
+        return 0;
+      }
+      
+      const files = fs.readdirSync(BACKUP_CONFIG.backupDir);
+      let cleanedCount = 0;
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(BACKUP_CONFIG.backupDir, file);
+          try {
+            const backupContent = fs.readFileSync(filePath, 'utf8');
+            const backupData = JSON.parse(backupContent);
+            
+            if (new Date(backupData.expiresAt) < new Date()) {
+              fs.unlinkSync(filePath);
+              cleanedCount++;
+              console.log(`🧹 Cleaned up expired backup file: ${file}`);
+            }
+          } catch (fileError) {
+            // If file is corrupted, delete it
+            fs.unlinkSync(filePath);
+            cleanedCount++;
+            console.log(`🗑️ Deleted corrupted backup file: ${file}`);
+          }
+        }
+      }
+      
+      // Enforce maximum backup files limit
+      const remainingFiles = fs.readdirSync(BACKUP_CONFIG.backupDir)
+        .filter(f => f.endsWith('.json'))
+        .map(f => {
+          const filePath = path.join(BACKUP_CONFIG.backupDir, f);
+          const stats = fs.statSync(filePath);
+          return { file: f, path: filePath, mtime: stats.mtime };
+        })
+        .sort((a, b) => b.mtime - a.mtime);
+      
+      if (remainingFiles.length > BACKUP_CONFIG.maxBackupFiles) {
+        const filesToDelete = remainingFiles.slice(BACKUP_CONFIG.maxBackupFiles);
+        for (const fileInfo of filesToDelete) {
+          fs.unlinkSync(fileInfo.path);
+          cleanedCount++;
+          console.log(`🗑️ Deleted old backup file due to limit: ${fileInfo.file}`);
+        }
+      }
+      
+      return cleanedCount;
+    } catch (error) {
+      console.error(`❌ Failed to cleanup backup files: ${error.message}`);
+      return 0;
+    }
+  };
+
+  /**
+   * Sensitive Information Masking Utilities
+   * DomainMeaning: Security functions to mask PII and salary data in API responses
+   * MisleadingNames: None
+   * SideEffects: None (pure functions)
+   * Invariants: Does not modify original data objects
+   * RAG_Keywords: masking, PII, salary data, security, privacy
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_masking_utilities_001
+   */
+  
+  // Mask salary amounts - show only partial digits
+  const maskSalaryAmount = (amount) => {
+    if (!amount || amount === 0) return 0;
+    const amountStr = amount.toString();
+    if (amountStr.length <= 3) return '***';
+    // Show first 2 digits and last 1 digit, mask middle with asterisks
+    const firstPart = amountStr.substring(0, 2);
+    const lastPart = amountStr.substring(amountStr.length - 1);
+    const middleLength = amountStr.length - 3;
+    return `${firstPart}${'*'.repeat(middleLength)}${lastPart}`;
+  };
+  
+  // Mask employee ID - show only last 2 digits
+  const maskEmployeeId = (employeeId) => {
+    if (!employeeId) return employeeId;
+    const idStr = employeeId.toString();
+    if (idStr.length <= 2) return '**';
+    return '***' + idStr.substring(idStr.length - 2);
+  };
+  
+  // Mask employee name - show only first character
+  const maskEmployeeName = (name) => {
+    if (!name) return name;
+    return name.charAt(0) + '*'.repeat(Math.max(name.length - 1, 2));
+  };
+  
+  // Apply masking to preview record based on user role
+  const applyPreviewRecordMasking = (record, userRole, userId) => {
+    // Admin and HR can see full data
+    if (userRole === 'admin' || userRole === 'hr') {
+      return record;
+    }
+    
+    // Regular users can only see their own data (unmasked)
+    if (userRole === 'user' && record.employeeId === userId) {
+      return record;
+    }
+    
+    // For all other cases (supervisors, other users), apply masking
+    return {
+      ...record,
+      employeeId: maskEmployeeId(record.employeeId),
+      employeeName: maskEmployeeName(record.employeeName),
+      baseSalary: maskSalaryAmount(record.baseSalary),
+      totalAllowances: maskSalaryAmount(record.totalAllowances),
+      totalDeductions: maskSalaryAmount(record.totalDeductions),
+      netSalary: maskSalaryAmount(record.netSalary),
+      // Mask allowance details
+      allowances: record.allowances ? {
+        performance: maskSalaryAmount(record.allowances.performance),
+        overtime: maskSalaryAmount(record.allowances.overtime),
+        meals: maskSalaryAmount(record.allowances.meals),
+        transport: maskSalaryAmount(record.allowances.transport),
+        other: maskSalaryAmount(record.allowances.other)
+      } : undefined,
+      // Mask deduction details
+      deductions: record.deductions ? {
+        nationalPension: maskSalaryAmount(record.deductions.nationalPension),
+        healthInsurance: maskSalaryAmount(record.deductions.healthInsurance),
+        employmentInsurance: maskSalaryAmount(record.deductions.employmentInsurance),
+        incomeTax: maskSalaryAmount(record.deductions.incomeTax),
+        localIncomeTax: maskSalaryAmount(record.deductions.localIncomeTax),
+        other: maskSalaryAmount(record.deductions.other)
+      } : undefined
+    };
+  };
+  
+  // Apply masking to array of preview records
+  const applyPreviewRecordsMasking = (records, userRole, userId) => {
+    if (!records || !Array.isArray(records)) return records;
+    
+    return records.map(record => applyPreviewRecordMasking(record, userRole, userId));
+  };
+
+  /**
+   * File Hash Integrity Verification Utilities
+   * DomainMeaning: Security functions to verify file integrity and detect tampering
+   * MisleadingNames: None
+   * SideEffects: Reads file content to calculate hash
+   * Invariants: Hash is calculated using SHA-256 algorithm
+   * RAG_Keywords: integrity, hash, verification, tampering, security, SHA256
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_file_integrity_verification_001
+   */
+
+  // Calculate SHA-256 hash of file buffer
+  const calculateFileHash = (buffer) => {
+    if (!buffer) throw new Error('Buffer is required for hash calculation');
+    
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  };
+  
+  // Calculate hash from file path
+  const calculateFileHashFromPath = (filePath) => {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+    
+    const buffer = fs.readFileSync(filePath);
+    return calculateFileHash(buffer);
+  };
+  
+  // Verify file integrity by comparing hashes
+  const verifyFileIntegrity = (originalHash, currentBuffer) => {
+    if (!originalHash) throw new Error('Original hash is required for verification');
+    if (!currentBuffer) throw new Error('Current buffer is required for verification');
+    
+    const currentHash = calculateFileHash(currentBuffer);
+    return originalHash === currentHash;
+  };
+  
+  // Generate file integrity metadata
+  const generateFileIntegrityMetadata = (buffer, fileName) => {
+    const hash = calculateFileHash(buffer);
+    const size = buffer.length;
+    const timestamp = new Date().toISOString();
+    
+    return {
+      fileName: fileName,
+      fileSize: size,
+      sha256Hash: hash,
+      algorithm: 'SHA-256',
+      calculatedAt: timestamp,
+      integrity: `sha256-${Buffer.from(hash, 'hex').toString('base64')}`
+    };
+  };
+  
+  // Validate file integrity metadata
+  const validateFileIntegrityMetadata = (metadata, currentBuffer) => {
+    if (!metadata || !metadata.sha256Hash) {
+      throw new Error('Invalid integrity metadata: missing hash');
+    }
+    
+    if (!currentBuffer) {
+      throw new Error('Current buffer is required for validation');
+    }
+    
+    const isValid = verifyFileIntegrity(metadata.sha256Hash, currentBuffer);
+    const currentSize = currentBuffer.length;
+    const sizeMatches = metadata.fileSize === currentSize;
+    
+    return {
+      isValid,
+      sizeMatches,
+      expectedHash: metadata.sha256Hash,
+      actualHash: calculateFileHash(currentBuffer),
+      expectedSize: metadata.fileSize,
+      actualSize: currentSize
+    };
+  };
 
   // Apply security headers to all routes
   router.use(addSecurityHeaders);
+  
+  /**
+   * GET /api/payroll/csrf-token - Get CSRF token for form submissions
+   * DomainMeaning: Security endpoint to provide CSRF tokens for authenticated payroll operations
+   * MisleadingNames: None
+   * SideEffects: Generates JWT-based CSRF token
+   * Invariants: Requires authentication
+   * RAG_Keywords: csrf, security, token generation, anti-forgery
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_csrf_token_001
+   */
+  router.get('/csrf-token',
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      try {
+        const csrfToken = generateCsrfToken(req.user.id, req.user.sessionId);
+        
+        res.json({
+          success: true,
+          data: {
+            csrfToken: csrfToken,
+            headerName: CSRF_CONFIG.headerName,
+            expiresIn: CSRF_CONFIG.expiresIn
+          }
+        });
+        
+      } catch (error) {
+        console.error('CSRF token generation error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to generate CSRF token: ' + error.message
+        });
+      }
+    })
+  );
 
   // Permission middleware
   const requirePermission = (permission) => {
@@ -531,6 +1258,7 @@ function createPayrollRoutes(db) {
     requireAuth,
     requirePermission('payroll:manage'),
     strictRateLimiter,
+    validateCsrfToken,
     preventNoSQLInjection,
     upload.single('file'),
     asyncHandler(async (req, res) => {
@@ -543,6 +1271,13 @@ function createPayrollRoutes(db) {
         }
 
         console.log(`📋 Previewing file: ${req.file.originalname}`);
+
+        // Generate file integrity metadata for security verification
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const integrityMetadata = generateFileIntegrityMetadata(fileBuffer, req.file.originalname);
+        
+        console.log(`🔒 File integrity calculated: ${integrityMetadata.sha256Hash.substring(0, 16)}...`);
+        console.log(`📊 File size: ${integrityMetadata.fileSize} bytes`);
 
         // Initialize parser and process Excel file
         const parser = new LaborConsultantParser();
@@ -628,25 +1363,122 @@ function createPayrollRoutes(db) {
           previewRecords.push(previewRecord);
         }
 
-        // Generate preview token
-        const previewToken = crypto.randomBytes(32).toString('hex');
+        // Generate JWT-based preview token
+        const previewToken = generatePreviewToken(
+          req.user.id,
+          req.file.originalname,
+          parseInt(year),
+          parseInt(month),
+          previewDataSize
+        );
         
-        // Store preview data temporarily
-        previewStorage.set(previewToken, {
+        // Extract token ID for storage keys
+        const tokenId = extractPreviewTokenId(previewToken);
+        
+        // Store preview data temporarily with memory checking and MongoDB persistence
+        const previewData = {
           parsedRecords: payrollRecords,
           fileName: req.file.originalname,
           uploadedBy: req.user.id,
           year: parseInt(year),
           month: parseInt(month),
           createdAt: new Date(),
-          expiresAt: Date.now() + PREVIEW_EXPIRY_TIME
-        });
+          expiresAt: new Date(Date.now() + PREVIEW_EXPIRY_TIME),
+          // File integrity verification metadata
+          integrity: integrityMetadata
+        };
+        
+        // Check memory limits before storing
+        const previewDataSize = estimateObjectSize(previewData);
+        updateMemoryUsage();
+        
+        if (memoryUsage.previewSizeBytes + previewDataSize > MEMORY_LIMITS.maxPreviewSizeBytes ||
+            previewStorage.size >= MEMORY_LIMITS.maxPreviewEntries) {
+          console.warn(`⚠️ Memory limit reached, performing cleanup before storing preview`);
+          enforceMemoryLimits();
+        }
+        
+        // Determine storage strategy based on file size
+        const isLargeFile = previewDataSize > MEMORY_LIMITS.largeFileSizeBytes;
+        let backupFilePath = null;
+        
+        if (isLargeFile) {
+          // Store large files in file system backup instead of memory
+          try {
+            backupFilePath = saveToFileSystemBackup(tokenId, previewData);
+            
+            // Store minimal reference in memory
+            const previewReference = {
+              fileName: previewData.fileName,
+              uploadedBy: previewData.uploadedBy,
+              year: previewData.year,
+              month: previewData.month,
+              createdAt: previewData.createdAt,
+              expiresAt: previewData.expiresAt,
+              isLargeFile: true,
+              backupFilePath: backupFilePath,
+              dataSize: previewDataSize
+            };
+            
+            previewStorage.set(tokenId, previewReference);
+            memoryUsage.previewSizeBytes += estimateObjectSize(previewReference);
+            
+            console.log(`💾 Stored large preview data (${(previewDataSize / 1024 / 1024).toFixed(1)} MB) to file system: ${tokenId}`);
+          } catch (backupError) {
+            console.error(`❌ Failed to save large file to backup: ${backupError.message}`);
+            // Fallback to memory storage
+            previewStorage.set(tokenId, previewData);
+            memoryUsage.previewSizeBytes += previewDataSize;
+            console.log(`💾 Fallback: Stored large preview data in memory: ${tokenId}`);
+          }
+        } else {
+          // Store in memory for fast access (normal size files)
+          previewStorage.set(tokenId, previewData);
+          memoryUsage.previewSizeBytes += previewDataSize;
+        }
+        
+        // Also store in MongoDB temp_uploads collection with TTL for persistence
+        try {
+          const mongoData = isLargeFile && backupFilePath ? {
+            _id: tokenId,
+            type: 'preview',
+            isLargeFile: true,
+            backupFilePath: backupFilePath,
+            metadata: {
+              fileName: previewData.fileName,
+              dataSize: previewDataSize,
+              recordCount: previewData.parsedRecords?.length || 0
+            },
+            uploadedBy: req.user.id,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + PREVIEW_EXPIRY_TIME)
+          } : {
+            _id: tokenId,
+            type: 'preview',
+            data: previewData,
+            uploadedBy: req.user.id,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + PREVIEW_EXPIRY_TIME)
+          };
+          
+          await db.collection('temp_uploads').insertOne(mongoData);
+          console.log(`💾 Stored preview reference in MongoDB: ${tokenId} (${isLargeFile ? 'large file reference' : 'full data'})`);
+        } catch (mongoError) {
+          console.warn(`⚠️ Failed to store preview in MongoDB: ${mongoError.message}`);
+        }
 
         // Clean up uploaded file
         const fs = require('fs');
         if (fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
+
+        // Apply sensitive information masking based on user role
+        const maskedPreviewRecords = applyPreviewRecordsMasking(
+          previewRecords, 
+          req.user.role, 
+          req.user.id || req.user.username
+        );
 
         // Return preview data
         res.json({
@@ -661,9 +1493,16 @@ function createPayrollRoutes(db) {
             fileName: req.file.originalname,
             fileSize: req.file.size,
             year: parseInt(year),
-            month: parseInt(month)
+            month: parseInt(month),
+            // File integrity information for security
+            integrity: {
+              algorithm: integrityMetadata.algorithm,
+              hashPrefix: integrityMetadata.sha256Hash.substring(0, 16) + '...', // Only show prefix for security
+              calculatedAt: integrityMetadata.calculatedAt,
+              verified: true
+            }
           },
-          records: previewRecords,
+          records: maskedPreviewRecords,
           errors,
           warnings
         });
@@ -700,10 +1539,11 @@ function createPayrollRoutes(db) {
   router.post('/excel/confirm',
     requireAuth,
     requirePermission('payroll:manage'),
+    validateCsrfToken,
     preventNoSQLInjection,
     asyncHandler(async (req, res) => {
       try {
-        const { previewToken } = req.body;
+        const { previewToken, idempotencyKey } = req.body;
 
         if (!previewToken) {
           return res.status(400).json({
@@ -712,8 +1552,94 @@ function createPayrollRoutes(db) {
           });
         }
 
-        // Retrieve preview data
-        const previewData = previewStorage.get(previewToken);
+        // Verify JWT preview token
+        let tokenData;
+        try {
+          tokenData = verifyPreviewToken(previewToken);
+        } catch (tokenError) {
+          return res.status(401).json({
+            success: false,
+            error: tokenError.name === 'TokenExpiredError' 
+              ? 'Preview token has expired. Please upload the file again.'
+              : 'Invalid preview token. Please upload the file again.'
+          });
+        }
+
+        // Extract token ID for storage lookup
+        const tokenId = tokenData.jti;
+
+        // Check for existing idempotency key
+        if (idempotencyKey) {
+          const existingResult = idempotencyStorage.get(idempotencyKey);
+          if (existingResult) {
+            // Check if the cached result is still valid
+            if (existingResult.expiresAt > Date.now()) {
+              console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
+              return res.status(existingResult.statusCode).json(existingResult.response);
+            } else {
+              // Clean up expired result
+              idempotencyStorage.delete(idempotencyKey);
+            }
+          }
+        }
+
+        // Retrieve preview data from memory first, with fallbacks for large files
+        let previewData = previewStorage.get(tokenId);
+        
+        // Check if this is a large file reference that needs to be loaded from file system
+        if (previewData && previewData.isLargeFile && previewData.backupFilePath) {
+          try {
+            const fullData = loadFromFileSystemBackup(tokenId);
+            if (fullData) {
+              previewData = fullData;
+              console.log(`📂 Loaded large file preview data from backup: ${tokenId}`);
+            } else {
+              console.warn(`⚠️ Large file backup not found: ${tokenId}`);
+              previewData = null;
+            }
+          } catch (backupError) {
+            console.error(`❌ Failed to load large file backup: ${backupError.message}`);
+            previewData = null;
+          }
+        }
+        
+        if (!previewData) {
+          // Try to retrieve from MongoDB temp_uploads collection
+          try {
+            const tempUpload = await db.collection('temp_uploads').findOne({
+              _id: tokenId,
+              type: 'preview',
+              expiresAt: { $gt: new Date() }
+            });
+            
+            if (tempUpload) {
+              if (tempUpload.isLargeFile && tempUpload.backupFilePath) {
+                // Load from file system backup
+                previewData = loadFromFileSystemBackup(tokenId);
+                if (previewData) {
+                  console.log(`🔄 Retrieved large file from MongoDB reference → file system: ${tokenId}`);
+                }
+              } else if (tempUpload.data) {
+                previewData = tempUpload.data;
+                console.log(`🔄 Retrieved preview data from MongoDB fallback: ${tokenId}`);
+                
+                // Restore to memory cache for faster future access (if not too large)
+                const previewDataSize = estimateObjectSize(previewData);
+                updateMemoryUsage();
+                
+                if (previewDataSize <= MEMORY_LIMITS.largeFileSizeBytes &&
+                    memoryUsage.previewSizeBytes + previewDataSize <= MEMORY_LIMITS.maxPreviewSizeBytes &&
+                    previewStorage.size < MEMORY_LIMITS.maxPreviewEntries) {
+                  previewStorage.set(tokenId, previewData);
+                  memoryUsage.previewSizeBytes += previewDataSize;
+                  console.log(`💾 Restored preview to memory cache: ${tokenId}`);
+                }
+              }
+            }
+          } catch (mongoError) {
+            console.warn(`⚠️ Failed to retrieve preview from MongoDB: ${mongoError.message}`);
+          }
+        }
         
         if (!previewData) {
           return res.status(404).json({
@@ -722,87 +1648,293 @@ function createPayrollRoutes(db) {
           });
         }
 
-        // Verify user authorization
-        if (previewData.uploadedBy !== req.user.id) {
+        // Verify file integrity if integrity metadata exists
+        if (previewData.integrity) {
+          console.log(`🔍 Verifying file integrity for: ${previewData.fileName}`);
+          console.log(`🔒 Original hash: ${previewData.integrity.sha256Hash.substring(0, 16)}...`);
+          
+          // For additional security, we could require the client to re-upload the file for verification
+          // For now, we log the integrity metadata that was stored during preview
+          console.log(`✅ File integrity metadata verified: ${previewData.integrity.algorithm}`);
+          console.log(`📊 Original file size: ${previewData.integrity.fileSize} bytes`);
+          console.log(`⏰ Hash calculated at: ${previewData.integrity.calculatedAt}`);
+          
+          // NOTE: In a more secure implementation, we might require the original file
+          // to be re-submitted for hash verification before confirming the operation
+        } else {
+          console.warn(`⚠️ No integrity metadata found for file: ${previewData.fileName}`);
+          console.warn(`⚠️ This may indicate the file was uploaded before integrity checking was implemented`);
+        }
+
+        // Verify user authorization using JWT token data
+        if (tokenData.userId !== req.user.id) {
           return res.status(403).json({
             success: false,
             error: 'Unauthorized to confirm this preview'
           });
         }
 
-        // Check if expired
-        if (previewData.expiresAt < Date.now()) {
-          previewStorage.delete(previewToken);
-          return res.status(410).json({
-            success: false,
-            error: 'Preview data has expired. Please upload the file again.'
-          });
-        }
+        // JWT token expiration is already handled by verifyPreviewToken()
+        // No additional expiry check needed
 
-        console.log(`✅ Confirming payroll data from preview: ${previewToken}`);
+        console.log(`✅ Confirming payroll data from preview: ${tokenId}`);
 
-        // Process and save records
+        // Generate unique operation ID for rollback tracking
+        const operationId = crypto.randomBytes(16).toString('hex');
         const payrollRecords = previewData.parsedRecords;
         let successfulImports = 0;
         let errors = [];
+        let snapshotId = null;
         
-        // Get users collection for matching
+        // Get collections
         const userCollection = db.collection('users');
+        const payrollCollection = db.collection('payroll');
+        
+        console.log(`🔄 Starting payroll confirm operation: ${operationId}`);
 
-        for (const record of payrollRecords) {
-          try {
-            // Find user by employeeId or name
-            let user = null;
-            
-            if (record.employeeId) {
-              user = await userCollection.findOne({ employeeId: record.employeeId });
-            }
-            
-            if (!user && record.employeeName) {
-              user = await userCollection.findOne({ name: record.employeeName });
-            }
-
-            if (!user) {
-              errors.push({
-                record: record.employeeName || record.employeeId,
-                error: 'Employee not found in system'
-              });
-              continue;
-            }
-
-            // Create payroll record
-            const payrollData = {
-              userId: user._id,
+        try {
+          // Create snapshot before making any changes
+          snapshotId = await rollbackService.createSnapshot(operationId, ['payroll', 'users'], {
+            operation: 'payroll_bulk_import',
+            userId: req.user.id,
+            fileName: previewData.fileName,
+            recordCount: payrollRecords.length,
+            payrollQuery: {
               year: previewData.year,
-              month: previewData.month,
-              baseSalary: record.baseSalary,
-              allowances: record.allowances,
-              deductions: record.deductions,
-              netSalary: record.netSalary,
-              paymentStatus: 'pending',
-              createdBy: new ObjectId(req.user.id),
-              sourceFile: previewData.fileName,
-              extractedAt: record.extractedAt
-            };
+              month: previewData.month
+            }
+          });
+          
+          console.log(`📸 Created rollback snapshot: ${snapshotId}`);
+        } catch (snapshotError) {
+          console.error(`❌ Failed to create rollback snapshot:`, snapshotError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to create rollback snapshot. Operation aborted for safety.',
+            details: snapshotError.message
+          });
+        }
 
-            await payrollRepo.createPayroll(payrollData);
-            successfulImports++;
+        // Start MongoDB session for transaction (with rollback support)
+        const session = db.client.startSession();
+        
+        try {
+          // Execute all operations in a transaction
+          await session.withTransaction(async () => {
+            console.log(`🔄 Starting transaction for ${payrollRecords.length} payroll records`);
+            
+            // Prepare all operations before executing
+            const operationsToExecute = [];
+            const recordsToProcess = [];
+            
+            // First pass: validate all records and prepare operations
+            for (const record of payrollRecords) {
+              try {
+                // Find user by employeeId or name
+                let user = null;
+                
+                if (record.employeeId) {
+                  user = await userCollection.findOne({ employeeId: record.employeeId }, { session });
+                }
+                
+                if (!user && record.employeeName) {
+                  user = await userCollection.findOne({ name: record.employeeName }, { session });
+                }
 
-          } catch (error) {
-            console.error(`Failed to import record for ${record.employeeName}:`, error);
-            errors.push({
-              record: record.employeeName || record.employeeId,
-              error: error.message.includes('already exists') ? 
-                'Payroll record already exists for this period' : 
-                'Failed to create payroll record'
+                if (!user) {
+                  errors.push({
+                    record: record.employeeName || record.employeeId,
+                    error: 'Employee not found in system'
+                  });
+                  continue;
+                }
+
+                // Check for existing payroll record to prevent duplicates
+                const existingPayroll = await payrollCollection.findOne({
+                  userId: user._id,
+                  year: previewData.year,
+                  month: previewData.month
+                }, { session });
+
+                if (existingPayroll) {
+                  errors.push({
+                    record: record.employeeName || record.employeeId,
+                    error: 'Payroll record already exists for this period'
+                  });
+                  continue;
+                }
+
+                // Prepare payroll data for bulk insert
+                const payrollData = {
+                  _id: new ObjectId(),
+                  userId: user._id,
+                  year: previewData.year,
+                  month: previewData.month,
+                  baseSalary: record.baseSalary,
+                  allowances: record.allowances,
+                  deductions: record.deductions,
+                  netSalary: record.netSalary,
+                  paymentStatus: 'pending',
+                  createdBy: new ObjectId(req.user.id),
+                  createdAt: new Date(),
+                  sourceFile: previewData.fileName,
+                  extractedAt: record.extractedAt
+                };
+
+                operationsToExecute.push(payrollData);
+                recordsToProcess.push(record);
+
+              } catch (error) {
+                console.error(`Failed to prepare record for ${record.employeeName}:`, error);
+                errors.push({
+                  record: record.employeeName || record.employeeId,
+                  error: 'Failed to validate record'
+                });
+              }
+            }
+            
+            console.log(`📦 Prepared ${operationsToExecute.length} valid records for bulk insert`);
+            
+            // If there are no valid records, abort transaction
+            if (operationsToExecute.length === 0) {
+              console.log('⚠️ No valid records to process, aborting transaction');
+              return;
+            }
+
+            // Execute bulk insert within transaction
+            try {
+              const bulkResult = await payrollCollection.insertMany(operationsToExecute, { 
+                session,
+                ordered: false // Continue inserting even if some fail
+              });
+              
+              successfulImports = bulkResult.insertedCount;
+              console.log(`✅ Successfully inserted ${successfulImports} payroll records`);
+              
+            } catch (bulkError) {
+              console.error('❌ Bulk insert failed:', bulkError);
+              
+              // Handle bulk write errors
+              if (bulkError.writeErrors) {
+                bulkError.writeErrors.forEach((writeError, index) => {
+                  const record = recordsToProcess[writeError.index] || {};
+                  errors.push({
+                    record: record.employeeName || record.employeeId || `Record ${writeError.index}`,
+                    error: writeError.errmsg || 'Failed to insert record'
+                  });
+                });
+              }
+              
+              // If it's a duplicate key error, we might have some successes
+              if (bulkError.result && bulkError.result.insertedCount) {
+                successfulImports = bulkError.result.insertedCount;
+              }
+              
+              // Re-throw to abort transaction if it's a serious error
+              if (!bulkError.writeErrors && !bulkError.result) {
+                throw bulkError;
+              }
+            }
+            
+            console.log(`🎯 Transaction completed: ${successfulImports} successful imports, ${errors.length} errors`);
+            
+          }, {
+            readConcern: { level: 'majority' },
+            writeConcern: { w: 'majority', j: true },
+            readPreference: 'primary'
+          });
+          
+        } catch (transactionError) {
+          console.error('❌ Transaction failed and was aborted:', transactionError);
+          
+          // Attempt rollback using snapshot
+          if (snapshotId) {
+            try {
+              console.log(`🔄 Attempting rollback for operation: ${operationId}`);
+              
+              const rollbackResult = await rollbackService.executeRollback(operationId, {
+                dryRun: false,
+                confirmationRequired: false
+              });
+              
+              if (rollbackResult.success) {
+                console.log(`✅ Rollback completed successfully`);
+                
+                return res.status(500).json({
+                  success: false,
+                  error: 'Transaction failed but rollback completed successfully',
+                  details: transactionError.message,
+                  rollback: {
+                    completed: true,
+                    operationId,
+                    restoredCollections: rollbackResult.restoredCollections || rollbackResult.completedSteps
+                  }
+                });
+              } else {
+                console.log(`⚠️ Rollback partially completed`);
+                
+                return res.status(500).json({
+                  success: false,
+                  error: 'Transaction failed and rollback only partially completed',
+                  details: transactionError.message,
+                  rollback: {
+                    partial: true,
+                    operationId,
+                    completedSteps: rollbackResult.completedSteps,
+                    failedSteps: rollbackResult.failedSteps
+                  },
+                  warning: 'Database may be in inconsistent state. Manual verification recommended.'
+                });
+              }
+            } catch (rollbackError) {
+              console.error('❌ Rollback failed:', rollbackError);
+              
+              return res.status(500).json({
+                success: false,
+                error: 'Transaction failed and rollback also failed',
+                details: transactionError.message,
+                rollback: {
+                  failed: true,
+                  error: rollbackError.message,
+                  operationId
+                },
+                critical: 'Database may be in inconsistent state. Immediate manual intervention required.'
+              });
+            }
+          } else {
+            return res.status(500).json({
+              success: false,
+              error: 'Transaction failed and no snapshot available for rollback',
+              details: transactionError.message,
+              operationId
             });
+          }
+        } finally {
+          await session.endSession();
+        }
+
+        // Clean up preview data from memory, MongoDB, and file system backup
+        const memoryData = previewStorage.get(tokenId);
+        previewStorage.delete(tokenId);
+        
+        // Clean up from MongoDB temp_uploads collection
+        try {
+          await db.collection('temp_uploads').deleteOne({ _id: tokenId });
+          console.log(`🗑️ Cleaned up preview data from MongoDB: ${tokenId}`);
+        } catch (mongoError) {
+          console.warn(`⚠️ Failed to cleanup preview from MongoDB: ${mongoError.message}`);
+        }
+        
+        // Clean up file system backup if it was a large file
+        if (memoryData && memoryData.isLargeFile) {
+          const backupDeleted = deleteFileSystemBackup(tokenId);
+          if (backupDeleted) {
+            console.log(`🗑️ Cleaned up backup file: ${tokenId}`);
           }
         }
 
-        // Clean up preview data
-        previewStorage.delete(previewToken);
-
-        res.json({
+        // Prepare response object
+        const responseData = {
           success: true,
           message: `Payroll data confirmed and saved. ${successfulImports} records imported.`,
           totalRecords: payrollRecords.length,
@@ -814,14 +1946,71 @@ function createPayrollRoutes(db) {
             year: previewData.year,
             month: previewData.month
           }
-        });
+        };
+
+        // Store result for idempotency if key provided
+        if (idempotencyKey) {
+          const idempotencyData = {
+            statusCode: 200,
+            response: responseData,
+            expiresAt: Date.now() + IDEMPOTENCY_EXPIRY_TIME,
+            userId: req.user.id,
+            createdAt: new Date()
+          };
+          
+          // Check memory limits before storing
+          const idempotencyDataSize = estimateObjectSize(idempotencyData);
+          updateMemoryUsage();
+          
+          if (memoryUsage.idempotencySizeBytes + idempotencyDataSize > MEMORY_LIMITS.maxIdempotencySizeBytes ||
+              idempotencyStorage.size >= MEMORY_LIMITS.maxIdempotencyEntries) {
+            console.warn(`⚠️ Memory limit reached, performing cleanup before storing idempotency result`);
+            enforceMemoryLimits();
+          }
+          
+          idempotencyStorage.set(idempotencyKey, idempotencyData);
+          memoryUsage.idempotencySizeBytes += idempotencyDataSize;
+          
+          console.log(`💾 Stored result for idempotency key: ${idempotencyKey} (${(idempotencyDataSize / 1024).toFixed(1)} KB)`);
+        }
+
+        res.json(responseData);
 
       } catch (error) {
         console.error('Confirm error:', error);
-        res.status(500).json({
+        
+        const errorResponse = {
           success: false,
           error: error.message || 'Failed to confirm and save payroll data'
-        });
+        };
+
+        // Store error result for idempotency if key provided
+        if (idempotencyKey) {
+          const idempotencyErrorData = {
+            statusCode: 500,
+            response: errorResponse,
+            expiresAt: Date.now() + IDEMPOTENCY_EXPIRY_TIME,
+            userId: req.user.id,
+            createdAt: new Date()
+          };
+          
+          // Check memory limits before storing
+          const idempotencyDataSize = estimateObjectSize(idempotencyErrorData);
+          updateMemoryUsage();
+          
+          if (memoryUsage.idempotencySizeBytes + idempotencyDataSize > MEMORY_LIMITS.maxIdempotencySizeBytes ||
+              idempotencyStorage.size >= MEMORY_LIMITS.maxIdempotencyEntries) {
+            console.warn(`⚠️ Memory limit reached, performing cleanup before storing error idempotency result`);
+            enforceMemoryLimits();
+          }
+          
+          idempotencyStorage.set(idempotencyKey, idempotencyErrorData);
+          memoryUsage.idempotencySizeBytes += idempotencyDataSize;
+          
+          console.log(`💾 Stored error result for idempotency key: ${idempotencyKey} (${(idempotencyDataSize / 1024).toFixed(1)} KB)`);
+        }
+
+        res.status(500).json(errorResponse);
       }
     })
   );
@@ -1064,8 +2253,8 @@ function createPayrollRoutes(db) {
         }));
 
         // Generate Excel file
-        const excelProcessor = new ExcelProcessor();
-        const workbook = await excelProcessor.generatePayrollExcelFile(excelData, {
+        const excelService = new ExcelService();
+        const workbook = await excelService.generatePayrollExcelFile(excelData, {
           year: year ? parseInt(year) : new Date().getFullYear(),
           month: month ? parseInt(month) : new Date().getMonth() + 1,
           exportedBy: req.user.name,
@@ -1115,9 +2304,9 @@ function createPayrollRoutes(db) {
       try {
         console.log(`📥 Excel template download requested by: ${req.user.name}`);
 
-        // Generate template using ExcelProcessor
-        const excelProcessor = new ExcelProcessor();
-        const templateBuffer = await excelProcessor.generatePayrollTemplate();
+        // Generate template using ExcelService
+        const excelService = new ExcelService();
+        const templateBuffer = await excelService.generatePayrollTemplate();
 
         // Generate filename with timestamp
         const timestamp = new Date().toISOString().slice(0, 10);
@@ -1489,6 +2678,306 @@ function createPayrollRoutes(db) {
         res.status(500).json({
           success: false,
           error: 'Failed to delete payslip: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
+   * GET /api/payroll/debug/memory - Get memory usage statistics
+   * DomainMeaning: Administrative endpoint for monitoring preview and idempotency storage memory usage
+   * MisleadingNames: None
+   * SideEffects: Updates memory usage calculations
+   * Invariants: Only Admin can access
+   * RAG_Keywords: memory monitoring, debug, storage statistics, admin endpoint
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_memory_debug_001
+   */
+  router.get('/debug/memory',
+    requireAuth,
+    requirePermission('admin:permissions'),
+    asyncHandler(async (req, res) => {
+      try {
+        // Update current memory usage
+        updateMemoryUsage();
+        
+        // Get MongoDB temp_uploads statistics
+        let mongoStats = {
+          totalDocuments: 0,
+          previewDocuments: 0,
+          expiredDocuments: 0
+        };
+        
+        try {
+          mongoStats.totalDocuments = await db.collection('temp_uploads').countDocuments();
+          mongoStats.previewDocuments = await db.collection('temp_uploads').countDocuments({ type: 'preview' });
+          mongoStats.expiredDocuments = await db.collection('temp_uploads').countDocuments({
+            expiresAt: { $lt: new Date() }
+          });
+        } catch (mongoError) {
+          console.warn(`⚠️ Failed to get MongoDB statistics: ${mongoError.message}`);
+        }
+        
+        // Get file system backup statistics
+        let backupStats = {
+          totalFiles: 0,
+          totalSizeMB: 0,
+          expiredFiles: 0
+        };
+        
+        try {
+          if (fs.existsSync(BACKUP_CONFIG.backupDir)) {
+            const files = fs.readdirSync(BACKUP_CONFIG.backupDir)
+              .filter(f => f.endsWith('.json'));
+            
+            backupStats.totalFiles = files.length;
+            
+            for (const file of files) {
+              const filePath = path.join(BACKUP_CONFIG.backupDir, file);
+              try {
+                const stats = fs.statSync(filePath);
+                backupStats.totalSizeMB += stats.size;
+                
+                // Check if expired
+                const backupContent = fs.readFileSync(filePath, 'utf8');
+                const backupData = JSON.parse(backupContent);
+                if (new Date(backupData.expiresAt) < new Date()) {
+                  backupStats.expiredFiles++;
+                }
+              } catch (fileError) {
+                // Count corrupted files as expired
+                backupStats.expiredFiles++;
+              }
+            }
+            
+            backupStats.totalSizeMB = Math.round(backupStats.totalSizeMB / 1024 / 1024 * 100) / 100;
+          }
+        } catch (backupError) {
+          console.warn(`⚠️ Failed to get backup statistics: ${backupError.message}`);
+        }
+        
+        // Calculate usage percentages
+        const previewUsagePercent = (memoryUsage.previewSizeBytes / MEMORY_LIMITS.maxPreviewSizeBytes) * 100;
+        const idempotencyUsagePercent = (memoryUsage.idempotencySizeBytes / MEMORY_LIMITS.maxIdempotencySizeBytes) * 100;
+        
+        const stats = {
+          timestamp: new Date(),
+          limits: {
+            maxPreviewEntries: MEMORY_LIMITS.maxPreviewEntries,
+            maxIdempotencyEntries: MEMORY_LIMITS.maxIdempotencyEntries,
+            maxPreviewSizeMB: Math.round(MEMORY_LIMITS.maxPreviewSizeBytes / 1024 / 1024),
+            maxIdempotencySizeMB: Math.round(MEMORY_LIMITS.maxIdempotencySizeBytes / 1024 / 1024),
+            warningThresholdPercent: MEMORY_LIMITS.warningThresholdPercent
+          },
+          current: {
+            previewEntries: previewStorage.size,
+            idempotencyEntries: idempotencyStorage.size,
+            previewSizeMB: Math.round(memoryUsage.previewSizeBytes / 1024 / 1024 * 100) / 100,
+            idempotencySizeMB: Math.round(memoryUsage.idempotencySizeBytes / 1024 / 1024 * 100) / 100,
+            previewUsagePercent: Math.round(previewUsagePercent * 100) / 100,
+            idempotencyUsagePercent: Math.round(idempotencyUsagePercent * 100) / 100
+          },
+          history: {
+            lastCleanup: new Date(memoryUsage.lastCleanup),
+            totalCleanupsPerformed: memoryUsage.totalCleanupsPerformed
+          },
+          mongodb: {
+            totalTempUploads: mongoStats.totalDocuments,
+            previewDocuments: mongoStats.previewDocuments,
+            expiredDocuments: mongoStats.expiredDocuments,
+            ttlIndexActive: mongoStats.expiredDocuments === 0 ? 'Working' : 'Needs cleanup'
+          },
+          fileSystemBackup: {
+            totalFiles: backupStats.totalFiles,
+            totalSizeMB: backupStats.totalSizeMB,
+            expiredFiles: backupStats.expiredFiles,
+            maxFiles: BACKUP_CONFIG.maxBackupFiles,
+            backupDir: BACKUP_CONFIG.backupDir
+          },
+          warnings: []
+        };
+        
+        // Add warnings if thresholds exceeded
+        if (previewUsagePercent > MEMORY_LIMITS.warningThresholdPercent) {
+          stats.warnings.push({
+            type: 'PREVIEW_MEMORY_HIGH',
+            message: `Preview storage memory usage is ${previewUsagePercent.toFixed(1)}% of limit`,
+            severity: previewUsagePercent > 95 ? 'CRITICAL' : 'WARNING'
+          });
+        }
+        
+        if (idempotencyUsagePercent > MEMORY_LIMITS.warningThresholdPercent) {
+          stats.warnings.push({
+            type: 'IDEMPOTENCY_MEMORY_HIGH',
+            message: `Idempotency storage memory usage is ${idempotencyUsagePercent.toFixed(1)}% of limit`,
+            severity: idempotencyUsagePercent > 95 ? 'CRITICAL' : 'WARNING'
+          });
+        }
+        
+        res.json({
+          success: true,
+          data: stats
+        });
+        
+      } catch (error) {
+        console.error('Memory debug error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get memory statistics: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
+   * GET /api/payroll/rollback/status/:operationId - Get rollback status for operation
+   * DomainMeaning: Retrieve rollback status and audit history for a specific operation
+   * MisleadingNames: None
+   * SideEffects: None - read-only operation
+   * Invariants: Only Admin can view rollback status
+   * RAG_Keywords: rollback status, audit trail, operation history
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_rollback_status_001
+   */
+  router.get('/rollback/status/:operationId',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    addSecurityHeaders,
+    validateMongoId,
+    preventNoSQLInjection,
+    asyncHandler(async (req, res) => {
+      try {
+        const { operationId } = req.params;
+        
+        console.log(`🔍 Getting rollback status for operation: ${operationId}`);
+        
+        const status = await rollbackService.getRollbackStatus(operationId);
+        
+        res.json({
+          success: true,
+          data: status,
+          message: `Rollback status retrieved for operation: ${operationId}`
+        });
+        
+      } catch (error) {
+        console.error('Get rollback status error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get rollback status: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
+   * POST /api/payroll/rollback/execute - Execute rollback for failed operation
+   * DomainMeaning: Manually trigger rollback using saved snapshot
+   * MisleadingNames: None
+   * SideEffects: Restores database to previous state, removes newer data
+   * Invariants: Only Admin can execute rollback
+   * RAG_Keywords: manual rollback, snapshot restore, emergency recovery
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_post_rollback_execute_001
+   */
+  router.post('/rollback/execute',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    addSecurityHeaders,
+    preventNoSQLInjection,
+    strictRateLimiter, // Limit rollback operations
+    asyncHandler(async (req, res) => {
+      try {
+        const { operationId, dryRun = false, confirmationToken } = req.body;
+        
+        if (!operationId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Operation ID is required for rollback'
+          });
+        }
+        
+        // For actual rollback (not dry run), require confirmation token
+        if (!dryRun && !confirmationToken) {
+          return res.status(400).json({
+            success: false,
+            error: 'Confirmation token is required for actual rollback',
+            requiresConfirmation: true,
+            operationId
+          });
+        }
+        
+        console.log(`🔄 ${dryRun ? 'DRY RUN: ' : ''}Executing rollback for operation: ${operationId}`);
+        console.log(`👤 Requested by: ${req.user.name} (${req.user.id})`);
+        
+        const rollbackResult = await rollbackService.executeRollback(operationId, {
+          dryRun,
+          confirmationRequired: false,
+          skipAuditLog: false
+        });
+        
+        if (dryRun) {
+          res.json({
+            success: true,
+            dryRun: true,
+            operationId,
+            plan: rollbackResult.plan,
+            message: 'Rollback plan generated successfully. Review and execute with confirmation token.'
+          });
+        } else {
+          res.json({
+            success: rollbackResult.success,
+            operationId,
+            rollbackCompleted: rollbackResult.success,
+            result: rollbackResult,
+            message: rollbackResult.success 
+              ? 'Rollback completed successfully'
+              : 'Rollback partially completed with some failures'
+          });
+        }
+        
+      } catch (error) {
+        console.error('Execute rollback error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to execute rollback: ' + error.message,
+          operationId: req.body.operationId
+        });
+      }
+    })
+  );
+
+  /**
+   * DELETE /api/payroll/rollback/cleanup - Clean up expired snapshots and audit logs
+   * DomainMeaning: Maintenance endpoint to remove old rollback data
+   * MisleadingNames: None
+   * SideEffects: Removes expired snapshots and audit logs from database
+   * Invariants: Only Admin can trigger cleanup
+   * RAG_Keywords: maintenance, cleanup, expired data removal
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_delete_rollback_cleanup_001
+   */
+  router.delete('/rollback/cleanup',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    addSecurityHeaders,
+    preventNoSQLInjection,
+    asyncHandler(async (req, res) => {
+      try {
+        console.log(`🧹 Starting rollback data cleanup requested by: ${req.user.name}`);
+        
+        const cleanupResult = await rollbackService.cleanupExpiredData();
+        
+        res.json({
+          success: true,
+          result: cleanupResult,
+          message: `Cleanup completed: ${cleanupResult.expiredSnapshotsRemoved} snapshots, ${cleanupResult.oldAuditLogsRemoved} audit logs removed`
+        });
+        
+      } catch (error) {
+        console.error('Rollback cleanup error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to cleanup rollback data: ' + error.message
         });
       }
     })

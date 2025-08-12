@@ -42,14 +42,19 @@ const payrollRateLimiter = rateLimit({
  * Strict rate limiter for sensitive operations
  * DomainMeaning: Enhanced rate limiting for critical operations
  * SideEffects: Blocks requests exceeding strict limits
- * Invariants: Max 10 requests per 5 minutes for uploads/deletes
- * RAG_Keywords: rate, limit, strict, upload, delete
+ * Invariants: Max 5 requests per 5 minutes for uploads/deletes (enhanced security)
+ * RAG_Keywords: rate, limit, strict, upload, delete, enhanced
  */
 const strictRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs
-  message: 'Rate limit exceeded for this operation.',
-  skipSuccessfulRequests: false
+  max: 5, // Limit each IP to 5 requests per windowMs (enhanced from 10)
+  message: 'Rate limit exceeded for this operation. Maximum 5 requests per 5 minutes.',
+  skipSuccessfulRequests: false,
+  // Add additional security headers
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for successful requests - false for maximum security
+  skipFailedRequests: false
 });
 
 /**
@@ -282,17 +287,18 @@ function logSecurityEvent(eventType, details, req) {
  * RAG_Keywords: validate, mongodb, objectid, parameter
  */
 function validateObjectId(req, res, next) {
-  const { id } = req.params;
-  
-  if (id) {
-    // Check if it's a valid MongoDB ObjectId
-    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-    if (!objectIdRegex.test(id)) {
-      logSecurityEvent('INVALID_OBJECT_ID', { id }, req);
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid ID format'
-      });
+  // Check all params for potential MongoDB ObjectId fields
+  for (const [key, value] of Object.entries(req.params || {})) {
+    if (value) {
+      // Check if it's a valid MongoDB ObjectId
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdRegex.test(value)) {
+        logSecurityEvent('INVALID_OBJECT_ID', { [key]: value }, req);
+        return res.status(400).json({
+          success: false,
+          error: `Invalid ${key} format`
+        });
+      }
     }
   }
   
