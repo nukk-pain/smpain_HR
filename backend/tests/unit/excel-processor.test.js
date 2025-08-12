@@ -11,7 +11,7 @@
  * FunctionIdentity: excel-processor-unit-tests
  */
 
-const ExcelProcessor = require('../../excelProcessor');
+const ExcelService = require('../../services/excel');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,7 +19,7 @@ describe('ExcelProcessor Unit Tests', () => {
   let excelProcessor;
   
   beforeEach(() => {
-    excelProcessor = new ExcelProcessor();
+    excelProcessor = new ExcelService();
   });
 
   describe('File Validation', () => {

@@ -2,6 +2,37 @@
 
 This document maintains a registry of all functions and variables in the HR system to prevent duplication and encourage reuse.
 
+## Payroll Excel Upload Functions
+
+### API Service Methods (`frontend/src/services/api.ts`)
+
+#### New Preview-Based Upload Flow
+- `previewPayrollExcel(file, year?, month?)` - Previews Excel file without saving to database
+- `confirmPayrollExcel(previewToken, idempotencyKey?)` - Confirms and saves previewed data
+
+### PayrollService Methods (`frontend/src/services/payrollService.ts`)
+
+#### Excel Operations
+- `previewExcel(file, year?, month?)` - Service layer wrapper for Excel preview
+- `confirmExcelPreview(previewToken, idempotencyKey?)` - Service layer wrapper for confirmation
+- `previewExcelWithTimeout(file, year?, month?, options?)` - Preview with configurable timeout
+- `previewExcelWithRetry(file, year?, month?, options?)` - Preview with retry logic
+- `confirmExcelPreviewWithRetry(previewToken, idempotencyKey?, options?)` - Confirmation with retry
+
+#### Progress Tracking
+- `createProgressConnection(uploadId, onProgress)` - Creates SSE connection for real-time progress
+
+#### Error Handling Utilities
+- `retryWithExponentialBackoff(fn, maxRetries, shouldRetry?)` - Generic retry with exponential backoff
+- `isValidationError(error)` - Checks if error is client-side validation error
+- `enhanceError(error)` - Transforms technical errors to user-friendly messages
+
+### Components (`frontend/src/components/`)
+
+#### New Excel Upload with Preview
+- `PayrollExcelUploadWithPreview` - Main upload component with preview functionality
+- `PreviewDataTable` - Data table with filtering, pagination, and status indicators
+
 ## User Deactivation & Management Functions
 
 ### Utilities (`backend/utils/userDeactivation.js`)

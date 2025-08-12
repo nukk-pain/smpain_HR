@@ -23,24 +23,38 @@ import {
   TablePagination,
   Paper,
   Chip,
-  Typography
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  InputAdornment
 } from '@mui/material';
 import {
   CheckCircle as MatchedIcon,
   Cancel as NotMatchedIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
-  CheckCircle
+  CheckCircle,
+  Search as SearchIcon,
+  FilterList as FilterIcon
 } from '@mui/icons-material';
 import { PreviewRecord } from '../types/payrollUpload';
+import { useAuth } from './AuthProvider';
 
 interface PreviewDataTableProps {
   records: PreviewRecord[];
 }
 
 export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) => {
+  const { user } = useAuth();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [matchingFilter, setMatchingFilter] = React.useState<string>('all');
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -51,7 +65,31 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
     setPage(0);
   };
 
-  const formatCurrency = (amount: number) => {
+  const maskSalaryAmount = (amount: number): string => {
+    // Admin users can see full amounts
+    if (user?.role === 'Admin' || user?.role === 'admin') {
+      return amount.toString();
+    }
+    
+    // Non-admin users see masked amounts
+    if (!amount || amount === 0) return '0';
+    const amountStr = amount.toString();
+    if (amountStr.length <= 3) return '***';
+    
+    const firstPart = amountStr.substring(0, 2);
+    const lastPart = amountStr.substring(amountStr.length - 1);
+    const middleLength = amountStr.length - 3;
+    return `${firstPart}${'*'.repeat(middleLength)}${lastPart}`;
+  };
+
+  const formatCurrency = (amount: number, shouldMask: boolean = false) => {
+    const displayAmount = shouldMask ? maskSalaryAmount(amount) : amount;
+    
+    if (shouldMask && user?.role !== 'Admin' && user?.role !== 'admin') {
+      // For masked amounts, show with asterisks
+      return `₩${displayAmount}`;
+    }
+    
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
       currency: 'KRW',
@@ -117,7 +155,28 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
     }
   };
 
-  const paginatedRecords = records.slice(
+  // Filter records based on search term and filters
+  const filteredRecords = React.useMemo(() => {
+    return records.filter((record) => {
+      // Search term filter (employee name and ID)
+      const matchesSearch = searchTerm === '' || 
+        record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (record.employeeId && record.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (record.matchedUser.found && record.matchedUser.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || record.status === statusFilter;
+      
+      // Matching filter
+      const matchesMatching = matchingFilter === 'all' || 
+        (matchingFilter === 'matched' && record.matchedUser.found) ||
+        (matchingFilter === 'unmatched' && !record.matchedUser.found);
+      
+      return matchesSearch && matchesStatus && matchesMatching;
+    });
+  }, [records, searchTerm, statusFilter, matchingFilter]);
+
+  const paginatedRecords = filteredRecords.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -125,8 +184,59 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        데이터 미리보기
+        데이터 미리보기 ({filteredRecords.length}건)
       </Typography>
+      
+      {/* Filter Controls */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={4}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="직원명 또는 사번으로 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={3} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>검증 상태</InputLabel>
+              <Select
+                value={statusFilter}
+                label="검증 상태"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">전체</MenuItem>
+                <MenuItem value="valid">정상</MenuItem>
+                <MenuItem value="warning">경고</MenuItem>
+                <MenuItem value="invalid">오류</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={3} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>매칭 상태</InputLabel>
+              <Select
+                value={matchingFilter}
+                label="매칭 상태"
+                onChange={(e) => setMatchingFilter(e.target.value)}
+              >
+                <MenuItem value="all">전체</MenuItem>
+                <MenuItem value="matched">매칭됨</MenuItem>
+                <MenuItem value="unmatched">매칭 실패</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+      </Paper>
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 1000 }} size="small">
           <TableHead>
@@ -181,11 +291,11 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
                 <TableCell align="center">
                   {getMatchingChip(record.matchedUser)}
                 </TableCell>
-                <TableCell align="right">{formatCurrency(record.baseSalary)}</TableCell>
-                <TableCell align="right">{formatCurrency(record.totalAllowances)}</TableCell>
-                <TableCell align="right">{formatCurrency(record.totalDeductions)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.baseSalary, true)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.totalAllowances, true)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.totalDeductions, true)}</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency(record.netSalary)}
+                  {formatCurrency(record.netSalary, true)}
                 </TableCell>
                 <TableCell align="center">
                   {getStatusChip(record.status)}
@@ -207,7 +317,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
       <TablePagination
         rowsPerPageOptions={[5, 10, 25, 50]}
         component="div"
-        count={records.length}
+        count={filteredRecords.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}

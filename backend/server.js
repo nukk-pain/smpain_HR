@@ -31,6 +31,7 @@ const leaveRoutes = require('./routes/leave');
 const createDepartmentRoutes = require('./routes/departments');
 const createPositionRoutes = require('./routes/positions');
 const createPayrollRoutes = require('./routes/payroll');
+const createPayrollEnhancedRoutes = require('./routes/payroll-enhanced');
 const createBonusRoutes = require('./routes/bonus');
 const createSalesRoutes = require('./routes/sales');
 const createUploadRoutes = require('./routes/upload');
@@ -188,7 +189,19 @@ async function initializeData() {
     await db.collection('leaveRequests').createIndex({ status: 1 });
     await db.collection('leaveRequests').createIndex({ startDate: 1 });
 
-    console.log('✅ Database indexes created');
+    // Create TTL index for temp_uploads collection to auto-cleanup expired documents
+    // Documents will be automatically deleted after their expiresAt timestamp
+    await db.collection('temp_uploads').createIndex(
+      { expiresAt: 1 }, 
+      { expireAfterSeconds: 0 }
+    );
+    
+    // Create supporting indexes for temp_uploads collection
+    await db.collection('temp_uploads').createIndex({ uploadedBy: 1 });
+    await db.collection('temp_uploads').createIndex({ type: 1 });
+    await db.collection('temp_uploads').createIndex({ createdAt: -1 });
+
+    console.log('✅ Database indexes created including TTL index for temp_uploads');
   } catch (error) {
     console.error('❌ Error initializing data:', error);
   }
@@ -515,6 +528,7 @@ async function initializeRoutes() {
   app.use('/api/departments', createDepartmentRoutes(db));
   app.use('/api/positions', createPositionRoutes(db));
   app.use('/api/payroll', createPayrollRoutes(db));
+  app.use('/api/payroll', createPayrollEnhancedRoutes(db));
   app.use('/api/bonus', createBonusRoutes(db));
   app.use('/api/sales', createSalesRoutes(db));
   app.use('/api/payroll-upload', createUploadRoutes(db));

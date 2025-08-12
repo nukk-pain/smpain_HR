@@ -7,7 +7,9 @@
     "build": "vite build",
     "build-check": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "vercel-build": "npm run build"
+    "vercel-build": "npm run build",
+    "test:bundle-size": "node test-bundle-size.cjs",
+    "build-and-test": "npm run build && npm run test:bundle-size"
   },
   "keywords": [
     "react",
@@ -48,6 +50,7 @@
     "@types/node": "^24.0.10",
     "@vitejs/plugin-react": "^4.6.0",
     "rollup-plugin-visualizer": "^6.0.3",
+    "sass-embedded": "^1.90.0",
     "terser": "^5.43.1",
     "typescript": "^5.8.3",
     "vite": "^7.0.2"

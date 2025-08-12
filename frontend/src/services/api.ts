@@ -355,12 +355,6 @@ class ApiService {
     return response.data;
   }
 
-  async downloadPayrollTemplate() {
-    const response = await this.api.get('/reports/template/payroll', {
-      responseType: 'blob',
-    });
-    return response.data;
-  }
 
   // File Upload and Processing
   async uploadPayrollFile(file: File, yearMonth: string) {
@@ -428,11 +422,6 @@ class ApiService {
   }
 
   // Excel Upload/Export
-  async uploadPayrollExcel(file: File) {
-    const formData = new FormData();
-    formData.append('payrollFile', file);
-    return this.upload('/payroll/excel/upload', formData);
-  }
 
   async previewPayrollExcel(file: File, year?: number, month?: number) {
     const formData = new FormData();
@@ -442,8 +431,12 @@ class ApiService {
     return this.upload('/payroll/excel/preview', formData);
   }
 
-  async confirmPayrollExcel(previewToken: string) {
-    return this.post('/payroll/excel/confirm', { previewToken });
+  async confirmPayrollExcel(previewToken: string, idempotencyKey?: string) {
+    const payload: any = { previewToken };
+    if (idempotencyKey) {
+      payload.idempotencyKey = idempotencyKey;
+    }
+    return this.post('/payroll/excel/confirm', payload);
   }
 
   async exportPayrollExcel(params?: {

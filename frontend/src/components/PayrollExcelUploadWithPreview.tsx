@@ -26,7 +26,12 @@ import {
   Stepper,
   Step,
   StepLabel,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -51,6 +56,8 @@ const steps = ['파일 선택', '데이터 확인', '저장 완료'];
 export const PayrollExcelUploadWithPreview: React.FC = () => {
   const { state, actions, helpers } = usePayrollUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
+  const [submitAttempted, setSubmitAttempted] = React.useState(false);
 
   // Get current step index for stepper
   const getStepIndex = () => {
@@ -112,7 +119,42 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
     e.stopPropagation();
   }, []);
 
-  // Handle preview
+  // Enhanced error handling with retry logic
+  const executeWithRetry = async (
+    operation: () => Promise<any>,
+    maxRetries: number = 3,
+    delay: number = 1000
+  ) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (err: any) {
+        console.log(`🔄 Attempt ${attempt}/${maxRetries} failed:`, err);
+        
+        if (attempt === maxRetries) {
+          // On final failure, provide user-friendly error message
+          if (err.response?.status === 413) {
+            throw new Error('파일 크기가 너무 큽니다. 10MB 이하의 파일을 업로드해주세요.');
+          } else if (err.response?.status === 400) {
+            throw new Error(err.response?.data?.error || '파일 형식이 올바르지 않습니다.');
+          } else if (err.response?.status >= 500) {
+            throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          } else if (err.code === 'NETWORK_ERROR' || !navigator.onLine) {
+            throw new Error('네트워크 연결을 확인하고 다시 시도해주세요.');
+          } else {
+            throw err;
+          }
+        }
+        
+        // Wait before retrying (exponential backoff)
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+  };
+
+  // Handle preview with retry logic
   const handlePreview = async () => {
     if (!state.selectedFile) return;
     
@@ -124,11 +166,13 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth() + 1;
       
-      const response = await apiService.previewPayrollExcel(
-        state.selectedFile,
-        year,
-        month
-      ) as unknown as PreviewApiResponse;
+      const response = await executeWithRetry(async () => {
+        return await apiService.previewPayrollExcel(
+          state.selectedFile!,
+          year,
+          month
+        ) as unknown as PreviewApiResponse;
+      });
       
       if (response.success && response.summary && response.records) {
         actions.setPreviewData(
@@ -151,16 +195,46 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
     }
   };
 
-  // Handle confirm
+  // Generate idempotency key for this confirm operation
+  const generateIdempotencyKey = useCallback(() => {
+    const timestamp = Date.now();
+    const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+    const randomString = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `confirm_${timestamp}_${randomString}`;
+  }, []);
+
+  // Handle confirm with retry logic
+  // Show confirmation dialog
+  const handleConfirmClick = () => {
+    // Prevent duplicate submission attempts
+    if (submitAttempted) {
+      actions.setError('이미 저장 요청이 진행 중입니다. 잠시만 기다려주세요.');
+      return;
+    }
+    setConfirmDialogOpen(true);
+  };
+
+  // Handle actual confirm with retry logic  
   const handleConfirm = async () => {
+    setConfirmDialogOpen(false);
+    
+    // Set submit attempted flag to prevent duplicate submissions
+    if (submitAttempted) {
+      console.log('⚠️ Duplicate submission prevented');
+      return;
+    }
+    setSubmitAttempted(true);
+    
     if (!state.previewToken) {
       actions.setError('프리뷰 토큰이 없습니다. 다시 업로드해주세요.');
+      setSubmitAttempted(false);
       return;
     }
 
     if (helpers.isPreviewExpired()) {
       actions.setError('프리뷰가 만료되었습니다. 다시 업로드해주세요.');
       actions.reset();
+      setSubmitAttempted(false);
       return;
     }
     
@@ -168,9 +242,16 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       actions.setConfirming(true);
       actions.clearError();
       
-      const response = await apiService.confirmPayrollExcel(
-        state.previewToken
-      ) as unknown as ConfirmApiResponse;
+      // Generate idempotency key for this operation
+      const idempotencyKey = generateIdempotencyKey();
+      console.log('🔑 Generated idempotency key:', idempotencyKey);
+      
+      const response = await executeWithRetry(async () => {
+        return await apiService.confirmPayrollExcel(
+          state.previewToken!,
+          idempotencyKey
+        ) as unknown as ConfirmApiResponse;
+      });
       
       if (response.success && response.summary) {
         actions.setResult({
@@ -188,6 +269,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       actions.setError(err.message || '데이터 저장에 실패했습니다.');
     } finally {
       actions.setConfirming(false);
+      setSubmitAttempted(false); // Reset flag after operation completes
     }
   };
 
@@ -372,22 +454,26 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
           </Button>
           <Button
             variant="contained"
-            onClick={handleConfirm}
+            onClick={handleConfirmClick}
             disabled={
               state.confirming ||
+              submitAttempted ||
               state.previewData.summary.invalidRecords > 0
             }
             startIcon={<SaveIcon />}
           >
-            {state.confirming ? '저장 중...' : '데이터베이스에 저장'}
+            {submitAttempted ? '처리 중...' : state.confirming ? '저장 중...' : '데이터베이스에 저장'}
           </Button>
         </Box>
 
-        {state.confirming && (
+        {(state.confirming || submitAttempted) && (
           <Box sx={{ mt: 2 }}>
             <LinearProgress />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               데이터를 저장하고 있습니다...
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              중복 제출 방지가 활성화되어 있습니다.
             </Typography>
           </Box>
         )}
@@ -438,7 +524,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   파일명
                 </Typography>
                 <Typography variant="body1">
-                  {state.result.summary.fileName}
+                  {state.result?.summary?.fileName || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -446,7 +532,9 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   처리 시간
                 </Typography>
                 <Typography variant="body1">
-                  {new Date(state.result.summary.processedAt).toLocaleString()}
+                  {state.result?.summary?.processedAt 
+                    ? new Date(state.result.summary.processedAt).toLocaleString() 
+                    : 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -454,7 +542,9 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   대상 기간
                 </Typography>
                 <Typography variant="body1">
-                  {state.result.summary.year}년 {state.result.summary.month}월
+                  {state.result?.summary?.year && state.result?.summary?.month
+                    ? `${state.result.summary.year}년 ${state.result.summary.month}월`
+                    : 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -462,7 +552,9 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   성공률
                 </Typography>
                 <Typography variant="body1">
-                  {((state.result.successfulImports / state.result.totalRecords) * 100).toFixed(1)}%
+                  {state.result?.totalRecords && state.result?.successfulImports
+                    ? `${((state.result.successfulImports / state.result.totalRecords) * 100).toFixed(1)}%`
+                    : 'N/A'}
                 </Typography>
               </Grid>
             </Grid>
@@ -509,6 +601,59 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       {state.step === 'select' && renderFileSelectStep()}
       {state.step === 'preview' && renderPreviewStep()}
       {(state.step === 'confirmed' || state.step === 'completed') && renderResultStep()}
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-description"
+      >
+        <DialogTitle id="confirm-dialog-title">
+          급여 데이터 저장 확인
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="confirm-dialog-description">
+            {state.previewData && (
+              <>
+                <Typography variant="body2" gutterBottom>
+                  다음 급여 데이터를 데이터베이스에 저장하시겠습니까?
+                </Typography>
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    • 총 {state.previewData.summary.totalRecords}건의 급여 데이터
+                  </Typography>
+                  <Typography variant="body2">
+                    • 유효한 데이터: {state.previewData.summary.validRecords}건
+                  </Typography>
+                  {state.previewData.summary.warningRecords > 0 && (
+                    <Typography variant="body2" color="warning.main">
+                      • 경고가 있는 데이터: {state.previewData.summary.warningRecords}건
+                    </Typography>
+                  )}
+                </Box>
+                <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
+                  저장 후에는 데이터를 수정할 수 없습니다.
+                </Typography>
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} color="inherit">
+            취소
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            variant="contained"
+            color="primary"
+            disabled={state.confirming}
+            startIcon={<SaveIcon />}
+          >
+            {state.confirming ? '저장 중...' : '확인하고 저장'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

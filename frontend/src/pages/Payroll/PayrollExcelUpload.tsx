@@ -19,10 +19,15 @@ import { useAuth } from '../../components/AuthProvider';
 export const PayrollExcelUploadPage: React.FC = () => {
   const { user } = useAuth();
 
+  console.log('🎯 PayrollExcelUploadPage rendering, user:', user?.name, 'role:', user?.role, 'permissions:', user?.permissions);
+
   // Check if user has permission to upload payroll data
   const canUpload = user?.permissions?.includes('payroll:manage') || user?.role === 'admin';
+  
+  console.log('🎯 canUpload check:', canUpload, 'hasPayrollManage:', user?.permissions?.includes('payroll:manage'), 'isAdmin:', user?.role === 'admin');
 
   if (!canUpload) {
+    console.log('🎯 Access denied, showing error');
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
@@ -32,17 +37,12 @@ export const PayrollExcelUploadPage: React.FC = () => {
     );
   }
 
+  console.log('🎯 Access granted, rendering PayrollExcelUploadWithPreview');
+  
+  // Render the actual PayrollExcelUploadWithPreview component
   return (
-    <Box sx={{ p: 3, minHeight: '100vh', bgcolor: 'background.paper' }}>
-      <Alert severity="info">
-        급여 Excel 업로드 페이지 (단순 테스트)
-      </Alert>
-      <Box sx={{ mt: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
-        <h2>사용자 정보</h2>
-        <p>이름: {user?.name}</p>
-        <p>역할: {user?.role}</p>
-        <p>권한: {user?.permissions?.join(', ') || '없음'}</p>
-      </Box>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <PayrollExcelUploadWithPreview />
     </Box>
   );
 };
