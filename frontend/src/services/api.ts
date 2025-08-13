@@ -313,20 +313,29 @@ class ApiService {
   }
 
   async calculateIncentive(userId: number, yearMonth: string, salesAmount: number) {
-    return this.post('/payroll/calculate-incentive', { 
-      user_id: userId, 
-      year_month: yearMonth, 
-      sales_amount: salesAmount 
+    // TODO: This endpoint doesn't exist in backend - needs implementation
+    // Temporarily returning mock data to prevent errors
+    console.warn('calculateIncentive endpoint not implemented in backend');
+    return Promise.resolve({ 
+      success: true, 
+      data: { incentive: 0 },
+      message: 'Endpoint not implemented' 
     });
+    // Original call:
+    // return this.post('/payroll/calculate-incentive', { 
+    //   user_id: userId, 
+    //   year_month: yearMonth, 
+    //   sales_amount: salesAmount 
+    // });
   }
 
   async getBonuses(userId: number, yearMonth?: string) {
-    const url = yearMonth ? `/payroll/bonus/${userId}/${yearMonth}` : `/payroll/bonus/${userId}`;
+    const url = yearMonth ? `/bonus/user/${userId}?yearMonth=${yearMonth}` : `/bonus/user/${userId}`;
     return this.get(url);
   }
 
   async addBonus(data: any) {
-    return this.post('/payroll/bonus', data);
+    return this.post('/bonus', data);
   }
 
   // Reports
@@ -361,19 +370,19 @@ class ApiService {
     const formData = new FormData();
     formData.append('payrollFile', file);
     formData.append('yearMonth', yearMonth);
-    return this.upload('/payroll-upload', formData);
+    return this.upload('/upload', formData);
   }
 
   async getUploadPreview(uploadId: string, page: number = 1, limit: number = 20) {
-    return this.get(`/payroll-upload/${uploadId}/preview`, { page, limit });
+    return this.get(`/upload/${uploadId}/preview`, { page, limit });
   }
 
   async compareUploadData(uploadId: string, yearMonth: string) {
-    return this.get(`/payroll-upload/${uploadId}/compare/${yearMonth}`);
+    return this.get(`/upload/${uploadId}/compare/${yearMonth}`);
   }
 
   async processUpload(uploadId: string, yearMonth: string) {
-    return this.put(`/payroll-upload/${uploadId}/process`, { yearMonth });
+    return this.put(`/upload/${uploadId}/process`, { yearMonth });
   }
 
   // Statistics
@@ -382,7 +391,15 @@ class ApiService {
   }
 
   async getLeaveStats() {
-    return this.get('/leave/stats/overview');
+    // TODO: This endpoint doesn't exist in backend - needs implementation
+    console.warn('getLeaveStats endpoint not implemented in backend');
+    return Promise.resolve({ 
+      success: true, 
+      data: { totalEmployees: 0, onLeave: 0, upcoming: 0 },
+      message: 'Endpoint not implemented' 
+    });
+    // Original call:
+    // return this.get('/leave/stats/overview');
   }
 
   async getUserStats() {
@@ -428,7 +445,7 @@ class ApiService {
     formData.append('file', file);
     if (year) formData.append('year', year.toString());
     if (month) formData.append('month', month.toString());
-    return this.upload('/payroll/excel/preview', formData);
+    return this.upload('/upload/excel/preview', formData);
   }
 
   async confirmPayrollExcel(previewToken: string, idempotencyKey?: string) {
@@ -436,7 +453,7 @@ class ApiService {
     if (idempotencyKey) {
       payload.idempotencyKey = idempotencyKey;
     }
-    return this.post('/payroll/excel/confirm', payload);
+    return this.post('/upload/excel/confirm', payload);
   }
 
   async exportPayrollExcel(params?: {
@@ -444,7 +461,7 @@ class ApiService {
     month?: number;
     userId?: string;
   }) {
-    const response = await this.api.get('/payroll/excel/export', {
+    const response = await this.api.get('/upload/excel/export', {
       params,
       responseType: 'blob',
     });
@@ -452,7 +469,7 @@ class ApiService {
   }
 
   async downloadPayrollTemplate() {
-    const response = await this.api.get('/payroll/excel/template', {
+    const response = await this.api.get('/upload/excel/template', {
       responseType: 'blob',
     });
     return response.data;
@@ -462,7 +479,7 @@ class ApiService {
   async uploadPayslip(payrollId: string, file: File) {
     const formData = new FormData();
     formData.append('payslip', file);
-    return this.upload(`/payroll/${payrollId}/payslip/upload`, formData);
+    return this.upload(`/payroll/${payrollId}/payslip`, formData);
   }
 
   async downloadPayslipPdf(payrollId: string) {
@@ -536,7 +553,15 @@ class ApiService {
   }
 
   async getAvailablePermissions() {
-    return this.get('/permissions');
+    // TODO: This endpoint doesn't exist in backend - needs implementation
+    console.warn('getAvailablePermissions endpoint not implemented in backend');
+    return Promise.resolve({ 
+      success: true, 
+      data: [],
+      message: 'Endpoint not implemented' 
+    });
+    // Original call:
+    // return this.get('/permissions');
   }
 
   // Admin

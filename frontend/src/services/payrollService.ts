@@ -352,7 +352,7 @@ export class PayrollService {
    */
   createProgressConnection(uploadId: string, onProgress: (data: any) => void): { close: () => void } {
     const baseUrl = this.getApiBaseUrl();
-    const eventSource = new EventSource(`${baseUrl}/payroll/progress/${uploadId}`);
+    const eventSource = new EventSource(`${baseUrl}/upload/progress/${uploadId}`);
     
     eventSource.addEventListener('progress', (event: MessageEvent) => {
       try {

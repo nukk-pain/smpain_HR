@@ -341,11 +341,11 @@ Soft delete a payroll record (sets `isDeleted: true` and `paymentStatus: 'cancel
 
 ## Excel Processing Endpoints
 
-### 6. Upload Excel File
+### 6. Preview Excel File
 
-**POST** `/api/payroll/excel/upload`
+**POST** `/api/upload/excel/preview`
 
-Upload Excel file for bulk payroll import. Supports dual-row format from labor consultants.
+Preview Excel file for bulk payroll import before saving. Supports dual-row format from labor consultants.
 
 #### Content-Type
 `multipart/form-data`
@@ -401,9 +401,61 @@ Upload Excel file for bulk payroll import. Supports dual-row format from labor c
 
 ---
 
-### 7. Export Payroll Data
+### 7. Confirm Excel Preview
 
-**GET** `/api/payroll/excel/export`
+**POST** `/api/upload/excel/confirm`
+
+Confirm and save the previewed payroll data.
+
+#### Request Body
+
+```json
+{
+  "previewToken": "preview_abc123xyz",
+  "idempotencyKey": "unique-request-id" // Optional, for duplicate prevention
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "inserted": 48,
+    "updated": 0,
+    "failed": 2,
+    "message": "Payroll data saved successfully"
+  }
+}
+```
+
+#### Access Control
+- **Admin/HR only**: Required `payroll:manage` permission
+
+---
+
+### 8. Download Excel Template
+
+**GET** `/api/upload/excel/template`
+
+Download an Excel template for payroll data upload.
+
+#### Response
+
+**Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+
+**Headers**:
+- `Content-Disposition: attachment; filename="payroll-template.xlsx"`
+
+#### Access Control
+- **Admin/HR only**: Required `payroll:manage` permission
+
+---
+
+### 9. Export Payroll Data
+
+**GET** `/api/upload/excel/export`
 
 Export payroll data to Excel format with optional filtering.
 
@@ -435,9 +487,9 @@ The response contains an Excel file with:
 
 ## PDF Payslip Management
 
-### 8. Upload Payslip PDF
+### 10. Upload Payslip PDF
 
-**POST** `/api/payroll/:id/payslip/upload`
+**POST** `/api/payroll/:id/payslip`
 
 Upload PDF payslip document for a specific payroll record.
 
@@ -483,7 +535,7 @@ Upload PDF payslip document for a specific payroll record.
 
 ---
 
-### 9. Download Payslip PDF
+### 11. Download Payslip PDF
 
 **GET** `/api/payroll/:id/payslip`
 
@@ -508,7 +560,7 @@ Download PDF payslip for a specific payroll record.
 
 ---
 
-### 10. Delete Payslip PDF
+### 12. Delete Payslip PDF
 
 **DELETE** `/api/payroll/:id/payslip`
 
@@ -782,7 +834,8 @@ const uploadPayrollExcel = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
   
-  const response = await fetch('/api/payroll/excel/upload', {
+  // Step 1: Preview the Excel file
+  const previewResponse = await fetch('/api/upload/excel/preview', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -790,7 +843,26 @@ const uploadPayrollExcel = async (file) => {
     body: formData
   });
   
-  return await response.json();
+  const previewData = await previewResponse.json();
+  
+  if (previewData.success) {
+    // Step 2: Confirm the upload
+    const confirmResponse = await fetch('/api/upload/excel/confirm', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        previewToken: previewData.data.previewToken,
+        idempotencyKey: `upload-${Date.now()}`
+      })
+    });
+    
+    return await confirmResponse.json();
+  }
+  
+  return previewData;
 };
 ```
 
@@ -815,12 +887,24 @@ curl -X POST "/api/payroll" \
   }'
 
 # Upload Excel file
-curl -X POST "/api/payroll/excel/upload" \
+# Step 1: Preview
+curl -X POST "/api/upload/excel/preview" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "file=@payroll_data.xlsx"
 
+# Step 2: Confirm (use the previewToken from step 1)
+curl -X POST "/api/upload/excel/confirm" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"previewToken": "preview_abc123xyz", "idempotencyKey": "unique-id-123"}'
+
+# Download Excel template
+curl -X GET "/api/upload/excel/template" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -o "payroll_template.xlsx"
+
 # Download Excel export
-curl -X GET "/api/payroll/excel/export?year=2024&month=8" \
+curl -X GET "/api/upload/excel/export?year=2024&month=8" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -o "payroll_export.xlsx"
 ```
