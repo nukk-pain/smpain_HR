@@ -41,17 +41,6 @@ interface PayrollRecord {
   hasPayslip?: boolean;
 }
 
-interface UploadResult {
-  summary: {
-    totalRecords: number;
-    successCount: number;
-    errorCount: number;
-  };
-  errors: Array<{
-    row: number;
-    message: string;
-  }>;
-}
 
 interface PayrollTotals {
   totalAllowances: number;
@@ -293,24 +282,46 @@ export class PayrollService {
     return errors;
   }
 
+
   /**
-   * Upload Excel file
-   * DomainMeaning: Uploads Excel file for bulk payroll import
-   * SideEffects: Invalidates cache on success
-   * RAG_Keywords: upload, excel, bulk, import
+   * Preview Excel file before saving
+   * DomainMeaning: Generates preview of Excel payroll data without persisting
+   * SideEffects: None - read-only operation
+   * RAG_Keywords: preview, excel, validation, matching
    */
-  async uploadExcel(file: File): Promise<UploadResult> {
+  async previewExcel(file: File, year?: number, month?: number): Promise<any> {
     try {
-      const response = await apiService.uploadPayrollExcel(file);
+      const response = await apiService.previewPayrollExcel(file, year, month);
+      
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to preview Excel file');
+      }
+    } catch (error: any) {
+      console.error('Error previewing Excel file:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm Excel preview and save to database
+   * DomainMeaning: Persists previously previewed payroll data to database
+   * SideEffects: Invalidates cache, saves to database
+   * RAG_Keywords: confirm, save, preview, payroll
+   */
+  async confirmExcelPreview(previewToken: string, idempotencyKey?: string): Promise<any> {
+    try {
+      const response = await apiService.confirmPayrollExcel(previewToken, idempotencyKey);
       
       if (response.success) {
         this.invalidateCache();
         return response.data;
       } else {
-        throw new Error(response.error || 'Failed to upload Excel file');
+        throw new Error(response.error || 'Failed to confirm Excel preview');
       }
     } catch (error: any) {
-      console.error('Error uploading Excel file:', error);
+      console.error('Error confirming Excel preview:', error);
       throw error;
     }
   }
@@ -331,6 +342,210 @@ export class PayrollService {
       console.error('Error exporting Excel file:', error);
       throw error;
     }
+  }
+
+  /**
+   * Create SSE connection for progress tracking
+   * DomainMeaning: Establishes Server-Sent Events connection for real-time progress updates
+   * SideEffects: Creates EventSource connection
+   * RAG_Keywords: sse, progress, realtime, streaming
+   */
+  createProgressConnection(uploadId: string, onProgress: (data: any) => void): { close: () => void } {
+    const baseUrl = this.getApiBaseUrl();
+    const eventSource = new EventSource(`${baseUrl}/payroll/progress/${uploadId}`);
+    
+    eventSource.addEventListener('progress', (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        onProgress(data);
+      } catch (error) {
+        console.error('Error parsing progress event:', error);
+      }
+    });
+    
+    eventSource.addEventListener('complete', (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        onProgress({ ...data, complete: true });
+        eventSource.close();
+      } catch (error) {
+        console.error('Error parsing complete event:', error);
+      }
+    });
+    
+    eventSource.addEventListener('error', (event: Event) => {
+      console.error('SSE connection error:', event);
+      onProgress({ error: true, message: 'Connection lost' });
+      eventSource.close();
+    });
+    
+    return {
+      close: () => eventSource.close()
+    };
+  }
+  
+  /**
+   * Get API base URL for SSE connections
+   * DomainMeaning: Retrieves base URL for API connections
+   * RAG_Keywords: api, url, base
+   */
+  private getApiBaseUrl(): string {
+    // Get base URL from apiService or environment
+    const directApiUrl = (window as any).__VITE_API_URL || import.meta.env.VITE_API_URL;
+    if (directApiUrl) {
+      return directApiUrl;
+    }
+    return '/api';
+  }
+
+  /**
+   * Fetch payroll records with retry logic
+   * DomainMeaning: Fetches records with automatic retry on failure
+   * SideEffects: Updates cache on success
+   * RAG_Keywords: fetch, retry, exponential backoff
+   */
+  async fetchPayrollRecordsWithRetry(options?: { maxRetries?: number; [key: string]: any }): Promise<PayrollRecord[]> {
+    const { maxRetries = 3, ...params } = options || {};
+    
+    return this.retryWithExponentialBackoff(
+      () => this.fetchPayrollRecords(params),
+      maxRetries
+    );
+  }
+
+  /**
+   * Preview Excel with timeout
+   * DomainMeaning: Previews Excel file with configurable timeout
+   * RAG_Keywords: preview, timeout, excel
+   */
+  async previewExcelWithTimeout(
+    file: File,
+    year?: number,
+    month?: number,
+    options?: { timeout?: number }
+  ): Promise<any> {
+    const timeout = options?.timeout || 30000; // Default 30 seconds
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout);
+    });
+    
+    try {
+      return await Promise.race([
+        this.previewExcel(file, year, month),
+        timeoutPromise
+      ]);
+    } catch (error: any) {
+      if (error.message.includes('timeout')) {
+        throw error;
+      }
+      throw this.enhanceError(error);
+    }
+  }
+
+  /**
+   * Preview Excel with retry logic
+   * DomainMeaning: Previews Excel with automatic retry on failure
+   * RAG_Keywords: preview, retry, excel
+   */
+  async previewExcelWithRetry(
+    file: File,
+    year?: number,
+    month?: number,
+    options?: { maxRetries?: number }
+  ): Promise<any> {
+    const maxRetries = options?.maxRetries || 3;
+    
+    return this.retryWithExponentialBackoff(
+      () => this.previewExcel(file, year, month),
+      maxRetries,
+      (error) => !this.isValidationError(error) // Don't retry validation errors
+    );
+  }
+
+  /**
+   * Confirm Excel preview with retry logic
+   * DomainMeaning: Confirms preview with automatic retry on failure
+   * SideEffects: Invalidates cache on success
+   * RAG_Keywords: confirm, retry, preview
+   */
+  async confirmExcelPreviewWithRetry(
+    previewToken: string,
+    idempotencyKey?: string,
+    options?: { maxRetries?: number }
+  ): Promise<any> {
+    const maxRetries = options?.maxRetries || 3;
+    
+    return this.retryWithExponentialBackoff(
+      () => this.confirmExcelPreview(previewToken, idempotencyKey),
+      maxRetries,
+      (error) => !this.isValidationError(error)
+    );
+  }
+
+  /**
+   * Generic retry with exponential backoff
+   * DomainMeaning: Implements exponential backoff retry strategy
+   * RAG_Keywords: retry, exponential, backoff
+   */
+  private async retryWithExponentialBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number,
+    shouldRetry: (error: any) => boolean = () => true
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+        
+        if (attempt === maxRetries || !shouldRetry(error)) {
+          throw this.enhanceError(error);
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s, 8s...
+        const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw this.enhanceError(lastError);
+  }
+
+  /**
+   * Check if error is a validation error (4xx)
+   * DomainMeaning: Determines if error is client-side validation error
+   * RAG_Keywords: validation, error, check
+   */
+  private isValidationError(error: any): boolean {
+    return error?.response?.status >= 400 && error?.response?.status < 500;
+  }
+
+  /**
+   * Enhance error messages for better user experience
+   * DomainMeaning: Transforms technical errors into user-friendly messages
+   * RAG_Keywords: error, enhance, message
+   */
+  private enhanceError(error: any): Error {
+    // Network errors
+    if (!error.response && error.message) {
+      if (error.message.includes('Network')) {
+        return new Error('Network connection failed. Please check your connection and try again.');
+      }
+      if (error.code === 'ECONNABORTED') {
+        return new Error('Request timeout. Please try again.');
+      }
+    }
+    
+    // API errors
+    if (error.response?.data?.error) {
+      return new Error(error.response.data.error);
+    }
+    
+    // Default
+    return error;
   }
 
   /**

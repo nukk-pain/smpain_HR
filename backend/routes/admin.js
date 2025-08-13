@@ -914,6 +914,77 @@ function createAdminRoutes(db) {
    * DuplicatePolicy: canonical - primary debug endpoint
    * FunctionIdentity: hash_debug_temp_uploads_001
    */
+
+  /**
+   * @swagger
+   * /api/admin/debug/temp-uploads:
+   *   get:
+   *     tags:
+   *       - Admin
+   *     summary: Debug temporary uploads
+   *     description: Get detailed information about temporary upload storage for debugging purposes
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Temporary uploads debug information
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     tempUploads:
+   *                       type: object
+   *                       properties:
+   *                         count:
+   *                           type: integer
+   *                           description: Number of temporary uploads
+   *                         totalSizeMB:
+   *                           type: number
+   *                           description: Total size in megabytes
+   *                         oldestEntry:
+   *                           type: string
+   *                           format: date-time
+   *                           description: Timestamp of oldest entry
+   *                     memoryUsage:
+   *                       type: object
+   *                       properties:
+   *                         rss:
+   *                           type: number
+   *                         heapTotal:
+   *                           type: number
+   *                         heapUsed:
+   *                           type: number
+   *             example:
+   *               success: true
+   *               data:
+   *                 tempUploads:
+   *                   count: 5
+   *                   totalSizeMB: 12.5
+   *                   oldestEntry: "2024-01-15T10:30:00Z"
+   *                 memoryUsage:
+   *                   rss: 45.2
+   *                   heapTotal: 32.1
+   *                   heapUsed: 28.7
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       403:
+   *         description: Admin role required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   router.get('/debug/temp-uploads', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     try {
       // Get temp uploads statistics from MongoDB

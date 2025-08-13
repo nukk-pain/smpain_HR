@@ -22,7 +22,8 @@ jest.mock('./api', () => ({
     createPayrollRecord: jest.fn(),
     updatePayrollRecord: jest.fn(),
     deletePayrollRecord: jest.fn(),
-    uploadPayrollExcel: jest.fn(),
+    previewPayrollExcel: jest.fn(),
+    confirmPayrollExcel: jest.fn(),
     exportPayrollExcel: jest.fn(),
     uploadPayslip: jest.fn(),
     downloadPayslipPdf: jest.fn(),
@@ -176,22 +177,59 @@ describe('PayrollService', () => {
   });
 
   describe('Excel operations', () => {
-    test('should handle Excel upload', async () => {
+    test('should handle Excel preview', async () => {
       const file = new File(['content'], 'payroll.xlsx');
-      const uploadResult = {
-        summary: { totalRecords: 10, successCount: 10, errorCount: 0 },
-        errors: []
+      const previewResult = {
+        success: true,
+        data: {
+          previewToken: 'token-123',
+          summary: {
+            totalRecords: 10,
+            validRecords: 8,
+            warningRecords: 1,
+            invalidRecords: 1,
+            totalAmount: 30000000
+          },
+          records: [
+            {
+              rowIndex: 1,
+              employeeName: 'John Doe',
+              baseSalary: 3000000,
+              status: 'valid',
+              matchedUser: { found: true, id: 'user1', name: 'John Doe' }
+            }
+          ],
+          errors: [],
+          warnings: []
+        }
       };
       
-      (apiService.uploadPayrollExcel as jest.Mock).mockResolvedValue({
-        success: true,
-        data: uploadResult
-      });
+      (apiService.previewPayrollExcel as jest.Mock).mockResolvedValue(previewResult);
 
-      const result = await payrollService.uploadExcel(file);
+      const result = await payrollService.previewExcel(file, 2024, 8);
       
-      expect(result).toEqual(uploadResult);
-      expect(apiService.uploadPayrollExcel).toHaveBeenCalledWith(file);
+      expect(result).toEqual(previewResult.data);
+      expect(apiService.previewPayrollExcel).toHaveBeenCalledWith(file, 2024, 8);
+    });
+
+    test('should handle Excel preview confirmation', async () => {
+      const previewToken = 'token-123';
+      const idempotencyKey = 'idem-key-456';
+      const confirmResult = {
+        success: true,
+        data: {
+          savedRecords: 10,
+          failedRecords: 0,
+          message: 'Successfully saved 10 payroll records'
+        }
+      };
+      
+      (apiService.confirmPayrollExcel as jest.Mock).mockResolvedValue(confirmResult);
+
+      const result = await payrollService.confirmExcelPreview(previewToken, idempotencyKey);
+      
+      expect(result).toEqual(confirmResult.data);
+      expect(apiService.confirmPayrollExcel).toHaveBeenCalledWith(previewToken, idempotencyKey);
     });
 
     test('should handle Excel export', async () => {
@@ -204,6 +242,122 @@ describe('PayrollService', () => {
       expect(apiService.exportPayrollExcel).toHaveBeenCalledWith({ year: 2024, month: 8 });
     });
   });
+
+  describe('SSE Progress Tracking', () => {
+    test('should create SSE connection for upload progress', async () => {
+      const mockEventSource = {
+        addEventListener: jest.fn(),
+        close: jest.fn(),
+        readyState: EventSource.OPEN
+      };
+      
+      global.EventSource = jest.fn().mockImplementation(() => mockEventSource) as any;
+      
+      const onProgress = jest.fn();
+      const connection = payrollService.createProgressConnection('upload-123', onProgress);
+      
+      expect(global.EventSource).toHaveBeenCalledWith(
+        expect.stringContaining('/payroll/progress/upload-123')
+      );
+      expect(mockEventSource.addEventListener).toHaveBeenCalledWith('progress', expect.any(Function));
+      expect(mockEventSource.addEventListener).toHaveBeenCalledWith('complete', expect.any(Function));
+      expect(mockEventSource.addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
+      
+      // Clean up
+      connection.close();
+      expect(mockEventSource.close).toHaveBeenCalled();
+    });
+
+    test('should handle progress events', async () => {
+      const mockEventSource = {
+        addEventListener: jest.fn(),
+        close: jest.fn(),
+        readyState: EventSource.OPEN
+      };
+      
+      global.EventSource = jest.fn().mockImplementation(() => mockEventSource) as any;
+      
+      const onProgress = jest.fn();
+      payrollService.createProgressConnection('upload-123', onProgress);
+      
+      // Simulate progress event
+      const progressHandler = mockEventSource.addEventListener.mock.calls
+        .find(call => call[0] === 'progress')[1];
+      
+      const progressEvent = {
+        data: JSON.stringify({ percentage: 50, message: 'Processing...' })
+      };
+      
+      progressHandler(progressEvent);
+      
+      expect(onProgress).toHaveBeenCalledWith({
+        percentage: 50,
+        message: 'Processing...'
+      });
+    });
+  });
+
+  describe('Error Handling and Retry Logic', () => {
+    test('should retry failed requests with exponential backoff', async () => {
+      const mockData = [{ _id: '1', year: 2024, month: 8 }];
+      
+      // Fail first 2 attempts, succeed on third
+      (apiService.getPayrollRecords as jest.Mock)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ success: true, data: mockData });
+      
+      const result = await payrollService.fetchPayrollRecordsWithRetry({ maxRetries: 3 });
+      
+      expect(result).toEqual(mockData);
+      expect(apiService.getPayrollRecords).toHaveBeenCalledTimes(3);
+    });
+
+    test('should handle timeout errors', async () => {
+      const timeoutError = new Error('Request timeout');
+      (timeoutError as any).code = 'ECONNABORTED';
+      
+      (apiService.previewPayrollExcel as jest.Mock).mockRejectedValue(timeoutError);
+      
+      const file = new File(['content'], 'payroll.xlsx');
+      
+      await expect(
+        payrollService.previewExcelWithTimeout(file, 2024, 8, { timeout: 5000 })
+      ).rejects.toThrow('Request timeout after 5000ms');
+    });
+
+    test('should handle network errors gracefully', async () => {
+      const networkError = new Error('Network error');
+      (networkError as any).response = undefined;
+      
+      (apiService.confirmPayrollExcel as jest.Mock).mockRejectedValue(networkError);
+      
+      await expect(
+        payrollService.confirmExcelPreviewWithRetry('token-123', 'idem-key', { maxRetries: 1 })
+      ).rejects.toThrow('Network connection failed. Please check your connection and try again.');
+    });
+
+    test('should handle validation errors without retry', async () => {
+      const validationError = {
+        response: {
+          status: 400,
+          data: { error: 'Invalid data format' }
+        }
+      };
+      
+      (apiService.previewPayrollExcel as jest.Mock).mockRejectedValue(validationError);
+      
+      const file = new File(['content'], 'payroll.xlsx');
+      
+      await expect(
+        payrollService.previewExcelWithRetry(file, 2024, 8, { maxRetries: 3 })
+      ).rejects.toThrow('Invalid data format');
+      
+      // Should not retry on 400 errors
+      expect(apiService.previewPayrollExcel).toHaveBeenCalledTimes(1);
+    });
+  });
+
 
   describe('Payslip operations', () => {
     test('should upload payslip', async () => {

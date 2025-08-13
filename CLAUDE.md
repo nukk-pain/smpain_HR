@@ -300,3 +300,4 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 ## Development Notes
 
 - frontend, backend 실행은 사용자에게 따로 요청할 것 
+- 코드는 최대 1000줄까지만 작성하도록. 넘어가면 refactoring 계획을 세워서 md 파일로 정리.

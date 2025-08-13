@@ -1254,6 +1254,81 @@ function createPayrollRoutes(db) {
    * DuplicatePolicy: canonical
    * FunctionIdentity: hash_post_excel_preview_001
    */
+
+  /**
+   * @swagger
+   * /api/payroll/excel/preview:
+   *   post:
+   *     tags:
+   *       - Payroll
+   *     summary: Preview Excel payroll data
+   *     description: Upload Excel file and preview parsed payroll data before saving to database
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: Excel file (.xlsx) containing payroll data
+   *             required:
+   *               - file
+   *     responses:
+   *       200:
+   *         description: Preview data generated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 data:
+   *                   $ref: '#/components/schemas/PayrollPreview'
+   *                 message:
+   *                   type: string
+   *                   example: "Preview ready. Review data before confirming."
+   *             example:
+   *               success: true
+   *               data:
+   *                 previewToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+   *                 summary:
+   *                   totalRecords: 15
+   *                   validRecords: 12
+   *                   errorRecords: 2
+   *                   warningRecords: 1
+   *                 data:
+   *                   - employeeId: "EMP001"
+   *                     name: "John Doe"
+   *                     baseSalary: 3000000
+   *                     netPay: 2700000
+   *                     payPeriod: "2024-01"
+   *               message: "Preview ready. Review data before confirming."
+   *       400:
+   *         description: Invalid file or data format
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       403:
+   *         description: Insufficient permissions (Admin role required)
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   router.post('/excel/preview',
     requireAuth,
     requirePermission('payroll:manage'),
@@ -1535,6 +1610,93 @@ function createPayrollRoutes(db) {
    * RAG_Keywords: payroll confirm, save preview, bulk import, token validation
    * DuplicatePolicy: canonical
    * FunctionIdentity: hash_post_excel_confirm_001
+   */
+
+  /**
+   * @swagger
+   * /api/payroll/excel/confirm:
+   *   post:
+   *     tags:
+   *       - Payroll
+   *     summary: Confirm and save previewed payroll data
+   *     description: Confirm previewed payroll data and save it to the database using preview token
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               previewToken:
+   *                 type: string
+   *                 description: Token from preview response to identify the data
+   *               idempotencyKey:
+   *                 type: string
+   *                 description: Unique key to prevent duplicate submissions
+   *             required:
+   *               - previewToken
+   *             example:
+   *               previewToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+   *               idempotencyKey: "upload-2024-01-15-12345"
+   *     responses:
+   *       200:
+   *         description: Payroll data saved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     inserted:
+   *                       type: integer
+   *                       description: Number of records inserted
+   *                     updated:
+   *                       type: integer
+   *                       description: Number of records updated
+   *                     failed:
+   *                       type: integer
+   *                       description: Number of failed records
+   *                 message:
+   *                   type: string
+   *                   example: "Payroll data saved successfully"
+   *             example:
+   *               success: true
+   *               data:
+   *                 inserted: 12
+   *                 updated: 2
+   *                 failed: 1
+   *               message: "14 payroll records processed successfully"
+   *       400:
+   *         description: Invalid preview token or request data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       403:
+   *         description: Insufficient permissions
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       404:
+   *         description: Preview token not found or expired
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   router.post('/excel/confirm',
     requireAuth,

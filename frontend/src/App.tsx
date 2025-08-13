@@ -2,10 +2,12 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Box, CircularProgress } from '@mui/material'
 import { AuthProvider, useAuth } from './components/AuthProvider'
-import Layout from './components/Layout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import UserProfile from './pages/UserProfile'
+
+// Lazy load all heavy components to reduce initial bundle size
+const Layout = React.lazy(() => import('./components/Layout'))
+const Dashboard = React.lazy(() => import('./pages/Dashboard'))
+const UserProfile = React.lazy(() => import('./pages/UserProfile'))
 
 // Lazy load heavy components to reduce initial bundle size
 const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
@@ -29,6 +31,18 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: strin
 }) => {
   const { isAuthenticated, user, loading } = useAuth()
 
+  // Debug logging for payroll route
+  if (window.location.pathname === '/payroll/excel-upload') {
+    console.log('🔐 ProtectedRoute for payroll:', {
+      isAuthenticated,
+      loading,
+      userRole: user?.role,
+      userName: user?.name,
+      allowedRoles,
+      hasValidRole: allowedRoles ? (user && allowedRoles.includes(user.role)) : true
+    });
+  }
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -38,13 +52,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: strin
   }
 
   if (!isAuthenticated) {
+    console.log('🔐 ProtectedRoute: Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    console.log('🔐 ProtectedRoute: Role not allowed, redirecting to dashboard. User role:', user.role, 'Required roles:', allowedRoles);
     return <Navigate to="/dashboard" replace />
   }
 
+  console.log('🔐 ProtectedRoute: Access granted, rendering children');
   return <>{children}</>
 }
 
@@ -62,20 +79,53 @@ const AppContent: React.FC = () => {
 
   return (
     <Routes>
+      {/* Test route - FIRST PRIORITY - completely minimal */}
+      <Route path="/test-minimal" element={
+        <div style={{padding: '20px', backgroundColor: 'lightgreen', minHeight: '100vh'}}>
+          <h1>🎯 TEST MINIMAL ROUTE WORKS!</h1>
+          <p>This is a completely minimal test route.</p>
+          <p>URL: /test-minimal</p>
+          <p>No auth, no layout, no complex components.</p>
+          <p>Current time: {new Date().toLocaleTimeString()}</p>
+        </div>
+      } />
+      
       <Route 
         path="/login" 
         element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} 
       />
       
+      {/* Payroll Excel Upload Route - Direct top-level route to avoid conflicts */}
+      <Route 
+        path="/payroll/excel-upload" 
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+              <PayrollExcelUploadPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } 
+      />
+      
       <Route path="/" element={
         <ProtectedRoute>
-          <Layout />
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+            <Layout />
+          </React.Suspense>
         </ProtectedRoute>
       }>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <Dashboard />
+          </React.Suspense>
+        } />
         
-        <Route path="profile" element={<UserProfile />} />
+        <Route path="profile" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <UserProfile />
+          </React.Suspense>
+        } />
         
         <Route path="supervisor/payroll" element={
           <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
@@ -106,27 +156,19 @@ const AppContent: React.FC = () => {
         
       </Route>
       
-      {/* Specific payroll routes - must come BEFORE general payroll redirect */}
-      <Route path="/payroll/excel-upload" element={
-        <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
-          <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
-            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-              <PayrollExcelUploadPage />
-            </React.Suspense>
-          </Box>
-        </ProtectedRoute>
-      } />
-      
       <Route path="/" element={
         <ProtectedRoute>
-          <Layout />
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+            <Layout />
+          </React.Suspense>
         </ProtectedRoute>
       }>
         
         {/* Role-based redirects for old management pages - Admin now uses supervisor routes */}
         <Route path="users" element={<Navigate to="/supervisor/users" replace />} />
         <Route path="departments" element={<Navigate to="/supervisor/departments" replace />} />
-        <Route path="payroll" element={<Navigate to="/supervisor/payroll" replace />} />
+        {/* Make payroll redirect more specific to avoid matching /payroll/excel-upload */}
+        <Route path="payroll" end element={<Navigate to="/supervisor/payroll" replace />} />
         <Route path="reports" element={<Navigate to="/supervisor/reports" replace />} />
         <Route path="files" element={<Navigate to="/supervisor/files" replace />} />
         
@@ -199,6 +241,7 @@ const AppContent: React.FC = () => {
         } />
       </Route>
       
+      {/* Catch-all route - MUST be last to avoid overriding specific routes */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

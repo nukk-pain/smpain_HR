@@ -47,6 +47,7 @@ const {
   securityHeaders,
   corsOptions
 } = require('./middleware/errorHandler');
+const { setupSwagger } = require('./config/swagger');
 
 // Import JWT utilities
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
@@ -237,6 +238,8 @@ app.use(securityHeaders);
 // CORS setup
 app.use(cors(corsOptions));
 
+// Setup API documentation
+setupSwagger(app);
 
 // JWT Authentication Middleware - Parse JWT token and set req.user
 app.use((req, res, next) => {

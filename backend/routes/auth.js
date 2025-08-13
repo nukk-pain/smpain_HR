@@ -51,6 +51,60 @@ function createAuthRoutes(db) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     };
   };
+  /**
+   * @swagger
+   * /api/auth/login:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: User login
+   *     description: Authenticate a user with username and password, returns JWT token
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginRequest'
+   *           example:
+   *             username: "admin"
+   *             password: "admin"
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponse'
+   *             example:
+   *               success: true
+   *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+   *               user:
+   *                 _id: "507f1f77bcf86cd799439011"
+   *                 username: "admin"
+   *                 role: "Admin"
+   *                 name: "Administrator"
+   *               message: "Login successful"
+   *       400:
+   *         description: Invalid request data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "VALIDATION_ERROR"
+   *               message: "Username and password are required"
+   *       401:
+   *         description: Authentication failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "INVALID_CREDENTIALS"
+   *               message: "Invalid username or password"
+   */
   // Login endpoint with validation middleware
   router.post('/login', validate.body(authSchemas.login), async (req, res) => {
     try {
@@ -143,6 +197,37 @@ function createAuthRoutes(db) {
     }
   });
 
+  /**
+   * @swagger
+   * /api/auth/logout:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: User logout
+   *     description: Logout current user and blacklist JWT token
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Logout successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ApiResponse'
+   *             example:
+   *               success: true
+   *               message: "Logout successful"
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "UNAUTHORIZED"
+   *               message: "Authentication required"
+   */
   // Logout endpoint (with token blacklisting support)
   router.post('/logout', requireAuth, (req, res) => {
     try {
@@ -216,6 +301,49 @@ function createAuthRoutes(db) {
     res.json({ message: 'For JWT auth, please clear token on client side' });
   });
 
+  /**
+   * @swagger
+   * /api/auth/me:
+   *   get:
+   *     tags:
+   *       - Authentication
+   *     summary: Get current user info
+   *     description: Retrieve information about the currently authenticated user
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current user information
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 user:
+   *                   $ref: '#/components/schemas/User'
+   *             example:
+   *               success: true
+   *               user:
+   *                 _id: "507f1f77bcf86cd799439011"
+   *                 username: "admin"
+   *                 role: "Admin"
+   *                 name: "Administrator"
+   *                 email: "admin@company.com"
+   *                 isActive: true
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "UNAUTHORIZED"
+   *               message: "Authentication required"
+   */
   // Get current user (JWT-based)
   router.get('/me', requireAuth, async (req, res) => {
     try {
