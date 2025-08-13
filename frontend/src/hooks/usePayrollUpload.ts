@@ -17,7 +17,8 @@ import {
   PreviewData,
   UploadResult,
   StoredUploadState,
-  UploadStep
+  UploadStep,
+  DuplicateMode
 } from '../types/payrollUpload';
 
 const STORAGE_KEY = 'payroll_upload_state';
@@ -44,7 +45,8 @@ export const usePayrollUpload = () => {
             uploading: false,
             confirming: false,
             result: null,
-            error: null
+            error: null,
+            duplicateMode: parsed.duplicateMode || 'skip'
           };
         }
       } catch (error) {
@@ -62,7 +64,8 @@ export const usePayrollUpload = () => {
       uploading: false,
       confirming: false,
       result: null,
-      error: null
+      error: null,
+      duplicateMode: 'skip'
     };
   };
 
@@ -141,6 +144,13 @@ export const usePayrollUpload = () => {
     }));
   }, []);
 
+  const setDuplicateMode = useCallback((mode: DuplicateMode) => {
+    setState(prev => ({
+      ...prev,
+      duplicateMode: mode
+    }));
+  }, []);
+
   const setResult = useCallback((result: UploadResult | null) => {
     setState(prev => ({
       ...prev,
@@ -204,6 +214,7 @@ export const usePayrollUpload = () => {
       setPreviewData,
       setUploading,
       setConfirming,
+      setDuplicateMode,
       setResult,
       setError,
       clearError,

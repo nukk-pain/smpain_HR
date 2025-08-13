@@ -77,9 +77,18 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
     if (state.previewData) {
       const fetchEmployees = async () => {
         try {
-          const response = await apiService.get('/users/simple-list');
+          const response = await apiService.get('/users');
           if (response.success && response.data) {
-            setEmployeeList(response.data);
+            // Transform to simple format for the component
+            const simpleList = response.data
+              .filter((user: any) => user.role !== 'admin' && user.role !== 'Admin')
+              .map((user: any) => ({
+                id: user._id || user.id,
+                name: user.name || '',
+                department: user.department || 'Unassigned',
+                employeeId: user.employeeId || ''
+              }));
+            setEmployeeList(simpleList);
           }
         } catch (error) {
           console.error('Failed to fetch employee list:', error);

@@ -26,14 +26,16 @@ Excel 급여 데이터 업로드 시 DB에 없는 직원에 대해 **수동 매�
   }
   ```
 
-#### 1.2 전체 직원 목록 제공 엔드포인트
-- [x] `/api/users/simple-list` - 매칭용 간단한 직원 목록
+#### 1.2 전체 직원 목록 제공
+- [x] 기존 `/api/users` 엔드포인트 활용 - 별도 API 생성 없이 기존 API 사용
   ```javascript
-  [
-    { id: "user1", name: "김철수", department: "개발팀", employeeId: "2021001" },
-    { id: "user2", name: "이영희", department: "인사팀", employeeId: "2021002" },
-    // ...
-  ]
+  // Frontend에서 기존 API 응답을 변환하여 사용
+  response.data.filter(user => user.role !== 'admin').map(user => ({
+    id: user._id || user.id,
+    name: user.name,
+    department: user.department,
+    employeeId: user.employeeId
+  }))
   ```
 
 #### 1.3 Confirm API 수정

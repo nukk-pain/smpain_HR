@@ -200,7 +200,8 @@ function createPayrollRoutes(db) {
   // Create monthly payroll
   router.post('/monthly', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
     try {
-      const { userId, yearMonth, baseSalary, actualPayment } = req.body;
+      const { userId, yearMonth, baseSalary, actualPayment, updateReason } = req.body;
+      const { mode = 'create' } = req.query; // 'create', 'upsert', 'overwrite'
 
       if (!userId || !yearMonth) {
         return res.status(400).json({ error: 'User ID and year month are required' });
@@ -218,8 +219,13 @@ function createPayrollRoutes(db) {
         yearMonth: yearMonth
       });
 
+      // Handle different modes
       if (existingPayroll) {
-        return res.status(400).json({ error: 'Payroll for this month already exists' });
+        if (mode === 'create') {
+          return res.status(400).json({ error: 'Payroll for this month already exists' });
+        } else if (mode === 'upsert' || mode === 'overwrite') {
+          // Continue with update logic below
+        }
       }
 
       // Get sales data for incentive calculation
@@ -246,6 +252,48 @@ function createPayrollRoutes(db) {
       const totalInput = (baseSalary || 0) + incentive + totalBonus;
       const difference = (actualPayment || 0) - totalInput;
 
+      // Handle upsert mode
+      if ((mode === 'upsert' || mode === 'overwrite') && existingPayroll) {
+        const updateData = {
+          baseSalary: baseSalary || 0,
+          incentive,
+          bonus: totalBonus,
+          award: 0,
+          totalInput,
+          actualPayment: actualPayment || 0,
+          difference,
+          updatedAt: new Date(),
+          updatedBy: req.user.id,
+          updateReason: updateReason || 'Data correction'
+        };
+
+        const result = await db.collection('monthlyPayments').findOneAndUpdate(
+          { 
+            userId: new ObjectId(userId), 
+            yearMonth: yearMonth 
+          },
+          { 
+            $set: updateData,
+            $setOnInsert: {
+              createdAt: new Date(),
+              createdBy: req.user.id
+            }
+          },
+          { 
+            upsert: true, 
+            returnDocument: 'after' 
+          }
+        );
+
+        return res.json({
+          success: true,
+          action: 'updated',
+          message: `Payroll updated successfully${updateReason ? ': ' + updateReason : ''}`,
+          data: result.value
+        });
+      }
+
+      // Normal create mode
       const payrollRecord = {
         userId: new ObjectId(userId),
         yearMonth,
@@ -264,6 +312,7 @@ function createPayrollRoutes(db) {
 
       res.json({
         success: true,
+        action: 'created',
         message: 'Payroll created successfully',
         data: { id: result.insertedId, ...payrollRecord }
       });

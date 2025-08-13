@@ -12,9 +12,26 @@
 ## Current Issue
 When uploading Excel files or creating payroll records, duplicates (same userId + yearMonth) cause 400 errors.
 
+### 주요 중복 발생 시나리오
+1. **급여 정정**: 기존에 올렸던 자료에서 수정사항이 생겼을 때 (가장 흔함)
+   - 수당 누락, 공제 오류 등 발견 후 엑셀 수정
+   - 계산 오류 수정 후 재업로드
+   
+2. **소급 적용**: 과거 데이터 일괄 수정
+   - 승진/급여 인상 소급 적용
+   - 정책 변경으로 인한 재계산
+   
+3. **다중 부서 입력**: HR팀과 재무팀이 각각 처리
+4. **시스템 오류 복구**: 부분 처리 후 재시도
+
 ## Proposed Solutions
 
-### 1. Upsert Strategy (Recommended) ✅
+### 1. Upsert Strategy (Recommended for Phase 1) ✅
+**가장 실용적이고 즉시 구현 가능한 솔루션**
+- userId + yearMonth 조합이 유니크 키
+- 존재하면 업데이트, 없으면 생성
+- 수정 이력은 metadata에 기록
+
 **Implementation in `/backend/routes/payroll.js`:**
 
 ```javascript
@@ -214,20 +231,29 @@ res.json({
 
 ## Implementation Priority
 
-### Phase 1: Basic Upsert (Quick Win)
+### Phase 1: Basic Upsert (Quick Win) - 1일
+**즉시 구현 가능한 최우선 작업**
 1. Add `?mode=upsert` parameter to POST endpoint
 2. Update tests to use upsert mode
 3. Document the new parameter
+4. 메타데이터에 변경 이유 기록
 
-### Phase 2: Excel Upload Enhancement
+**예상 효과**:
+- 중복 오류 즉시 해결
+- 급여 정정 시 재업로드 가능
+- 기존 시스템과 호환
+
+### Phase 2: Excel Upload Enhancement - 3일
 1. Add conflict detection during preview
 2. Implement resolution modes (skip/update/replace)
 3. Show conflicts in UI before confirmation
+4. 변경 내역 비교 표시
 
-### Phase 3: Full Version Management
+### Phase 3: Full Version Management - 1주
 1. Create history collection
 2. Track all changes with timestamps
 3. Add rollback capability
+4. 승인 워크플로우 추가
 
 ## Benefits
 
@@ -290,7 +316,29 @@ describe('Duplicate Handling', () => {
 Which approach should we implement first?
 
 1. **Quick fix**: Just add `?mode=upsert` parameter (1 day)
+   - ✅ 가장 실용적이고 즉시 효과
+   - ✅ 기존 시스템과 완벽 호환
+   - ✅ 급여 정정 시나리오 즉시 해결
+   
 2. **Medium solution**: Add conflict preview + resolution modes (3 days)  
+   - 사용자에게 더 많은 제어권
+   - 실수 방지 기능
+   
 3. **Full solution**: Complete version management system (1 week)
+   - 완벽한 이력 추적
+   - 롤백 가능
 
 **Recommendation**: Start with option 1 (upsert) for immediate relief, then implement option 2 for better UX.
+
+## 실제 사용 예시
+
+### 시나리오: 12월 급여 수정
+1. **상황**: 12월 급여 엑셀을 업로드했는데, 특별 수당 누락 발견
+2. **해결**:
+   ```
+   1. 엑셀 파일에서 수당 추가
+   2. POST /api/payroll/monthly?mode=upsert 로 재업로드
+   3. 기존 레코드 자동 업데이트
+   4. updateReason: "특별 수당 추가" 기록
+   ```
+3. **결과**: 중복 에러 없이 정상 처리

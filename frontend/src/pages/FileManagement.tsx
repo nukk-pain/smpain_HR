@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Container, Paper } from '@mui/material';
-import FileUpload from '../components/FileUpload';
+import { PayrollExcelUploadWithPreview } from '../components/PayrollExcelUploadWithPreview';
 
 const FileManagement: React.FC = () => {
   return (
@@ -11,7 +11,7 @@ const FileManagement: React.FC = () => {
         </Typography>
         
         <Paper elevation={1} sx={{ p: 3 }}>
-          <FileUpload />
+          <PayrollExcelUploadWithPreview />
         </Paper>
       </Box>
     </Container>
