@@ -14,7 +14,7 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createReportsRoutes = require('../../routes/reports');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const { generateToken } = require('../../utils/jwt');
 
@@ -50,10 +50,10 @@ describe('Payroll Payslip Upload Integration Tests', () => {
     db = client.db();
     mockDb = db;
 
-    // Create Express app with payroll routes
+    // Create Express app with reports routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/reports', createReportsRoutes(db));
 
     // Generate tokens
     adminToken = generateToken(testAdmin);
@@ -115,7 +115,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
     test('should respond to payslip upload endpoint', async () => {
       // Endpoint now exists and should respond properly
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({});
 
@@ -128,7 +128,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
 
     test('should reject upload without Admin permissions', async () => {
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({});
 
@@ -139,7 +139,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
 
     test('should reject upload without authentication', async () => {
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .send({});
 
       // Should return 401 Unauthorized
@@ -151,7 +151,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
       const invalidId = '507f1f77bcf86cd799439999';
       
       const response = await request(app)
-        .post(`/api/payroll/${invalidId}/payslip/upload`)
+        .post(`/api/reports/payroll/${invalidId}/payslip/upload`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({});
 
@@ -167,7 +167,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
       const testPdfBuffer = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n%%EOF');
       
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .set('Authorization', `Bearer ${adminToken}`)
         .attach('payslip', testPdfBuffer, 'test-payslip.pdf');
 
@@ -194,7 +194,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
       const testTextBuffer = Buffer.from('This is not a PDF file');
       
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .set('Authorization', `Bearer ${adminToken}`)
         .attach('payslip', testTextBuffer, 'test-file.txt');
 
@@ -215,7 +215,7 @@ describe('Payroll Payslip Upload Integration Tests', () => {
       largePdfBuffer.write('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n%%EOF');
       
       const response = await request(app)
-        .post(`/api/payroll/${testPayrollId}/payslip/upload`)
+        .post(`/api/reports/payroll/${testPayrollId}/payslip/upload`)
         .set('Authorization', `Bearer ${adminToken}`)
         .attach('payslip', largePdfBuffer, 'large-payslip.pdf');
 

@@ -14,7 +14,7 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createReportsRoutes = require('../../routes/reports');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const PayrollDocumentRepository = require('../../repositories/PayrollDocumentRepository');
 const { generateToken } = require('../../utils/jwt');
@@ -58,10 +58,10 @@ describe('Payroll Payslip Download Integration Tests', () => {
     db = client.db();
     mockDb = db;
 
-    // Create Express app with payroll routes
+    // Create Express app with reports routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/reports', createReportsRoutes(db));
 
     // Generate tokens
     adminToken = generateToken(testAdmin);
@@ -164,7 +164,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
     test('should respond to payslip download endpoint', async () => {
       // Endpoint now exists and should respond properly
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // Should not return 404 anymore (endpoint should exist)
@@ -177,7 +177,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
 
     test('should reject download without authentication', async () => {
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`);
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`);
 
       // Should return 401 Unauthorized
       expect(response.status).toBe(401);
@@ -195,7 +195,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
       const noPermToken = generateToken(noPermUser);
 
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${noPermToken}`);
 
       // Should return 403 Forbidden for users without permissions
@@ -207,7 +207,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
       const invalidId = '507f1f77bcf86cd799439999';
       
       const response = await request(app)
-        .get(`/api/payroll/${invalidId}/payslip`)
+        .get(`/api/reports/payroll/${invalidId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // When implemented, should return 404 Not Found for invalid payroll ID
@@ -219,7 +219,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
   describe('GET /api/payroll/:id/payslip - When implemented', () => {
     test('should download payslip for admin user', async () => {
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // Expected behavior when fully implemented:
@@ -241,7 +241,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
 
     test('should download payslip for owner user', async () => {
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${userToken}`);
 
       // Users should be able to download their own payslips
@@ -260,7 +260,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
       const otherUserToken = generateToken(otherUser);
       
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${otherUserToken}`);
 
       // Users should NOT be able to download other users' payslips
@@ -281,7 +281,7 @@ describe('Payroll Payslip Download Integration Tests', () => {
       await db.collection('payroll_documents').deleteMany({});
       
       const response = await request(app)
-        .get(`/api/payroll/${testPayrollId}/payslip`)
+        .get(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // For now, this will fail with 404

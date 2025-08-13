@@ -31,7 +31,7 @@ const leaveRoutes = require('./routes/leave');
 const createDepartmentRoutes = require('./routes/departments');
 const createPositionRoutes = require('./routes/positions');
 const createPayrollRoutes = require('./routes/payroll');
-const createPayrollEnhancedRoutes = require('./routes/payroll-enhanced');
+const createAdminPayrollRoutes = require('./routes/adminPayroll');
 const createBonusRoutes = require('./routes/bonus');
 const createSalesRoutes = require('./routes/sales');
 const createUploadRoutes = require('./routes/upload');
@@ -525,18 +525,26 @@ async function initializeRoutes() {
   app.locals.db = db;
 
 
+    // Create shared storage maps for preview and idempotency
+  const previewStorage = new Map();
+  const idempotencyStorage = new Map();
+  
+  // Cleanup expired entries periodically
+  const { performCleanupAndMonitoring } = require('./utils/payrollUtils');
+  setInterval(() => performCleanupAndMonitoring(previewStorage, idempotencyStorage, db), 5 * 60 * 1000);
+
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
   app.use('/api/leave', leaveRoutes);
   app.use('/api/departments', createDepartmentRoutes(db));
   app.use('/api/positions', createPositionRoutes(db));
   app.use('/api/payroll', createPayrollRoutes(db));
-  app.use('/api/payroll', createPayrollEnhancedRoutes(db));
   app.use('/api/bonus', createBonusRoutes(db));
   app.use('/api/sales', createSalesRoutes(db));
-  app.use('/api/payroll-upload', createUploadRoutes(db));
+  app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/reports', createReportsRoutes(db));
   app.use('/api/admin', createAdminRoutes(db));
+  app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
 
   // Health check endpoint for Cloud Run
   app.get('/health', (req, res) => {

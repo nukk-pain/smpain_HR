@@ -12,7 +12,7 @@
 const request = require('supertest');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createUploadRoutes = require('../../routes/upload');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const { generateToken } = require('../../utils/jwt');
 
@@ -25,6 +25,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Excel Export Integration Tests', () => {
   let app, db, client, adminToken, userToken;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -48,10 +49,14 @@ describe('Payroll Excel Export Integration Tests', () => {
     db = client.db();
     mockDb = db;
 
-    // Create Express app with payroll routes
+    // Initialize storage objects for upload routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+
+    // Create Express app with upload routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
 
     // Generate tokens
     adminToken = generateToken(testAdmin);
@@ -83,7 +88,7 @@ describe('Payroll Excel Export Integration Tests', () => {
     test('should export empty Excel file when no data exists', async () => {
       // Endpoint now exists and should work
       const response = await request(app)
-        .get('/api/payroll/excel/export')
+        .get('/api/upload/excel/export')
         .set('Authorization', `Bearer ${adminToken}`)
         .query({ year: 2025, month: 7 });
 
@@ -95,7 +100,7 @@ describe('Payroll Excel Export Integration Tests', () => {
 
     test('should reject export without proper authentication', async () => {
       const response = await request(app)
-        .get('/api/payroll/excel/export')
+        .get('/api/upload/excel/export')
         .query({ year: 2025, month: 7 });
 
       // Should return 401 Unauthorized
@@ -115,7 +120,7 @@ describe('Payroll Excel Export Integration Tests', () => {
       const noPermToken = generateToken(noPermUser);
 
       const response = await request(app)
-        .get('/api/payroll/excel/export')
+        .get('/api/upload/excel/export')
         .set('Authorization', `Bearer ${noPermToken}`)
         .query({ year: 2025, month: 7 });
 
@@ -162,7 +167,7 @@ describe('Payroll Excel Export Integration Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/payroll/excel/export')
+        .get('/api/upload/excel/export')
         .set('Authorization', `Bearer ${adminToken}`)
         .query({ year: 2025, month: 7 });
 
@@ -185,7 +190,7 @@ describe('Payroll Excel Export Integration Tests', () => {
 
     test('should export empty Excel file when no payroll data exists', async () => {
       const response = await request(app)
-        .get('/api/payroll/excel/export')
+        .get('/api/upload/excel/export')
         .set('Authorization', `Bearer ${adminToken}`)
         .query({ year: 2025, month: 12 });
 

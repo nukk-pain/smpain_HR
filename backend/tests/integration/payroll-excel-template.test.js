@@ -13,7 +13,7 @@ const request = require('supertest');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const ExcelJS = require('exceljs');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createUploadRoutes = require('../../routes/upload');
 const { generateToken } = require('../../utils/jwt');
 
 // Mock the database utility
@@ -25,6 +25,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Excel Template Download', () => {
   let app, db, client, adminToken;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -41,23 +42,27 @@ describe('Payroll Excel Template Download', () => {
     db = client.db();
     mockDb = db; // Set the mock database
     
+    // Initialize storage objects for upload routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+    
     // Generate admin token
     adminToken = generateToken(testAdmin);
     
-    // Setup Express app with payroll routes
+    // Setup Express app with upload routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
   });
 
   afterAll(async () => {
     await client.close();
   });
 
-  describe('GET /api/payroll/excel/template', () => {
+  describe('GET /api/upload/excel/template', () => {
     test('should download Excel template with correct headers', async () => {
       const response = await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200)
         .expect('Content-Type', /application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet/);
@@ -79,7 +84,7 @@ describe('Payroll Excel Template Download', () => {
       const spy = jest.spyOn(ExcelProcessor.prototype, 'generatePayrollTemplate');
       
       await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       
@@ -89,7 +94,7 @@ describe('Payroll Excel Template Download', () => {
 
     test('should set proper filename with timestamp', async () => {
       const response = await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       
@@ -99,7 +104,7 @@ describe('Payroll Excel Template Download', () => {
 
     test('should require authentication', async () => {
       await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .expect(401);
     });
 
@@ -112,7 +117,7 @@ describe('Payroll Excel Template Download', () => {
       });
 
       await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
     });
@@ -124,14 +129,14 @@ describe('Payroll Excel Template Download', () => {
       ExcelProcessor.prototype.generatePayrollTemplate = jest.fn().mockRejectedValueOnce(new Error('Template generation failed'));
 
       const response = await request(app)
-        .get('/api/payroll/excel/template')
+        .get('/api/upload/excel/template')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(500);
       
       expect(response.body.error).toContain('Failed to generate template');
       
       // Restore original method
-      ExcelProcessor.prototype.generatePayrollTemplate = originalMethod;
+      ExcelService.prototype.generatePayrollTemplate = originalMethod;
     });
   });
 });

@@ -14,7 +14,7 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createReportsRoutes = require('../../routes/reports');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const PayrollDocumentRepository = require('../../repositories/PayrollDocumentRepository');
 const { generateToken } = require('../../utils/jwt');
@@ -51,10 +51,10 @@ describe('Payroll Payslip Delete Integration Tests', () => {
     db = client.db();
     mockDb = db;
 
-    // Create Express app with payroll routes
+    // Create Express app with reports routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/reports', createReportsRoutes(db));
 
     // Generate tokens
     adminToken = generateToken(testAdmin);
@@ -155,7 +155,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
     test('should fail because endpoint does not exist yet', async () => {
       // This test should fail initially - following TDD Red phase
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`)
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404); // Should fail because endpoint doesn't exist yet
 
@@ -164,7 +164,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
 
     test('should reject deletion without authentication', async () => {
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`);
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`);
 
       // When implemented, should return 401 Unauthorized
       // For now, returns 404 because endpoint doesn't exist
@@ -173,7 +173,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
 
     test('should reject deletion without Admin permissions', async () => {
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`)
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${userToken}`);
 
       // When implemented, should return 403 Forbidden (Admin only)
@@ -185,7 +185,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
       const invalidId = '507f1f77bcf86cd799439999';
       
       const response = await request(app)
-        .delete(`/api/payroll/${invalidId}/payslip`)
+        .delete(`/api/reports/payroll/${invalidId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // When implemented, should return 404 Not Found for invalid payroll ID
@@ -197,7 +197,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
   describe('DELETE /api/payroll/:id/payslip - When implemented', () => {
     test('should delete payslip for admin user', async () => {
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`)
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // Expected behavior when fully implemented:
@@ -232,7 +232,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
       }
       
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`)
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // For now, this will fail with 404
@@ -253,7 +253,7 @@ describe('Payroll Payslip Delete Integration Tests', () => {
       }
       
       const response = await request(app)
-        .delete(`/api/payroll/${testPayrollId}/payslip`)
+        .delete(`/api/reports/payroll/${testPayrollId}/payslip`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       // For now, this will fail with 404

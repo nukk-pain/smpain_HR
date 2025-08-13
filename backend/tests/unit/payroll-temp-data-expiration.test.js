@@ -14,7 +14,9 @@
 const request = require('supertest');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createUploadRoutes = require('../../routes/upload');
+const createAdminPayrollRoutes = require('../../routes/adminPayroll');
+const { performCleanupAndMonitoring } = require('../../utils/payrollUtils');
 const { generateToken } = require('../../utils/jwt');
 
 // Mock the database utility
@@ -26,6 +28,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Temporary Data Expiration Tests', () => {
   let app, db, client, testUserId, adminToken;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -45,10 +48,15 @@ describe('Payroll Temporary Data Expiration Tests', () => {
     // Generate JWT tokens for testing
     adminToken = generateToken(testAdmin);
 
-    // Setup Express app with payroll routes
+    // Initialize storage objects for upload routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+
+    // Setup Express app with upload and admin routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
+    app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
 
     // Setup test data
     testUserId = '507f1f77bcf86cd799439013';
@@ -249,7 +257,7 @@ describe('Payroll Temporary Data Expiration Tests', () => {
 
     // Try to confirm the expired preview
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -371,7 +379,7 @@ describe('Payroll Temporary Data Expiration Tests', () => {
     
     // First, make a request with an idempotency key
     const response1 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -384,7 +392,7 @@ describe('Payroll Temporary Data Expiration Tests', () => {
 
     // Make the same request again - should get cached response
     const response2 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({

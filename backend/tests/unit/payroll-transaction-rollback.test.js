@@ -14,7 +14,8 @@
 const request = require('supertest');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createAdminPayrollRoutes = require('../../routes/adminPayroll');
+const createUploadRoutes = require('../../routes/upload');
 const { generateToken } = require('../../utils/jwt');
 
 // Mock the database utility
@@ -26,6 +27,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Transaction Rollback Tests', () => {
   let app, db, client, testUserId1, testUserId2, adminToken;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -45,10 +47,15 @@ describe('Payroll Transaction Rollback Tests', () => {
     // Generate JWT tokens for testing
     adminToken = generateToken(testAdmin);
 
-    // Setup Express app with payroll routes
+    // Initialize storage objects for admin payroll routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+
+    // Setup Express app with admin payroll and upload routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
 
     // Setup test data
     testUserId1 = '507f1f77bcf86cd799439013';
@@ -146,7 +153,7 @@ describe('Payroll Transaction Rollback Tests', () => {
     const payrollCountBefore = await db.collection('payroll').countDocuments({});
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -245,7 +252,7 @@ describe('Payroll Transaction Rollback Tests', () => {
     const payrollCountBefore = await db.collection('payroll').countDocuments({});
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -334,7 +341,7 @@ describe('Payroll Transaction Rollback Tests', () => {
     const payrollCountBefore = await db.collection('payroll').countDocuments({});
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -417,7 +424,7 @@ describe('Payroll Transaction Rollback Tests', () => {
     const payrollCountBefore = await db.collection('payroll').countDocuments({});
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -540,7 +547,7 @@ describe('Payroll Transaction Rollback Tests', () => {
     // Execute concurrent transactions
     const [response1, response2] = await Promise.all([
       request(app)
-        .post('/api/payroll/excel/confirm')
+        .post('/api/upload/excel/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
         .set('X-CSRF-Token', 'test-csrf-token')
         .send({
@@ -548,7 +555,7 @@ describe('Payroll Transaction Rollback Tests', () => {
           idempotencyKey: 'isolation-test-1-' + Date.now()
         }),
       request(app)
-        .post('/api/payroll/excel/confirm')
+        .post('/api/upload/excel/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
         .set('X-CSRF-Token', 'test-csrf-token')
         .send({

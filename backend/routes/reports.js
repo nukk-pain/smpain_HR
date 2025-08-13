@@ -1,11 +1,44 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const PayrollRepository = require('../repositories/PayrollRepository');
+const PayrollDocumentRepository = require('../repositories/PayrollDocumentRepository');
+const { validateObjectId } = require('../validation/schemas');
+const {
+  strictRateLimiter,
+  validateObjectId: validateMongoId,
+  preventNoSQLInjection
+} = require('../middleware/payrollSecurity');
 
 const router = express.Router();
 
 // Reports routes
 function createReportsRoutes(db) {
+  const payrollRepo = new PayrollRepository();
+  const documentRepo = new PayrollDocumentRepository();
+
+  // Configure multer for PDF payslip uploads
+  const payslipUpload = multer({
+    dest: 'uploads/payslips/',
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimeTypes = ['application/pdf'];
+      const allowedExtensions = ['.pdf'];
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      
+      if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF files are allowed.'), false);
+      }
+    }
+  });
+
   // Permission middleware with role-based fallback
   const requirePermission = (permission) => {
     return (req, res, next) => {
@@ -337,6 +370,320 @@ function createReportsRoutes(db) {
       res.status(500).json({ error: 'Internal server error' });
     }
   }));
+
+  /**
+   * POST /api/reports/payroll/:id/payslip/upload - Upload PDF payslip for payroll record
+   * DomainMeaning: Upload and store PDF payslip document for specific payroll record
+   * MisleadingNames: None
+   * SideEffects: Stores PDF file, creates document record in database
+   * Invariants: Only Admin can upload, validates payroll record exists
+   * RAG_Keywords: pdf upload, payslip document, file storage, admin permissions
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_post_payslip_upload_001
+   */
+  router.post('/payroll/:id/payslip/upload', 
+    requireAuth, 
+    requirePermission('payroll:manage'), 
+    validateMongoId,
+    strictRateLimiter,
+    preventNoSQLInjection,
+    (req, res, next) => {
+      payslipUpload.single('payslip')(req, res, (err) => {
+        if (err) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+              success: false,
+              error: 'File size too large. Maximum size is 5MB.'
+            });
+          }
+          if (err.message.includes('Invalid file type')) {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid file type. Only PDF files are allowed.'
+            });
+          }
+          return res.status(400).json({
+            success: false,
+            error: err.message
+          });
+        }
+        next();
+      });
+    },
+    asyncHandler(async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Check if payroll record exists
+        const payrollRecord = await payrollRepo.findById(id);
+        if (!payrollRecord) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payroll record not found'
+          });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            error: 'No file uploaded. Please select a PDF file.'
+          });
+        }
+
+        console.log(`📄 Processing uploaded payslip: ${req.file.originalname}`);
+
+        // Get user information for the payroll record
+        const userCollection = db.collection('users');
+        const user = await userCollection.findOne({ _id: payrollRecord.userId });
+
+        // Create document record
+        const documentData = {
+          payrollId: new ObjectId(id),
+          userId: payrollRecord.userId,
+          year: payrollRecord.year,
+          month: payrollRecord.month,
+          documentType: 'payslip',
+          fileName: req.file.originalname,
+          filePath: req.file.path,
+          fileSize: req.file.size,
+          uploadedBy: new ObjectId(req.user.id)
+        };
+
+        const documentResult = await documentRepo.createDocument(documentData);
+
+        res.json({
+          success: true,
+          message: 'Payslip uploaded successfully',
+          documentId: documentResult._id,
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          payrollRecord: {
+            id: payrollRecord._id,
+            employeeName: user?.name || 'Unknown',
+            year: payrollRecord.year,
+            month: payrollRecord.month,
+            paymentStatus: payrollRecord.paymentStatus
+          },
+          uploadedAt: new Date(),
+          uploadedBy: req.user.name
+        });
+
+        console.log(`✅ Payslip uploaded: ${req.file.originalname} for ${user?.name || 'Unknown'} (${payrollRecord.year}-${payrollRecord.month})`);
+
+      } catch (error) {
+        console.error('Payslip upload error:', error);
+        
+        // Clean up uploaded file on error
+        if (req.file && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+
+        if (error.message.includes('Invalid file type')) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid file type. Only PDF files are allowed.'
+          });
+        }
+
+        res.status(500).json({
+          success: false,
+          error: 'Failed to upload payslip: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
+   * GET /api/reports/payroll/:id/payslip - Download PDF payslip for payroll record
+   * DomainMeaning: Download PDF payslip document with access control and audit logging
+   * MisleadingNames: None
+   * SideEffects: Logs download access, streams file content
+   * Invariants: Users can only download their own payslips, Admin can download any
+   * RAG_Keywords: pdf download, payslip access, file streaming, access control
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_payslip_download_001
+   */
+  router.get('/payroll/:id/payslip', requireAuth, requirePermission('payroll:view'), validateObjectId,
+    asyncHandler(async (req, res) => {
+      try {
+        const { id } = req.params;
+        const userRole = req.user.role;
+        const currentUserId = req.user.id;
+
+        // Check if payroll record exists
+        const payrollRecord = await payrollRepo.findById(id);
+        if (!payrollRecord) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payroll record not found'
+          });
+        }
+
+        // Check permissions - users can only download their own payslips
+        if ((userRole === 'user' || userRole === 'User') && 
+            payrollRecord.userId.toString() !== currentUserId) {
+          return res.status(403).json({ 
+            success: false,
+            error: 'Access denied. You can only download your own payslips.' 
+          });
+        }
+
+        // Find the payslip document for this payroll record
+        const payslipDocument = await documentRepo.findByPayrollId(id);
+        if (!payslipDocument || payslipDocument.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payslip not found for this payroll record'
+          });
+        }
+
+        // Get the most recent payslip (in case there are multiple)
+        const document = payslipDocument.sort((a, b) => 
+          new Date(b.uploadedAt) - new Date(a.uploadedAt)
+        )[0];
+
+        // Check if file exists
+        if (!fs.existsSync(document.filePath)) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payslip file not found on server'
+          });
+        }
+
+        // Log the download access
+        await documentRepo.logAccess(document._id, req.user.id, 'downloaded');
+
+        // Set response headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Content-Length', document.fileSize);
+
+        // Stream the file
+        const fileStream = fs.createReadStream(document.filePath);
+        fileStream.pipe(res);
+
+        fileStream.on('end', () => {
+          console.log(`📄 Payslip downloaded: ${document.fileName} by ${req.user.name}`);
+        });
+
+        fileStream.on('error', (error) => {
+          console.error('File stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              error: 'Failed to download payslip file'
+            });
+          }
+        });
+
+      } catch (error) {
+        console.error('Payslip download error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to download payslip: ' + error.message
+        });
+      }
+    })
+  );
+
+  /**
+   * DELETE /api/reports/payroll/:id/payslip - Delete PDF payslip for payroll record
+   * DomainMeaning: Delete PDF payslip document with audit logging (Admin only)
+   * MisleadingNames: None
+   * SideEffects: Deletes document record, removes physical file, logs deletion
+   * Invariants: Only Admin can delete, validates payroll record exists
+   * RAG_Keywords: pdf delete, payslip removal, admin permissions, audit logging
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_delete_payslip_001
+   */
+  router.delete('/payroll/:id/payslip', requireAuth, requirePermission('payroll:manage'), validateObjectId,
+    asyncHandler(async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Check if payroll record exists
+        const payrollRecord = await payrollRepo.findById(id);
+        if (!payrollRecord) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payroll record not found'
+          });
+        }
+
+        // Find the payslip document for this payroll record
+        const payslipDocuments = await documentRepo.findByPayrollId(id);
+        if (!payslipDocuments || payslipDocuments.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Payslip not found for this payroll record'
+          });
+        }
+
+        // Get the most recent payslip (in case there are multiple)
+        const document = payslipDocuments.sort((a, b) => 
+          new Date(b.uploadedAt) - new Date(a.uploadedAt)
+        )[0];
+
+        // Log the deletion attempt
+        await documentRepo.logAccess(document._id, req.user.id, 'delete_requested');
+
+        // Delete physical file (gracefully handle missing files)
+        let fileDeleted = false;
+        if (fs.existsSync(document.filePath)) {
+          try {
+            fs.unlinkSync(document.filePath);
+            fileDeleted = true;
+            console.log(`🗑️ Physical file deleted: ${document.filePath}`);
+          } catch (fileError) {
+            console.warn(`Warning: Could not delete physical file ${document.filePath}:`, fileError.message);
+            // Continue with database deletion even if file deletion fails
+          }
+        } else {
+          console.warn(`Warning: Physical file not found: ${document.filePath}`);
+        }
+
+        // Log the successful deletion before removing the document
+        await documentRepo.logAccess(document._id, req.user.id, 'deleted');
+
+        // Delete document record from database
+        await documentRepo.delete(document._id);
+
+        // Get user information for response
+        const userCollection = db.collection('users');
+        const user = await userCollection.findOne({ _id: payrollRecord.userId });
+
+        res.json({
+          success: true,
+          message: 'Payslip deleted successfully',
+          deletedDocument: {
+            id: document._id,
+            fileName: document.fileName,
+            fileSize: document.fileSize,
+            payrollRecord: {
+              id: payrollRecord._id,
+              employeeName: user?.name || 'Unknown',
+              year: payrollRecord.year,
+              month: payrollRecord.month,
+              paymentStatus: payrollRecord.paymentStatus
+            }
+          },
+          fileDeleted: fileDeleted,
+          deletedBy: req.user.name,
+          deletedAt: new Date()
+        });
+
+        console.log(`✅ Payslip deleted: ${document.fileName} for ${user?.name || 'Unknown'} (${payrollRecord.year}-${payrollRecord.month})`);
+
+      } catch (error) {
+        console.error('Payslip deletion error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to delete payslip: ' + error.message
+        });
+      }
+    })
+  );
 
   return router;
 }

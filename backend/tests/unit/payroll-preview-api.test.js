@@ -16,7 +16,8 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createUploadRoutes = require('../../routes/upload');
+const { generatePreviewToken, verifyPreviewToken } = require('../../utils/payrollUtils');
 const { generateToken } = require('../../utils/jwt');
 
 // Mock the database utility
@@ -28,6 +29,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Excel Preview API Unit Tests', () => {
   let app, db, client, testUserId, adminToken, userToken, testFilePath;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -55,10 +57,14 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     adminToken = generateToken(testAdmin);
     userToken = generateToken(testUser);
 
-    // Setup Express app with payroll routes
+    // Initialize storage objects for upload routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+
+    // Setup Express app with upload routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
 
     // Setup test data
     testUserId = '507f1f77bcf86cd799439013';
@@ -108,7 +114,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should generate preview data for valid Excel file', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token') // Mock CSRF token
       .attach('file', testFilePath)
@@ -133,7 +139,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should require authentication for preview endpoint', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .attach('file', testFilePath)
       .expect(401);
 
@@ -146,7 +152,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should require payroll:manage permission for preview', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${userToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .attach('file', testFilePath)
@@ -162,7 +168,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should require file upload for preview', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .expect(400);
@@ -177,7 +183,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should require CSRF token for preview', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${adminToken}`)
       .attach('file', testFilePath)
       .expect(403);
@@ -191,7 +197,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should require preview token for confirm endpoint', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({})
@@ -207,7 +213,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
    */
   test('should reject invalid preview token', async () => {
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({ previewToken: 'invalid-token' })
@@ -226,7 +232,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     
     // First request with idempotency key should be processed
     const response1 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({ 
@@ -236,7 +242,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
 
     // Second request with same idempotency key should return cached response
     const response2 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({ 
@@ -259,7 +265,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     // Make 6 requests rapidly (should exceed limit of 5)
     for (let i = 0; i < 6; i++) {
       const promise = request(app)
-        .post('/api/payroll/excel/preview')
+        .post('/api/upload/excel/preview')
         .set('Authorization', `Bearer ${adminToken}`)
         .set('X-CSRF-Token', 'test-csrf-token')
         .attach('file', testFilePath);
@@ -280,7 +286,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
   test('should generate file integrity metadata', async () => {
     // This test assumes the file parsing might succeed or fail gracefully
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .attach('file', testFilePath);
@@ -303,7 +309,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     const promises = [];
     for (let i = 0; i < 3; i++) {
       const promise = request(app)
-        .post('/api/payroll/excel/preview')
+        .post('/api/upload/excel/preview')
         .set('Authorization', `Bearer ${adminToken}`)
         .set('X-CSRF-Token', `test-csrf-token-${i}`)
         .attach('file', testFilePath);
@@ -348,7 +354,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     });
 
     const response = await request(app)
-      .post('/api/payroll/excel/preview')
+      .post('/api/upload/excel/preview')
       .set('Authorization', `Bearer ${supervisorToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .attach('file', testFilePath);
@@ -421,7 +427,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     });
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -470,7 +476,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     });
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -493,7 +499,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
 
     // First confirmation attempt
     const response1 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -503,7 +509,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
 
     // Second confirmation attempt with same idempotency key
     const response2 = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -556,7 +562,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
 
     // Try to confirm with different user's token
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${userToken}`) // User trying to confirm admin's preview
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -614,7 +620,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     });
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -673,7 +679,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
     const payrollCountBefore = await db.collection('payroll').countDocuments({});
 
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({
@@ -737,7 +743,7 @@ describe('Payroll Excel Preview API Unit Tests', () => {
 
     // Confirm the preview
     const response = await request(app)
-      .post('/api/payroll/excel/confirm')
+      .post('/api/upload/excel/confirm')
       .set('Authorization', `Bearer ${adminToken}`)
       .set('X-CSRF-Token', 'test-csrf-token')
       .send({

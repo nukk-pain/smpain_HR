@@ -14,7 +14,7 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createUploadRoutes = require('../../routes/upload');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const { generateToken } = require('../../utils/jwt');
 
@@ -27,6 +27,7 @@ jest.mock('../../utils/database', () => ({
 
 describe('Payroll Excel Upload Integration Tests', () => {
   let app, db, client, adminToken, userToken;
+  let previewStorage, idempotencyStorage;
   let testAdmin = {
     _id: '507f1f77bcf86cd799439011',
     username: 'testadmin',
@@ -50,10 +51,14 @@ describe('Payroll Excel Upload Integration Tests', () => {
     db = client.db();
     mockDb = db;
 
-    // Create Express app with payroll routes
+    // Initialize storage objects for upload routes
+    previewStorage = new Map();
+    idempotencyStorage = new Map();
+
+    // Create Express app with upload routes
     app = express();
     app.use(express.json());
-    app.use('/api/payroll', createPayrollRoutes(db));
+    app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
 
     // Generate tokens
     adminToken = generateToken(testAdmin);
@@ -85,7 +90,7 @@ describe('Payroll Excel Upload Integration Tests', () => {
     test('should respond to Excel upload endpoint', async () => {
       // Test that endpoint now exists and responds properly
       const response = await request(app)
-        .post('/api/payroll/excel/upload')
+        .post('/api/upload/excel/preview')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({});
 
@@ -98,7 +103,7 @@ describe('Payroll Excel Upload Integration Tests', () => {
 
     test('should reject upload without Admin permissions', async () => {
       const response = await request(app)
-        .post('/api/payroll/excel/upload')
+        .post('/api/upload/excel/preview')
         .set('Authorization', `Bearer ${userToken}`)
         .send({});
 
@@ -109,7 +114,7 @@ describe('Payroll Excel Upload Integration Tests', () => {
 
     test('should reject upload without authentication', async () => {
       const response = await request(app)
-        .post('/api/payroll/excel/upload')
+        .post('/api/upload/excel/preview')
         .send({});
 
       // Should return 401 Unauthorized
@@ -130,7 +135,7 @@ describe('Payroll Excel Upload Integration Tests', () => {
       }
 
       const response = await request(app)
-        .post('/api/payroll/excel/upload')
+        .post('/api/upload/excel/preview')
         .set('Authorization', `Bearer ${adminToken}`)
         .attach('file', testFilePath);
 

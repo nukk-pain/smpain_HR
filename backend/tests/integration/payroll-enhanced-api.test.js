@@ -12,9 +12,10 @@
 const request = require('supertest');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
-const createPayrollRoutes = require('../../routes/payroll-enhanced');
+const createPayrollRoutes = require('../../routes/payroll');
 const PayrollRepository = require('../../repositories/PayrollRepository');
 const { generateToken } = require('../../utils/jwt');
+const { generateCsrfToken } = require('../../utils/payrollUtils');
 
 // Mock the database utility
 let mockDb;
@@ -84,7 +85,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 1: POST /api/payroll - Create new payroll record
+   * Test Case 1: POST /api/payroll/enhanced - Create new payroll record
    * DomainMeaning: Verify payroll creation with allowances and deductions
    */
   test('should create new payroll record with allowances and deductions', async () => {
@@ -111,7 +112,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
     };
 
     const response = await request(app)
-      .post('/api/payroll')
+      .post('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${adminToken}`)
       .send(payrollData)
       .expect(201);
@@ -126,7 +127,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 2: POST /api/payroll - Prevent duplicate payroll records
+   * Test Case 2: POST /api/payroll/enhanced - Prevent duplicate payroll records
    */
   test('should prevent duplicate payroll records for same user and period', async () => {
     const payrollData = {
@@ -140,14 +141,14 @@ describe('Enhanced Payroll API Integration Tests', () => {
 
     // Create first record
     await request(app)
-      .post('/api/payroll')
+      .post('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${adminToken}`)
       .send(payrollData)
       .expect(201);
 
     // Attempt to create duplicate
     const response = await request(app)
-      .post('/api/payroll')
+      .post('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${adminToken}`)
       .send(payrollData)
       .expect(400);
@@ -157,7 +158,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 3: GET /api/payroll - List payroll records with pagination
+   * Test Case 3: GET /api/payroll/enhanced - List payroll records with pagination
    */
   test('should retrieve payroll records with user information', async () => {
     // Create test payroll record
@@ -174,7 +175,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
     });
 
     const response = await request(app)
-      .get('/api/payroll')
+      .get('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
@@ -186,7 +187,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 4: GET /api/payroll - Role-based access control
+   * Test Case 4: GET /api/payroll/enhanced - Role-based access control
    */
   test('should restrict user access to own payroll records only', async () => {
     // Create payroll for test user
@@ -215,7 +216,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
 
     // User should only see their own record
     const response = await request(app)
-      .get('/api/payroll')
+      .get('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${userToken}`)
       .expect(200);
 
@@ -225,7 +226,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 5: GET /api/payroll/:id - Get specific payroll record
+   * Test Case 5: GET /api/payroll/enhanced/:id - Get specific payroll record
    */
   test('should retrieve specific payroll record with details', async () => {
     // Create test payroll
@@ -242,7 +243,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
     });
 
     const response = await request(app)
-      .get(`/api/payroll/${payrollRecord._id}`)
+      .get(`/api/payroll/enhanced/${payrollRecord._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
@@ -253,7 +254,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 6: PUT /api/payroll/:id - Update payroll record
+   * Test Case 6: PUT /api/payroll/enhanced/:id - Update payroll record
    */
   test('should update payroll record and recalculate totals', async () => {
     // Create test payroll
@@ -282,7 +283,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
     };
 
     const response = await request(app)
-      .put(`/api/payroll/${payrollRecord._id}`)
+      .put(`/api/payroll/enhanced/${payrollRecord._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send(updateData)
       .expect(200);
@@ -298,7 +299,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   });
 
   /**
-   * Test Case 7: DELETE /api/payroll/:id - Soft delete payroll record
+   * Test Case 7: DELETE /api/payroll/enhanced/:id - Soft delete payroll record
    */
   test('should soft delete payroll record', async () => {
     // Create test payroll
@@ -315,7 +316,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
     });
 
     const response = await request(app)
-      .delete(`/api/payroll/${payrollRecord._id}`)
+      .delete(`/api/payroll/enhanced/${payrollRecord._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
@@ -333,11 +334,11 @@ describe('Enhanced Payroll API Integration Tests', () => {
    */
   test('should require authentication for all endpoints', async () => {
     await request(app)
-      .get('/api/payroll')
+      .get('/api/payroll/enhanced')
       .expect(401);
 
     await request(app)
-      .post('/api/payroll')
+      .post('/api/payroll/enhanced')
       .send({ userId: testUserId, year: 2024, month: 8, baseSalary: 3000000 })
       .expect(401);
   });
@@ -345,7 +346,7 @@ describe('Enhanced Payroll API Integration Tests', () => {
   test('should require appropriate permissions', async () => {
     // User without manage permission cannot create
     await request(app)
-      .post('/api/payroll')
+      .post('/api/payroll/enhanced')
       .set('Authorization', `Bearer ${userToken}`)
       .send({ userId: testUserId, year: 2024, month: 8, baseSalary: 3000000 })
       .expect(403);
