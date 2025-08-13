@@ -156,19 +156,28 @@ router.post('/:id/approve', requireAuth, requirePermission('leave:manage'), asyn
     });
   }
   
-  // 승인된 경우 연차 차감
+  // 연차는 이미 신청 시점에 차감되어 있으므로, 승인 시 추가 차감하지 않음
+  // 거부 시에는 leaveRequests.js의 메인 approve 엔드포인트에서 처리됨
   if (action === 'approve') {
     const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
     if (leaveRequest && leaveRequest.leaveType === 'annual') {
+      console.log(`연차 승인 확인: ${leaveRequest.userName} - ${leaveRequest.daysCount}일 (이미 차감됨)`);
+    }
+  }
+  
+  // 거부 시 연차 복구
+  if (action === 'reject') {
+    const leaveRequest = await db.collection('leaveRequests').findOne({ _id: toObjectId(id) });
+    if (leaveRequest && leaveRequest.leaveType === 'annual' && leaveRequest.deductedDays > 0) {
       const user = await db.collection('users').findOne({ _id: leaveRequest.userId });
       if (user) {
         await db.collection('users').updateOne(
-          { _id: new ObjectId(leaveRequest.userId) },
+          { _id: leaveRequest.userId },
           { 
-            $inc: { leaveBalance: -leaveRequest.actualLeaveDays }
+            $inc: { leaveBalance: leaveRequest.deductedDays }
           }
         );
-        console.log(`연차 승인 및 차감: ${user.name} (${user.employeeId}) - 사용: ${leaveRequest.actualLeaveDays}일`);
+        console.log(`연차 거부 복구: ${user.name} (${user.employeeId}) - 복구: ${leaveRequest.deductedDays}일`);
       }
     }
   }
