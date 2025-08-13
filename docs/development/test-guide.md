@@ -1,5 +1,18 @@
 # 🧪 휴가 관리 시스템 테스트 가이드
 
+📅 **업데이트 날짜**: 2025년 8월 13일
+🔧 **버전**: JWT 인증 및 최신 시스템 아키텍처 반영
+
+## 🌐 배포 환경 정보
+
+### 프로덕션 URL
+- **프론트엔드 (Vercel)**: https://smpain-hr.vercel.app/
+- **백엔드 (Google Cloud Run)**: https://hr-backend-429401177957.asia-northeast3.run.app
+
+### 개발 환경
+- **프론트엔드**: http://localhost:3727
+- **백엔드**: http://localhost:8080
+
 ## 🎯 테스트 목표
 
 1. **백엔드 API 동작 확인**
@@ -15,8 +28,8 @@
 cd backend
 node server.js
 ```
-- 포트: 5444
-- 확인: `http://localhost:5444/api/users` (로그인 필요)
+- 포트: 8080 (기본값)
+- 확인: `http://localhost:8080/api/users` (JWT 토큰 필요)
 
 ### 프론트엔드 서버 실행
 ```bash
@@ -34,8 +47,13 @@ npm run dev
 
 ### 테스트 계정 생성 (필요시)
 관리자로 로그인 후 사용자 관리에서 생성:
-1. **매니저 계정**: manager / manager123
+1. **Supervisor 계정**: supervisor / supervisor123
 2. **일반 사용자**: user1 / user123
+
+### 시스템 역할 (Roles)
+- **Admin**: 전체 시스템 관리, 모든 기능 접근 가능
+- **Supervisor**: 휴가 승인, 사용자 관리, 급여 관리 등 (부서와 무관)
+- **User**: 본인 정보 조회 및 휴가 신청만 가능
 
 ## 🧪 3단계: 기능별 테스트
 
@@ -45,13 +63,24 @@ npm run dev
 #### 2. 콘솔에서 다음 명령어 실행:
 
 ```javascript
+// JWT 토큰 가져오기 (로그인 후 localStorage에 저장됨)
+const token = localStorage.getItem('token');
+
 // 내 휴가 잔여일수 확인
-fetch('/api/leave/balance')
+fetch('/api/leave/balance', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => res.json())
   .then(data => console.log('내 잔여일수:', data));
 
-// 특정 사용자 잔여일수 확인 (관리자/매니저만)
-fetch('/api/leave/balance/USER_ID')
+// 특정 사용자 잔여일수 확인 (관리자/supervisor만)
+fetch('/api/leave/balance/USER_ID', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => res.json())
   .then(data => console.log('사용자 잔여일수:', data));
 ```
@@ -59,11 +88,15 @@ fetch('/api/leave/balance/USER_ID')
 ### B. 휴가 신청 API 테스트
 
 ```javascript
+// JWT 토큰 가져오기
+const token = localStorage.getItem('token');
+
 // 휴가 신청 생성
 fetch('/api/leave', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify({
     leaveType: 'annual',
@@ -80,13 +113,24 @@ fetch('/api/leave', {
 ### C. 휴가 목록 조회 테스트
 
 ```javascript
+// JWT 토큰 가져오기
+const token = localStorage.getItem('token');
+
 // 내 휴가 목록 조회
-fetch('/api/leave')
+fetch('/api/leave', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => res.json())
   .then(data => console.log('내 휴가 목록:', data));
 
-// 승인 대기 목록 조회 (관리자/매니저만)
-fetch('/api/leave/pending')
+// 승인 대기 목록 조회 (관리자/supervisor만)
+fetch('/api/leave/pending', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => res.json())
   .then(data => console.log('승인 대기 목록:', data));
 ```
@@ -94,11 +138,15 @@ fetch('/api/leave/pending')
 ### D. 휴가 승인/거부 테스트
 
 ```javascript
-// 휴가 승인 (관리자/매니저만)
+// JWT 토큰 가져오기
+const token = localStorage.getItem('token');
+
+// 휴가 승인 (관리자/supervisor만)
 fetch('/api/leave/REQUEST_ID/approve', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify({
     action: 'approve',
@@ -113,6 +161,7 @@ fetch('/api/leave/REQUEST_ID/approve', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify({
     action: 'reject',
@@ -163,7 +212,7 @@ fetch('/api/leave/REQUEST_ID/approve', {
 
 ### C. 관리자 승인 인터페이스 테스트
 
-1. **매니저/관리자 계정으로 로그인**
+1. **Supervisor/관리자 계정으로 로그인**
 
 2. **승인 관리 탭 확인**
    - 승인 대기 목록 표시
@@ -187,9 +236,9 @@ http://localhost:3727/leave          // 휴가 관리
 http://localhost:3727/leave/calendar // 휴가 달력
 ```
 
-#### 2. 매니저/감독자 전용 페이지
+#### 2. Supervisor 전용 페이지
 ```javascript
-// 매니저 계정으로 로그인 후 테스트
+// Supervisor 계정으로 로그인 후 테스트
 http://localhost:3727/supervisor/leave/status      // 팀 휴가 현황
 http://localhost:3727/supervisor/leave/requests    // 휴가 승인 관리
 http://localhost:3727/supervisor/users             // 사용자 관리
@@ -225,7 +274,7 @@ http://localhost:3727/admin/leave-policy      → /admin/leave/policy
 
 #### 2. 역할 기반 동적 리다이렉트 테스트
 ```javascript
-// 매니저 계정으로 테스트
+// Supervisor 계정으로 테스트
 http://localhost:3727/users         → /supervisor/users
 http://localhost:3727/departments   → /supervisor/departments
 http://localhost:3727/payroll       → /supervisor/payroll
@@ -262,10 +311,11 @@ http://localhost:3727/files         → /admin/files
    - 휴가 신청 가능
    - 승인 관리 탭 비표시
 
-2. **매니저 권한 테스트**
-   - 같은 부서 직원 휴가 승인 가능
-   - 다른 부서 직원 휴가 접근 불가
-   - 부서 내 승인 대기 목록만 표시
+2. **Supervisor 권한 테스트**
+   - 모든 직원 휴가 승인 가능 (부서 무관)
+   - 사용자 관리 접근 가능
+   - 급여 및 보고서 기능 접근 가능
+   - 전체 승인 대기 목록 표시
 
 3. **관리자 권한 테스트**
    - 모든 휴가 신청 조회 가능
@@ -277,8 +327,15 @@ http://localhost:3727/files         → /admin/files
 브라우저 콘솔에서 권한 테스트:
 
 ```javascript
+// JWT 토큰 가져오기
+const token = localStorage.getItem('token');
+
 // 일반 사용자가 다른 사용자 잔여일수 조회 시도 (403 에러 예상)
-fetch('/api/leave/balance/OTHER_USER_ID')
+fetch('/api/leave/balance/OTHER_USER_ID', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => {
     if (res.status === 403) {
       console.log('✅ 권한 제한 정상 동작');
@@ -287,8 +344,12 @@ fetch('/api/leave/balance/OTHER_USER_ID')
     }
   });
 
-// 일반 사용자가 승인 대기 목록 조회 시도 (403 에러 예상)
-fetch('/api/leave/pending')
+// 일반 사용자가 승인 대기 목록 조회 시도 (403 에럼 예상)
+fetch('/api/leave/pending', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
   .then(res => {
     if (res.status === 403) {
       console.log('✅ 권한 제한 정상 동작');
@@ -405,26 +466,26 @@ fetch('/api/leave/pending')
 
 ### 보안 체크리스트
 
-- [ ] 세션 기반 인증
-- [ ] 역할별 권한 제어
-- [ ] API 권한 검증
-- [ ] 입력값 검증
+- [ ] JWT 토큰 기반 인증 (세션 없음)
+- [ ] 역할별 권한 제어 (Admin, Supervisor, User)
+- [ ] API 권한 검증 (Authorization 헤더)
+- [ ] 입력값 검증 (Joi 스키마)
 - [ ] XSS 방지
-- [ ] CSRF 방지
+- [ ] CORS 설정 (크로스 도메인 지원)
 
 ## 🚨 문제 발생 시 해결책
 
-### 1. JWT 서버 연결 오류
+### 1. 서버 연결 오류
 ```bash
-# 포트 확인 (JWT 포트 변경됨)
-netstat -ano | findstr :8080
-netstat -ano | findstr :3727
+# 포트 확인
+netstat -ano | findstr :8080  # 백엔드 포트
+netstat -ano | findstr :3727  # 프론트엔드 포트
 
 # 서버 재시작
-cd backend && node server.js
-cd frontend && npm run dev
+cd backend && node server.js   # 포트 8080
+cd frontend && npm run dev      # 포트 3727
 
-# JWT 헬스 체크
+# 헬스 체크
 curl http://localhost:8080/health
 # 응답에 "authentication": "JWT" 포함되어야 함
 ```
@@ -451,9 +512,44 @@ npm run build
 
 ### 4. API 호출 오류
 - 브라우저 개발자 도구 > Network 탭에서 API 호출 확인
-- 403 에러: 권한 문제, 로그인 상태 확인
+- 401 에러: JWT 토큰 누락 또는 만료, 다시 로그인 필요
+- 403 에러: 권한 부족, 역할 확인 필요
 - 500 에러: 서버 로그 확인
 - 404 에러: API 엔드포인트 확인
+
+## 🔐 JWT 인증 테스트
+
+### JWT 토큰 확인
+```javascript
+// 로그인 후 토큰 확인
+const token = localStorage.getItem('token');
+console.log('JWT Token:', token);
+
+// 토큰 디코드 (개발용)
+const payload = JSON.parse(atob(token.split('.')[1]));
+console.log('Token Payload:', payload);
+console.log('User ID:', payload.userId);
+console.log('Role:', payload.role);
+console.log('Expires:', new Date(payload.exp * 1000));
+```
+
+### 토큰 갱신 테스트
+```javascript
+// 토큰 갱신 API 호출
+fetch('/api/auth/refresh', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      console.log('토큰 갱신 성공');
+    }
+  });
+```
 
 ## 📝 테스트 결과 기록
 
