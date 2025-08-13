@@ -169,7 +169,7 @@ const getCurrentPolicy = async (db) => {
         },
         businessRules: {
           minAdvanceDays: 3,
-          maxConcurrentRequests: 1
+          maxConcurrentRequests: 3
         },
         carryOverRules: {
           maxCarryOverDays: 5,
@@ -204,7 +204,7 @@ const getCurrentPolicy = async (db) => {
       },
       businessRules: {
         minAdvanceDays: 3,
-        maxConcurrentRequests: 1
+        maxConcurrentRequests: 3
       },
       carryOverRules: {
         maxCarryOverDays: 5,
