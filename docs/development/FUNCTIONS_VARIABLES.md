@@ -223,7 +223,54 @@ const inactiveUserData = createTestUserData(baseData, false, adminId, 'Test reas
 
 ---
 
+## Admin Routes Structure
+
+### Route Files (`backend/routes/admin/`)
+
+#### Main Router
+- `admin.js` - Main router integration file that combines all admin sub-modules
+
+#### Admin Sub-modules
+- `leaveAdmin.js` - Leave management routes
+  - `/leave/overview` - Leave overview and statistics
+  - `/leave/adjust` - Adjust employee leave balances
+  - `/leave/employee/:id` - Employee-specific leave details
+  - `/leave/bulk-pending` - Pending leave requests list
+  - `/leave/bulk-approve` - Bulk approve/reject leave requests
+
+- `systemAdmin.js` - System and policy management routes
+  - `/stats/system` - System statistics and metrics
+  - `/policy` - Get and update leave policies
+  - `/policy/history` - Policy change history
+  - `/migrate-users-isactive` - User data migration utilities
+
+- `capacityAdmin.js` - Capacity and temporary data management
+  - `/debug/temp-uploads` - Debug temporary upload issues
+  - `/dashboard/temp-data` - Temporary data dashboard
+  - `/capacity/status` - System capacity status
+  - `/capacity/cleanup` - Clean up temporary data
+  - `/capacity/policy` - Capacity management policies
+
+- `logsAdmin.js` - Logging and audit routes
+  - `/logs/query` - Query system logs
+  - `/logs/stats` - Log statistics and analytics
+  - `/logs/export` - Export logs for analysis
+  - `/logs/cleanup` - Clean up old log entries
+
+#### Shared Middleware (`backend/routes/admin/shared/`)
+- `adminMiddleware.js` - Common middleware and helper functions
+  - `requireAdmin` - Ensure user has admin role
+  - `requirePermission` - Check specific permissions
+  - Common validation and error handling utilities
+
 ## Change Log
+
+### 2025-08-13 - Admin Routes Refactoring
+- Split monolithic admin.js (1,873 lines) into 5 modular files
+- Created dedicated sub-modules for leave, system, capacity, and logs management
+- Extracted shared middleware into separate file
+- Improved code organization and maintainability
+- Each module now handles specific domain concerns
 
 ### 2025-08-08 - User Deactivation Feature
 - Added comprehensive deactivation/reactivation utilities
