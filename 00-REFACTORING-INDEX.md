@@ -104,16 +104,16 @@
 
 ### 기능 개발 계획
 - `plan.md` - 전체 프로젝트 계획
-- `plan-payroll-features.md` - Payroll 기능 계획
-- `plan-payroll-phase1.md` - Payroll Phase 1 계획
+- `docs/planning/plan-payroll-features.md` - Payroll 기능 계획
+- `completed/payroll/plan-payroll-phase1.md` - Payroll Phase 1 계획 (완료)
 
 ### Excel 관련
 - `Excel_급여업로드_프리뷰_기능_개발계획.md`
 - `Excel급여업로드_프로세스_분석.md`
 
 ### 기타
-- `mongodb-atlas-to-local-migration.md` - MongoDB 마이그레이션
-- `DEPLOYMENT_GUIDE.md` - 배포 가이드
+- `completed/migration/mongodb-atlas-to-local-migration.md` - MongoDB 마이그레이션 (완료)
+- `docs/deployment/DEPLOYMENT_GUIDE.md` - 배포 가이드
 
 ---
 
