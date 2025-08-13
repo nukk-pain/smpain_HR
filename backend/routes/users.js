@@ -784,6 +784,62 @@ function createUserRoutes(db) {
     });
   }));
 
+  /**
+   * GET /api/users/simple-list - Get simple user list for matching
+   * DomainMeaning: Provides a simplified list of users for payroll matching
+   * MisleadingNames: None
+   * SideEffects: None - read only
+   * Invariants: Only returns active users, excludes sensitive data
+   * RAG_Keywords: user list, payroll matching, employee list
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_simple_list_001
+   */
+  router.get('/simple-list', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
+    try {
+      // Get all active users with only necessary fields for matching
+      const users = await db.collection('users').find(
+        { 
+          isActive: { $ne: false }, // Include users where isActive is true or undefined
+          role: { $ne: 'admin' } // Exclude admin users from payroll matching
+        },
+        {
+          projection: {
+            _id: 1,
+            name: 1,
+            employeeId: 1,
+            department: 1,
+            position: 1
+          }
+        }
+      ).toArray();
+
+      // Transform to simple format
+      const simpleList = users.map(user => ({
+        id: user._id.toString(),
+        name: user.name || '',
+        department: user.department || 'Unassigned',
+        employeeId: user.employeeId || '',
+        position: user.position || ''
+      }));
+
+      // Sort by name for easier searching
+      simpleList.sort((a, b) => a.name.localeCompare(b.name));
+
+      res.json({
+        success: true,
+        data: simpleList,
+        total: simpleList.length
+      });
+
+    } catch (error) {
+      console.error('Error fetching simple user list:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch user list'
+      });
+    }
+  }));
+
   // Get user statistics
   router.get('/stats/overview', requireAuth, asyncHandler(async (req, res) => {
     const currentDate = new Date();

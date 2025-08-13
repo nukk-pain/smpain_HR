@@ -23,15 +23,19 @@ import {
   CardContent,
   Chip,
   Grid,
-  Stepper,
-  Step,
-  StepLabel,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText
+  DialogContentText,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Divider,
+  TextField
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -49,25 +53,53 @@ import { apiService } from '../services/api';
 import { usePayrollUpload } from '../hooks/usePayrollUpload';
 import { PreviewDataTable } from './PayrollPreviewTable';
 import { PreviewSummaryCard } from './PayrollPreviewSummary';
+import { PayrollUnmatchedSection } from './PayrollUnmatchedSection';
+import { PayrollUploadSummary } from './PayrollUploadSummary';
 import { PreviewApiResponse, ConfirmApiResponse } from '../types/payrollUpload';
-
-const steps = ['파일 선택', '데이터 확인', '저장 완료'];
 
 export const PayrollExcelUploadWithPreview: React.FC = () => {
   const { state, actions, helpers } = usePayrollUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
-
-  // Get current step index for stepper
-  const getStepIndex = () => {
-    switch (state.step) {
-      case 'select': return 0;
-      case 'preview': return 1;
-      case 'confirmed':
-      case 'completed': return 2;
-      default: return 0;
+  
+  // Year and month state
+  const currentDate = new Date();
+  const [selectedYear, setSelectedYear] = React.useState(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = React.useState(currentDate.getMonth() + 1);
+  
+  // State for managing record actions and employee list
+  const [recordActions, setRecordActions] = React.useState<Map<number, {action: 'skip' | 'manual', userId?: string}>>(new Map());
+  const [employeeList, setEmployeeList] = React.useState<Array<{id: string; name: string; department: string; employeeId: string}>>([]);
+  
+  // Fetch employee list when preview data is available
+  React.useEffect(() => {
+    if (state.previewData) {
+      const fetchEmployees = async () => {
+        try {
+          const response = await apiService.get('/users/simple-list');
+          if (response.success && response.data) {
+            setEmployeeList(response.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch employee list:', error);
+        }
+      };
+      fetchEmployees();
     }
+  }, [state.previewData]);
+  
+  // Handle record action changes
+  const handleRecordActionChange = (rowNumber: number, action: 'process' | 'skip' | 'manual', userId?: string) => {
+    const updated = new Map(recordActions);
+    if (action === 'skip') {
+      updated.set(rowNumber, { action: 'skip' });
+    } else if (action === 'manual' && userId) {
+      updated.set(rowNumber, { action: 'manual', userId });
+    } else if (action === 'process') {
+      updated.delete(rowNumber); // Remove from manual actions if it's auto-processed
+    }
+    setRecordActions(updated);
   };
 
   // File validation
@@ -104,7 +136,11 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
     
     actions.clearError();
     actions.setSelectedFile(file);
-  }, [validateFile, actions]);
+    // Clear previous preview when new file is selected
+    if (state.previewData) {
+      actions.setPreviewData(null, null, null);
+    }
+  }, [validateFile, actions, state.previewData]);
 
   // Handle drag and drop
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -162,15 +198,11 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       actions.setUploading(true);
       actions.clearError();
       
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth() + 1;
-      
       const response = await executeWithRetry(async () => {
         return await apiService.previewPayrollExcel(
           state.selectedFile!,
-          year,
-          month
+          selectedYear,
+          selectedMonth
         ) as unknown as PreviewApiResponse;
       });
       
@@ -246,10 +278,19 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       const idempotencyKey = generateIdempotencyKey();
       console.log('🔑 Generated idempotency key:', idempotencyKey);
       
+      // Convert recordActions Map to array format for API
+      const recordActionsArray = Array.from(recordActions.entries()).map(([rowNumber, action]) => ({
+        rowNumber,
+        action: action.action,
+        userId: action.userId
+      }));
+      
       const response = await executeWithRetry(async () => {
         return await apiService.confirmPayrollExcel(
           state.previewToken!,
-          idempotencyKey
+          idempotencyKey,
+          state.duplicateMode,
+          recordActionsArray
         ) as unknown as ConfirmApiResponse;
       });
       
@@ -299,17 +340,42 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
   // Render file selection step
   const renderFileSelectStep = () => (
     <>
-      <Box sx={{ mb: 3 }}>
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          onClick={handleTemplateDownload}
-        >
-          템플릿 다운로드
-        </Button>
-        <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-          표준 형식의 Excel 템플릿을 다운로드하여 데이터를 입력하세요.
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+        <Box>
+          <Typography variant="body2" sx={{ mb: 1 }}>처리 연월</Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label="년도"
+              type="number"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              size="small"
+              sx={{ width: 100 }}
+              inputProps={{ min: 2020, max: 2030 }}
+            />
+            <TextField
+              label="월"
+              type="number"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              size="small"
+              sx={{ width: 80 }}
+              inputProps={{ min: 1, max: 12 }}
+            />
+          </Box>
+        </Box>
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleTemplateDownload}
+          >
+            템플릿 다운로드
+          </Button>
+          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+            표준 형식의 Excel 템플릿을 다운로드하여 데이터를 입력하세요.
+          </Typography>
+        </Box>
       </Box>
 
       <Paper
@@ -359,7 +425,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                       {state.selectedFile.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {(state.selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      {(state.selectedFile.size / 1024 / 1024).toFixed(2)} MB | {selectedYear}년 {selectedMonth}월 데이터
                     </Typography>
                   </Box>
                 </Box>
@@ -402,7 +468,18 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
 
     return (
       <>
-        <PreviewSummaryCard summary={state.previewData.summary} />
+        {/* Enhanced summary with action counts */}
+        <PayrollUploadSummary 
+          records={state.previewData.records} 
+          recordActions={recordActions}
+        />
+        
+        {/* Show unmatched records section first for user attention */}
+        <PayrollUnmatchedSection
+          records={state.previewData.records}
+          employeeList={employeeList}
+          onRecordActionChange={handleRecordActionChange}
+        />
         
         {state.previewData.errors.length > 0 && (
           <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
@@ -438,6 +515,33 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
               </Typography>
             )}
           </Alert>
+        )}
+
+        {/* 중복 레코드가 있을 때 처리 옵션 표시 */}
+        {state.previewData.summary.duplicateRecords && state.previewData.summary.duplicateRecords > 0 && (
+          <Paper sx={{ p: 2, mt: 2, mb: 2, bgcolor: 'background.default' }}>
+            <FormControl component="fieldset">
+              <FormLabel component="legend">
+                {state.previewData.summary.duplicateRecords}개의 중복 레코드 발견 - 처리 방법을 선택하세요:
+              </FormLabel>
+              <RadioGroup
+                value={state.duplicateMode}
+                onChange={(e) => actions.setDuplicateMode(e.target.value as any)}
+                sx={{ mt: 1 }}
+              >
+                <FormControlLabel 
+                  value="skip" 
+                  control={<Radio />} 
+                  label="건너뛰기 (기존 데이터 유지)" 
+                />
+                <FormControlLabel 
+                  value="update" 
+                  control={<Radio />} 
+                  label="업데이트 (새 데이터로 덮어쓰기)" 
+                />
+              </RadioGroup>
+            </FormControl>
+          </Paper>
         )}
 
         <Box sx={{ mt: 3 }}>
@@ -542,9 +646,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   대상 기간
                 </Typography>
                 <Typography variant="body1">
-                  {state.result?.summary?.year && state.result?.summary?.month
-                    ? `${state.result.summary.year}년 ${state.result.summary.month}월`
-                    : 'N/A'}
+                  {selectedYear}년 {selectedMonth}월
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -584,23 +686,51 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
         Excel 파일을 업로드하여 급여 데이터를 확인 후 저장할 수 있습니다.
       </Typography>
 
-      <Stepper activeStep={getStepIndex()} sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-
       {state.error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={actions.clearError}>
           {state.error}
         </Alert>
       )}
 
-      {state.step === 'select' && renderFileSelectStep()}
-      {state.step === 'preview' && renderPreviewStep()}
-      {(state.step === 'confirmed' || state.step === 'completed') && renderResultStep()}
+      {/* File Selection Area - Always Visible */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            파일 업로드
+          </Typography>
+          {renderFileSelectStep()}
+        </CardContent>
+      </Card>
+
+      {/* Preview Area - Shows when preview data is available */}
+      {state.previewData && (
+        <>
+          <Divider sx={{ my: 3 }} />
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                데이터 미리보기
+              </Typography>
+              {renderPreviewStep()}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Result Area - Shows after confirmation */}
+      {(state.step === 'confirmed' || state.step === 'completed') && (
+        <>
+          <Divider sx={{ my: 3 }} />
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                업로드 결과
+              </Typography>
+              {renderResultStep()}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog

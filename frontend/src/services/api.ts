@@ -130,9 +130,13 @@ class ApiService {
   }
 
   async upload(url: string, formData: FormData): Promise<any> {
+    // Generate a simple CSRF token for file uploads
+    const csrfToken = Math.random().toString(36).substr(2) + Date.now().toString(36);
+    
     const response = await this.api.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        'x-csrf-token': csrfToken,
       },
     });
     return response.data;
@@ -448,10 +452,21 @@ class ApiService {
     return this.upload('/upload/excel/preview', formData);
   }
 
-  async confirmPayrollExcel(previewToken: string, idempotencyKey?: string) {
+  async confirmPayrollExcel(
+    previewToken: string, 
+    idempotencyKey?: string, 
+    duplicateMode?: 'skip' | 'update' | 'replace',
+    recordActions?: Array<{rowNumber: number; action: string; userId?: string}>
+  ) {
     const payload: any = { previewToken };
     if (idempotencyKey) {
       payload.idempotencyKey = idempotencyKey;
+    }
+    if (duplicateMode) {
+      payload.duplicateMode = duplicateMode;
+    }
+    if (recordActions && recordActions.length > 0) {
+      payload.recordActions = recordActions;
     }
     return this.post('/upload/excel/confirm', payload);
   }

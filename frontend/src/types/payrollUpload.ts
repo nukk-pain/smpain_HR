@@ -14,6 +14,8 @@
 // Upload process state management
 export type UploadStep = 'select' | 'preview' | 'confirmed' | 'completed';
 
+export type DuplicateMode = 'skip' | 'update' | 'replace';
+
 export interface UploadState {
   step: UploadStep;
   selectedFile: File | null;
@@ -24,6 +26,7 @@ export interface UploadState {
   confirming: boolean;
   result: UploadResult | null;
   error: string | null;
+  duplicateMode: DuplicateMode; // 중복 처리 모드
 }
 
 // Preview data structures
@@ -38,6 +41,7 @@ export interface PreviewSummary {
   totalRecords: number;
   validRecords: number;
   invalidRecords: number;
+  duplicateRecords?: number; // 중복 레코드 수
   warningRecords: number;
   fileName: string;
   fileSize: number;
@@ -47,14 +51,24 @@ export interface PreviewSummary {
 
 export interface PreviewRecord {
   rowIndex: number;
+  rowNumber: number; // Same as rowIndex, for consistency
   employeeName: string;
   employeeId?: string;
   baseSalary: number;
+  incentive: number; // 인센티브
+  grossSalaryPreTax: number; // 세전총액
   totalAllowances: number;
   totalDeductions: number;
   netSalary: number;
+  matched: boolean; // Quick check if matched
+  userId: string | null; // User ID if matched
   matchedUser: MatchedUser;
   status: RecordStatus;
+  existingRecord?: {
+    baseSalary: number;
+    netSalary: number;
+    updatedAt?: Date;
+  };
 }
 
 export interface MatchedUser {
@@ -64,7 +78,7 @@ export interface MatchedUser {
   employeeId?: string;
 }
 
-export type RecordStatus = 'valid' | 'invalid' | 'warning';
+export type RecordStatus = 'valid' | 'invalid' | 'warning' | 'duplicate' | 'unmatched';
 
 export interface PreviewError {
   row: number;
@@ -127,4 +141,5 @@ export interface StoredUploadState {
   previewData: PreviewData | null;
   fileName: string | null;
   timestamp: number;
+  duplicateMode?: DuplicateMode;
 }

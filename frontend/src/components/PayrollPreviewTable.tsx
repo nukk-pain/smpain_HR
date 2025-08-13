@@ -30,7 +30,9 @@ import {
   Select,
   MenuItem,
   Grid,
-  InputAdornment
+  InputAdornment,
+  Autocomplete,
+  Alert
 } from '@mui/material';
 import {
   CheckCircle as MatchedIcon,
@@ -43,18 +45,61 @@ import {
 } from '@mui/icons-material';
 import { PreviewRecord } from '../types/payrollUpload';
 import { useAuth } from './AuthProvider';
+import { apiService } from '../services/api';
 
 interface PreviewDataTableProps {
   records: PreviewRecord[];
+  onRecordActionChange?: (rowNumber: number, action: 'process' | 'skip' | 'manual', userId?: string) => void;
 }
 
-export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) => {
+export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onRecordActionChange }) => {
   const { user } = useAuth();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [matchingFilter, setMatchingFilter] = React.useState<string>('all');
+  
+  // State for employee list and record actions
+  const [employeeList, setEmployeeList] = React.useState<Array<{id: string; name: string; department: string; employeeId: string}>>([]);
+  const [recordActions, setRecordActions] = React.useState<Map<number, {action: 'skip' | 'manual', userId?: string}>>(new Map());
+  
+  // Fetch employee list on mount
+  React.useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await apiService.get('/users/simple-list');
+        if (response.success && response.data) {
+          setEmployeeList(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch employee list:', error);
+      }
+    };
+    fetchEmployees();
+  }, []);
+  
+  // Handle action change for unmatched records
+  const handleActionChange = (rowNumber: number, action: 'skip' | 'manual') => {
+    const updated = new Map(recordActions);
+    if (action === 'skip') {
+      updated.set(rowNumber, { action: 'skip' });
+      onRecordActionChange?.(rowNumber, 'skip');
+    } else if (action === 'manual') {
+      updated.set(rowNumber, { action: 'manual' });
+    }
+    setRecordActions(updated);
+  };
+  
+  // Handle employee selection for manual matching
+  const handleEmployeeSelect = (rowNumber: number, employeeId: string | null) => {
+    if (employeeId) {
+      const updated = new Map(recordActions);
+      updated.set(rowNumber, { action: 'manual', userId: employeeId });
+      setRecordActions(updated);
+      onRecordActionChange?.(rowNumber, 'manual', employeeId);
+    }
+  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -245,8 +290,8 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
               <TableCell sx={{ fontWeight: 'bold' }}>직원명</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>사번</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold' }}>매칭 상태</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>기본급</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>총 수당</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold' }}>인센티브</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold' }}>세전총액</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>총 공제</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>실수령액</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold' }}>상태</TableCell>
@@ -291,8 +336,8 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records }) =
                 <TableCell align="center">
                   {getMatchingChip(record.matchedUser)}
                 </TableCell>
-                <TableCell align="right">{formatCurrency(record.baseSalary, true)}</TableCell>
-                <TableCell align="right">{formatCurrency(record.totalAllowances, true)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.incentive || 0, true)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.grossSalaryPreTax || 0, true)}</TableCell>
                 <TableCell align="right">{formatCurrency(record.totalDeductions, true)}</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                   {formatCurrency(record.netSalary, true)}
