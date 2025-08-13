@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Test suite for PayrollList component
@@ -16,7 +17,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { PayrollList } from './PayrollList';
 
 // Mock AG Grid
-jest.mock('ag-grid-react', () => ({
+vi.mock('ag-grid-react', () => ({
   AgGridReact: ({ columnDefs, rowData }: any) => (
     <div data-testid="ag-grid">
       <div data-testid="column-headers">
@@ -38,7 +39,7 @@ jest.mock('ag-grid-react', () => ({
 }));
 
 // Mock API hook
-jest.mock('../hooks/useApi', () => ({
+vi.mock('../hooks/useApi', () => ({
   useApi: () => ({
     data: [
       {
@@ -55,7 +56,7 @@ jest.mock('../hooks/useApi', () => ({
     ],
     loading: false,
     error: null,
-    refetch: jest.fn()
+    refetch: vi.fn()
   })
 }));
 
@@ -89,12 +90,12 @@ describe('PayrollList', () => {
 
   test('should display loading state', () => {
     // Mock loading state
-    jest.doMock('../hooks/useApi', () => ({
+    vi.doMock('../hooks/useApi', () => ({
       useApi: () => ({
         data: null,
         loading: true,
         error: null,
-        refetch: jest.fn()
+        refetch: vi.fn()
       })
     }));
 
@@ -106,12 +107,12 @@ describe('PayrollList', () => {
 
   test('should display error state', () => {
     // Mock error state
-    jest.doMock('../hooks/useApi', () => ({
+    vi.doMock('../hooks/useApi', () => ({
       useApi: () => ({
         data: null,
         loading: false,
         error: '급여 데이터를 불러올 수 없습니다.',
-        refetch: jest.fn()
+        refetch: vi.fn()
       })
     }));
 

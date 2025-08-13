@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Unit tests for PayrollPreviewTable component
@@ -19,8 +20,8 @@ import { PreviewRecord } from '../../types/payrollUpload';
 import { useAuth } from '../../hooks/useAuth';
 
 // Mock useAuth hook
-jest.mock('../../hooks/useAuth');
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+vi.mock('../../hooks/useAuth');
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>;
 
 describe('PayrollPreviewTable', () => {
   const mockRecords: PreviewRecord[] = [
@@ -81,15 +82,15 @@ describe('PayrollPreviewTable', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Default admin user
     mockUseAuth.mockReturnValue({
       user: { id: '1', name: 'Test Admin', role: 'Admin' },
       isAuthenticated: true,
-      login: jest.fn(),
-      logout: jest.fn(),
-      checkAuth: jest.fn()
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkAuth: vi.fn()
     } as any);
   });
 
@@ -121,9 +122,9 @@ describe('PayrollPreviewTable', () => {
       mockUseAuth.mockReturnValue({
         user: { id: '2', name: 'Test User', role: 'User' },
         isAuthenticated: true,
-        login: jest.fn(),
-        logout: jest.fn(),
-        checkAuth: jest.fn()
+        login: vi.fn(),
+        logout: vi.fn(),
+        checkAuth: vi.fn()
       } as any);
       
       render(<PreviewDataTable records={mockRecords} />);

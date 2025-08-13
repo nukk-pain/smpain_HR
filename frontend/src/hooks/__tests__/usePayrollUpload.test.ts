@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Unit tests for usePayrollUpload hook
@@ -59,7 +60,7 @@ describe('usePayrollUpload Hook', () => {
   beforeEach(() => {
     // Clear sessionStorage before each test
     sessionStorage.clear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Initial State', () => {
@@ -254,7 +255,7 @@ describe('usePayrollUpload Hook', () => {
       
       // Mock expiry time
       const originalNow = Date.now;
-      Date.now = jest.fn(() => originalNow() + (31 * 60 * 1000)); // 31 minutes later
+      Date.now = vi.fn(() => originalNow() + (31 * 60 * 1000)); // 31 minutes later
       
       expect(result.current.helpers.isPreviewExpired()).toBe(true);
       

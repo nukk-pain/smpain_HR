@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Test suite for payroll service layer
@@ -15,19 +16,19 @@ import { PayrollService } from './payrollService';
 import { apiService } from './api';
 
 // Mock API service
-jest.mock('./api', () => ({
+vi.mock('./api', () => ({
   apiService: {
-    getPayrollRecords: jest.fn(),
-    getPayrollRecord: jest.fn(),
-    createPayrollRecord: jest.fn(),
-    updatePayrollRecord: jest.fn(),
-    deletePayrollRecord: jest.fn(),
-    previewPayrollExcel: jest.fn(),
-    confirmPayrollExcel: jest.fn(),
-    exportPayrollExcel: jest.fn(),
-    uploadPayslip: jest.fn(),
-    downloadPayslipPdf: jest.fn(),
-    deletePayslip: jest.fn()
+    getPayrollRecords: vi.fn(),
+    getPayrollRecord: vi.fn(),
+    createPayrollRecord: vi.fn(),
+    updatePayrollRecord: vi.fn(),
+    deletePayrollRecord: vi.fn(),
+    previewPayrollExcel: vi.fn(),
+    confirmPayrollExcel: vi.fn(),
+    exportPayrollExcel: vi.fn(),
+    uploadPayslip: vi.fn(),
+    downloadPayslipPdf: vi.fn(),
+    deletePayslip: vi.fn()
   }
 }));
 
@@ -36,7 +37,7 @@ describe('PayrollService', () => {
 
   beforeEach(() => {
     payrollService = new PayrollService();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('fetchPayrollRecords', () => {
@@ -45,7 +46,7 @@ describe('PayrollService', () => {
         { _id: '1', year: 2024, month: 8, netSalary: 3000000 }
       ];
       
-      (apiService.getPayrollRecords as jest.Mock).mockResolvedValue({
+      (apiService.getPayrollRecords as vi.Mock).mockResolvedValue({
         success: true,
         data: mockData
       });
@@ -62,7 +63,7 @@ describe('PayrollService', () => {
 
     test('should handle API errors gracefully', async () => {
       const errorMessage = 'API Error';
-      (apiService.getPayrollRecords as jest.Mock).mockRejectedValue(
+      (apiService.getPayrollRecords as vi.Mock).mockRejectedValue(
         new Error(errorMessage)
       );
 
@@ -81,7 +82,7 @@ describe('PayrollService', () => {
       
       const createdRecord = { _id: '2', ...newRecord };
       
-      (apiService.createPayrollRecord as jest.Mock).mockResolvedValue({
+      (apiService.createPayrollRecord as vi.Mock).mockResolvedValue({
         success: true,
         data: createdRecord
       });
@@ -106,7 +107,7 @@ describe('PayrollService', () => {
       const updatedData = { baseSalary: 3500000 };
       const updatedRecord = { _id: '1', ...updatedData };
       
-      (apiService.updatePayrollRecord as jest.Mock).mockResolvedValue({
+      (apiService.updatePayrollRecord as vi.Mock).mockResolvedValue({
         success: true,
         data: updatedRecord
       });
@@ -204,7 +205,7 @@ describe('PayrollService', () => {
         }
       };
       
-      (apiService.previewPayrollExcel as jest.Mock).mockResolvedValue(previewResult);
+      (apiService.previewPayrollExcel as vi.Mock).mockResolvedValue(previewResult);
 
       const result = await payrollService.previewExcel(file, 2024, 8);
       
@@ -224,7 +225,7 @@ describe('PayrollService', () => {
         }
       };
       
-      (apiService.confirmPayrollExcel as jest.Mock).mockResolvedValue(confirmResult);
+      (apiService.confirmPayrollExcel as vi.Mock).mockResolvedValue(confirmResult);
 
       const result = await payrollService.confirmExcelPreview(previewToken, idempotencyKey);
       
@@ -234,7 +235,7 @@ describe('PayrollService', () => {
 
     test('should handle Excel export', async () => {
       const blob = new Blob(['excel data']);
-      (apiService.exportPayrollExcel as jest.Mock).mockResolvedValue(blob);
+      (apiService.exportPayrollExcel as vi.Mock).mockResolvedValue(blob);
 
       const result = await payrollService.exportExcel({ year: 2024, month: 8 });
       
@@ -246,14 +247,14 @@ describe('PayrollService', () => {
   describe('SSE Progress Tracking', () => {
     test('should create SSE connection for upload progress', async () => {
       const mockEventSource = {
-        addEventListener: jest.fn(),
-        close: jest.fn(),
+        addEventListener: vi.fn(),
+        close: vi.fn(),
         readyState: EventSource.OPEN
       };
       
-      global.EventSource = jest.fn().mockImplementation(() => mockEventSource) as any;
+      global.EventSource = vi.fn().mockImplementation(() => mockEventSource) as any;
       
-      const onProgress = jest.fn();
+      const onProgress = vi.fn();
       const connection = payrollService.createProgressConnection('upload-123', onProgress);
       
       expect(global.EventSource).toHaveBeenCalledWith(
@@ -270,14 +271,14 @@ describe('PayrollService', () => {
 
     test('should handle progress events', async () => {
       const mockEventSource = {
-        addEventListener: jest.fn(),
-        close: jest.fn(),
+        addEventListener: vi.fn(),
+        close: vi.fn(),
         readyState: EventSource.OPEN
       };
       
-      global.EventSource = jest.fn().mockImplementation(() => mockEventSource) as any;
+      global.EventSource = vi.fn().mockImplementation(() => mockEventSource) as any;
       
-      const onProgress = jest.fn();
+      const onProgress = vi.fn();
       payrollService.createProgressConnection('upload-123', onProgress);
       
       // Simulate progress event
@@ -302,7 +303,7 @@ describe('PayrollService', () => {
       const mockData = [{ _id: '1', year: 2024, month: 8 }];
       
       // Fail first 2 attempts, succeed on third
-      (apiService.getPayrollRecords as jest.Mock)
+      (apiService.getPayrollRecords as vi.Mock)
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({ success: true, data: mockData });
@@ -317,7 +318,7 @@ describe('PayrollService', () => {
       const timeoutError = new Error('Request timeout');
       (timeoutError as any).code = 'ECONNABORTED';
       
-      (apiService.previewPayrollExcel as jest.Mock).mockRejectedValue(timeoutError);
+      (apiService.previewPayrollExcel as vi.Mock).mockRejectedValue(timeoutError);
       
       const file = new File(['content'], 'payroll.xlsx');
       
@@ -330,7 +331,7 @@ describe('PayrollService', () => {
       const networkError = new Error('Network error');
       (networkError as any).response = undefined;
       
-      (apiService.confirmPayrollExcel as jest.Mock).mockRejectedValue(networkError);
+      (apiService.confirmPayrollExcel as vi.Mock).mockRejectedValue(networkError);
       
       await expect(
         payrollService.confirmExcelPreviewWithRetry('token-123', 'idem-key', { maxRetries: 1 })
@@ -345,7 +346,7 @@ describe('PayrollService', () => {
         }
       };
       
-      (apiService.previewPayrollExcel as jest.Mock).mockRejectedValue(validationError);
+      (apiService.previewPayrollExcel as vi.Mock).mockRejectedValue(validationError);
       
       const file = new File(['content'], 'payroll.xlsx');
       
@@ -363,7 +364,7 @@ describe('PayrollService', () => {
     test('should upload payslip', async () => {
       const file = new File(['pdf content'], 'payslip.pdf');
       
-      (apiService.uploadPayslip as jest.Mock).mockResolvedValue({
+      (apiService.uploadPayslip as vi.Mock).mockResolvedValue({
         success: true
       });
 
@@ -374,7 +375,7 @@ describe('PayrollService', () => {
 
     test('should download payslip', async () => {
       const blob = new Blob(['pdf data']);
-      (apiService.downloadPayslipPdf as jest.Mock).mockResolvedValue(blob);
+      (apiService.downloadPayslipPdf as vi.Mock).mockResolvedValue(blob);
 
       const result = await payrollService.downloadPayslip('1');
       
@@ -383,7 +384,7 @@ describe('PayrollService', () => {
     });
 
     test('should delete payslip', async () => {
-      (apiService.deletePayslip as jest.Mock).mockResolvedValue({
+      (apiService.deletePayslip as vi.Mock).mockResolvedValue({
         success: true
       });
 

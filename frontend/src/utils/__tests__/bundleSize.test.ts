@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * AI-HEADER
  * intent: Test to verify frontend bundle size remains within acceptable limits for production deployment

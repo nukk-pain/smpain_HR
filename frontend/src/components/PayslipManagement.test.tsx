@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Test suite for PayslipManagement component
@@ -16,9 +17,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PayslipManagement } from './PayslipManagement';
 
 // Mock API service
-jest.mock('../services/api', () => ({
+vi.mock('../services/api', () => ({
   apiService: {
-    getPayrollRecords: jest.fn(() => Promise.resolve({
+    getPayrollRecords: vi.fn(() => Promise.resolve({
       success: true,
       data: [
         {
@@ -31,14 +32,14 @@ jest.mock('../services/api', () => ({
         }
       ]
     })),
-    uploadPayslip: jest.fn(() => Promise.resolve({ success: true })),
-    downloadPayslipPdf: jest.fn(() => Promise.resolve(new Blob())),
-    deletePayslip: jest.fn(() => Promise.resolve({ success: true }))
+    uploadPayslip: vi.fn(() => Promise.resolve({ success: true })),
+    downloadPayslipPdf: vi.fn(() => Promise.resolve(new Blob())),
+    deletePayslip: vi.fn(() => Promise.resolve({ success: true }))
   }
 }));
 
 // Mock auth context
-jest.mock('../hooks/useAuth', () => ({
+vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
     user: { role: 'Admin', permissions: ['payroll:manage'] }
   })
@@ -109,7 +110,7 @@ describe('PayslipManagement', () => {
 
   test('should show download button when payslip exists', async () => {
     // Mock payslip exists
-    jest.spyOn(require('../services/api').apiService, 'getPayrollRecords')
+    vi.spyOn(require('../services/api').apiService, 'getPayrollRecords')
       .mockResolvedValue({
         success: true,
         data: [{
@@ -132,7 +133,7 @@ describe('PayslipManagement', () => {
 
   test('should show delete button for Admin users when payslip exists', async () => {
     // Mock payslip exists
-    jest.spyOn(require('../services/api').apiService, 'getPayrollRecords')
+    vi.spyOn(require('../services/api').apiService, 'getPayrollRecords')
       .mockResolvedValue({
         success: true,
         data: [{
@@ -155,7 +156,7 @@ describe('PayslipManagement', () => {
 
   test('should handle payslip download', async () => {
     // Mock payslip exists
-    jest.spyOn(require('../services/api').apiService, 'getPayrollRecords')
+    vi.spyOn(require('../services/api').apiService, 'getPayrollRecords')
       .mockResolvedValue({
         success: true,
         data: [{

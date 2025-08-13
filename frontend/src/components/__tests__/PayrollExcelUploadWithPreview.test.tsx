@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Unit tests for PayrollExcelUploadWithPreview component
@@ -20,11 +21,11 @@ import { apiService } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
 // Mock dependencies
-jest.mock('../../services/api');
-jest.mock('../../hooks/useAuth');
+vi.mock('../../services/api');
+vi.mock('../../hooks/useAuth');
 
-const mockApiService = apiService as jest.Mocked<typeof apiService>;
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockApiService = apiService as vi.Mocked<typeof apiService>;
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>;
 
 describe('PayrollExcelUploadWithPreview', () => {
   const mockFile = new File(
@@ -90,23 +91,23 @@ describe('PayrollExcelUploadWithPreview', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Setup default auth mock
     mockUseAuth.mockReturnValue({
       user: { id: '1', name: 'Test User', role: 'Admin' },
       isAuthenticated: true,
-      login: jest.fn(),
-      logout: jest.fn(),
-      checkAuth: jest.fn()
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkAuth: vi.fn()
     } as any);
 
     // Setup sessionStorage mock
     const sessionStorageMock = {
-      getItem: jest.fn(),
-      setItem: jest.fn(),
-      removeItem: jest.fn(),
-      clear: jest.fn()
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn()
     };
     Object.defineProperty(window, 'sessionStorage', {
       value: sessionStorageMock,

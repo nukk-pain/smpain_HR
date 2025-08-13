@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Browser compatibility tests for payroll upload components
@@ -18,19 +19,19 @@ import { PayrollExcelUploadWithPreview } from '../PayrollExcelUploadWithPreview'
 import { useAuth } from '../../hooks/useAuth';
 
 // Mock dependencies
-jest.mock('../../hooks/useAuth');
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+vi.mock('../../hooks/useAuth');
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>;
 
 describe('Browser Compatibility Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     mockUseAuth.mockReturnValue({
       user: { id: '1', name: 'Test User', role: 'Admin' },
       isAuthenticated: true,
-      login: jest.fn(),
-      logout: jest.fn(),
-      checkAuth: jest.fn()
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkAuth: vi.fn()
     } as any);
   });
 
@@ -97,7 +98,7 @@ describe('Browser Compatibility Tests', () => {
     test('should handle sessionStorage quota exceeded', () => {
       // Mock quota exceeded error
       const originalSetItem = sessionStorage.setItem;
-      sessionStorage.setItem = jest.fn(() => {
+      sessionStorage.setItem = vi.fn(() => {
         throw new Error('QuotaExceededError');
       });
       
@@ -174,7 +175,7 @@ describe('Browser Compatibility Tests', () => {
         cancelable: true
       });
       
-      const preventDefaultSpy = jest.spyOn(dragOverEvent, 'preventDefault');
+      const preventDefaultSpy = vi.spyOn(dragOverEvent, 'preventDefault');
       
       fireEvent(dropZone!, dragOverEvent);
       
@@ -281,7 +282,7 @@ describe('Browser Compatibility Tests', () => {
       expect(element.addEventListener).toBeDefined();
       
       // Test event listener
-      const handler = jest.fn();
+      const handler = vi.fn();
       element.addEventListener('click', handler);
       element.click();
       
@@ -295,8 +296,8 @@ describe('Browser Compatibility Tests', () => {
       searchInput.type = 'text';
       
       // Both events should be supported
-      const inputHandler = jest.fn();
-      const changeHandler = jest.fn();
+      const inputHandler = vi.fn();
+      const changeHandler = vi.fn();
       
       searchInput.addEventListener('input', inputHandler);
       searchInput.addEventListener('change', changeHandler);

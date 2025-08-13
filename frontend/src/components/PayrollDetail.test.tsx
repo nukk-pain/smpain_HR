@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 /*
  * AI-HEADER
  * Intent: Test suite for PayrollDetail component
@@ -16,9 +17,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PayrollDetail } from './PayrollDetail';
 
 // Mock API service
-jest.mock('../services/api', () => ({
+vi.mock('../services/api', () => ({
   apiService: {
-    getPayrollRecord: jest.fn(() => Promise.resolve({
+    getPayrollRecord: vi.fn(() => Promise.resolve({
       success: true,
       data: {
         _id: '1',
@@ -47,12 +48,12 @@ jest.mock('../services/api', () => ({
         paymentStatus: 'paid'
       }
     })),
-    updatePayrollRecord: jest.fn(() => Promise.resolve({ success: true }))
+    updatePayrollRecord: vi.fn(() => Promise.resolve({ success: true }))
   }
 }));
 
 // Mock auth context
-jest.mock('../hooks/useAuth', () => ({
+vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
     user: { role: 'Admin', permissions: ['payroll:manage'] }
   })
