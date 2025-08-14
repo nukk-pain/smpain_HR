@@ -119,8 +119,8 @@ class ApiService {
     return response.data;
   }
 
-  async put<T>(url: string, data?: any): Promise<ApiResponse<T>> {
-    const response = await this.api.put(url, data);
+  async put<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+    const response = await this.api.put(url, data, config);
     return response.data;
   }
 
@@ -162,6 +162,11 @@ class ApiService {
 
   async getCurrentUser(): Promise<AuthResponse> {
     const response = await this.api.get('/auth/me');
+    return response.data;
+  }
+
+  async verifyPassword(password: string): Promise<{ verificationToken: string; expiresAt: string }> {
+    const response = await this.api.post('/auth/verify-password', { password });
     return response.data;
   }
 

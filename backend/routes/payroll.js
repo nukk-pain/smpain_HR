@@ -1,6 +1,7 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const { requireAdmin, requirePasswordVerification } = require('../middleware/permissions');
 const PayrollRepository = require('../repositories/PayrollRepository');
 const { payrollSchemas, validate, validateObjectId } = require('../validation/schemas');
 const {
@@ -386,11 +387,17 @@ function createPayrollRoutes(db) {
     }
   }));
 
-  // Update monthly payroll
-  router.put('/monthly/:id', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
+  // Update monthly payroll - Admin only with password verification
+  router.put('/monthly/:id', requireAuth, requireAdmin, requirePasswordVerification, asyncHandler(async (req, res) => {
     try {
       const { id } = req.params;
       const { baseSalary, incentive, bonus, award, actualPayment } = req.body;
+
+      // Get original record for audit logging
+      const originalRecord = await db.collection('monthlyPayments').findOne({ _id: new ObjectId(id) });
+      if (!originalRecord) {
+        return res.status(404).json({ error: 'Payroll record not found' });
+      }
 
       const updateData = {
         updatedAt: new Date(),
@@ -404,18 +411,32 @@ function createPayrollRoutes(db) {
       if (actualPayment !== undefined) updateData.actualPayment = actualPayment;
 
       // Recalculate totals
-      const currentRecord = await db.collection('monthlyPayments').findOne({ _id: new ObjectId(id) });
-      if (!currentRecord) {
-        return res.status(404).json({ error: 'Payroll record not found' });
-      }
-
-      const totalInput = (updateData.baseSalary || currentRecord.baseSalary || 0) +
-                        (updateData.incentive || currentRecord.incentive || 0) +
-                        (updateData.bonus || currentRecord.bonus || 0) +
-                        (updateData.award || currentRecord.award || 0);
+      const totalInput = (updateData.baseSalary || originalRecord.baseSalary || 0) +
+                        (updateData.incentive || originalRecord.incentive || 0) +
+                        (updateData.bonus || originalRecord.bonus || 0) +
+                        (updateData.award || originalRecord.award || 0);
 
       updateData.totalInput = totalInput;
-      updateData.difference = (updateData.actualPayment || currentRecord.actualPayment || 0) - totalInput;
+      updateData.difference = (updateData.actualPayment || originalRecord.actualPayment || 0) - totalInput;
+
+      // Log the edit action using ErrorLoggingMonitoringService
+      if (global.errorLoggingService) {
+        await global.errorLoggingService.logAuditTrail({
+          action: 'payroll_edit',
+          category: 'payroll',
+          userId: req.user.id,
+          userName: req.user.username,
+          targetId: id,
+          previousData: originalRecord,
+          newData: updateData,
+          verificationToken: req.verificationToken,
+          verifiedAt: req.verifiedAt,
+          metadata: {
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
+          }
+        });
+      }
 
       const result = await db.collection('monthlyPayments').updateOne(
         { _id: new ObjectId(id) },

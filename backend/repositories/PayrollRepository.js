@@ -82,6 +82,69 @@ class PayrollRepository extends BaseRepository {
 
   /**
    * AI-HEADER
+   * DomainMeaning: Update payroll record with audit trail and validation
+   * MisleadingNames: updatePayroll vs modifyPayroll - both update existing payroll records
+   * SideEffects: Updates payroll record, logs audit trail if ErrorLoggingService available
+   * Invariants: Must recalculate totals after update, must log edit for compliance
+   * RAG_Keywords: payroll update, audit logging, payroll modification
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: sha256(updatePayroll_with_audit)
+   */
+  async updatePayroll(payrollId, updateData, userId) {
+    try {
+      // Get original record for audit
+      const originalRecord = await this.findById(payrollId);
+      if (!originalRecord) {
+        throw new Error('Payroll record not found');
+      }
+
+      // Recalculate totals if salary components changed
+      if (updateData.baseSalary !== undefined || 
+          updateData.allowances !== undefined || 
+          updateData.deductions !== undefined) {
+        
+        const baseSalary = updateData.baseSalary ?? originalRecord.baseSalary ?? 0;
+        const allowances = updateData.allowances ?? originalRecord.allowances ?? {};
+        const deductions = updateData.deductions ?? originalRecord.deductions ?? {};
+        
+        const totalAllowances = Object.values(allowances).reduce((sum, val) => sum + (val || 0), 0);
+        const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + (val || 0), 0);
+        
+        updateData.totalAllowances = totalAllowances;
+        updateData.totalDeductions = totalDeductions;
+        updateData.netSalary = baseSalary + totalAllowances - totalDeductions;
+      }
+
+      // Add audit metadata
+      updateData.updatedAt = new Date();
+      updateData.updatedBy = new ObjectId(userId);
+
+      // Log audit trail if service is available
+      if (global.errorLoggingService) {
+        await global.errorLoggingService.logAuditTrail({
+          action: 'payroll_update',
+          category: 'payroll',
+          userId: userId,
+          targetId: payrollId,
+          previousData: originalRecord,
+          newData: updateData,
+          metadata: {
+            collection: 'payroll',
+            operation: 'update'
+          }
+        });
+      }
+
+      // Update the record
+      const updated = await this.update(payrollId, updateData);
+      return updated;
+    } catch (error) {
+      throw new Error(`Error updating payroll: ${error.message}`);
+    }
+  }
+
+  /**
+   * AI-HEADER
    * DomainMeaning: Find payroll record for specific user and time period
    * MisleadingNames: findByUserAndPeriod vs findUserPayroll - both find by user/period
    * SideEffects: None - read-only operation

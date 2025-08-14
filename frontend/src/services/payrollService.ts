@@ -284,6 +284,53 @@ export class PayrollService {
 
 
   /**
+   * Update payroll with password verification
+   * DomainMeaning: Updates payroll record with admin verification
+   * SideEffects: Updates database record, creates audit trail
+   * RAG_Keywords: update, payroll, verification, security
+   */
+  async updatePayrollWithVerification(payrollId: string, updateData: any, verificationToken: string): Promise<any> {
+    try {
+      const response = await apiService.put(`/payroll/monthly/${payrollId}`, updateData, {
+        headers: {
+          'x-verification-token': verificationToken
+        }
+      });
+
+      if (response.success) {
+        this.invalidateCache();
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to update payroll');
+      }
+    } catch (error: any) {
+      console.error('Error updating payroll:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get payroll edit history
+   * DomainMeaning: Retrieves audit trail for payroll edits
+   * SideEffects: None - read-only operation
+   * RAG_Keywords: audit, history, payroll, edits
+   */
+  async getPayrollEditHistory(payrollId: string): Promise<any[]> {
+    try {
+      const response = await apiService.get(`/payroll/monthly/${payrollId}/history`);
+      
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to get edit history');
+      }
+    } catch (error: any) {
+      console.error('Error fetching edit history:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Preview Excel file before saving
    * DomainMeaning: Generates preview of Excel payroll data without persisting
    * SideEffects: None - read-only operation

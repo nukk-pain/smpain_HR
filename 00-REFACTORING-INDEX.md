@@ -39,6 +39,22 @@
    - 완료 일자: 2025년 8월 12일
    - 결과: services/excel/ 폴더로 성공적으로 분할
 
+### 📋 진행 예정 리팩토링
+
+4. **ErrorLoggingMonitoringService 분할** 🔄 **계획 수립됨**
+   - 문서: `06-error-logging-monitoring-refactoring-plan.md`
+   - 작성 일자: 2025년 8월 14일
+   - 현재 상태: 1,068줄 단일 파일
+   - 목표: 10개 모듈로 분할 (각 100-350줄)
+   - 분할 계획:
+     - `ErrorLoggingService.js` (300줄) - 에러 로깅 핵심
+     - `AuditTrailService.js` (200줄) - 감사 추적
+     - `SystemMonitoringService.js` (350줄) - 시스템 메트릭
+     - `AlertingService.js` (250줄) - 알림 관리
+     - `AnalyticsService.js` (300줄) - 분석 및 리포트
+     - 유틸리티 및 설정 파일 5개
+   - 예상 소요 시간: 10시간 (2-3일)
+
 ---
 
 ## 🚀 현재 진행 상황
@@ -46,9 +62,13 @@
 **완료된 리팩토링**:
 - ✅ Excel Processor 리팩토링 (2025년 8월 12일)
 - ✅ Payroll-Enhanced 리팩토링 (2025년 8월 13일)
+- ✅ Admin.js 분할 (2025년 8월 13일)
 
-**다음 계획**:
-- 모든 주요 리팩토링 완료
+**진행 예정 리팩토링**:
+- 🔄 **ErrorLoggingMonitoringService 리팩토링**
+  - 파일: `06-error-logging-monitoring-refactoring-plan.md`
+  - 현재: 1,068줄 → 목표: 10개 모듈로 분할
+  - 예상 소요 시간: 10시간
 
 ---
 
@@ -104,8 +124,17 @@
 
 ### 기능 개발 계획
 - `plan.md` - 전체 프로젝트 계획
-- `docs/planning/plan-payroll-features.md` - Payroll 기능 계획
+- `completed/plan-payroll-features.md` - Payroll 기능 계획 (✅ 완료 - 2025년 8월 14일)
 - `completed/payroll/plan-payroll-phase1.md` - Payroll Phase 1 계획 (완료)
+
+### Payroll 관련 완료 문서 (2025년 8월 14일 이동)
+- `completed/payroll-dashboard-fix-plan.md` - 대시보드 수정 계획
+- `completed/payroll-field-fix-plan.md` - 필드명 불일치 해결
+- `completed/payroll-selective-upload-plan.md` - 선택적 업로드 구현
+- `completed/payroll-admin-edit-security-plan.md` - 관리자 편집 보안
+- `completed/payroll-admin-edit-security-plan-updated.md` - 관리자 편집 보안 (업데이트)
+- `completed/payroll-analysis-2025-08.md` - 2025년 8월 급여 분석
+- `completed/PAYROLL_DEPLOYMENT_CHECKLIST.md` - 배포 체크리스트
 
 ### Excel 관련
 - `Excel_급여업로드_프리뷰_기능_개발계획.md`

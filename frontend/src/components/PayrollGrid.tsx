@@ -251,9 +251,14 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     try {
       const response = await apiService.getMonthlyPayments(yearMonth)
       if (response.success && response.data) {
-        const transformedData: PayrollRowData[] = response.data.map((payment: MonthlyPayment, index: number) => ({
+        const transformedData: PayrollRowData[] = response.data.map((payment: any, index: number) => ({
           ...payment,
-          id: payment._id || `row-${index}`, // MUI DataGrid requires unique id
+          // Map backend field names to frontend expected field names
+          bonus_total: payment.bonus ?? payment.bonus_total ?? 0,
+          award_total: payment.award ?? payment.award_total ?? 0,
+          input_total: payment.total_input ?? payment.input_total ?? 0,
+          // Keep existing field mappings
+          id: payment._id || payment.id || `row-${index}`, // MUI DataGrid requires unique id
           employeeName: payment.employee?.full_name || payment.employee?.username || 'Unknown',
           department: payment.employee?.department || '-',
         }))

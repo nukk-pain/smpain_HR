@@ -154,6 +154,11 @@ async function connectDB() {
     console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
     console.log(`📊 Using database: ${DB_NAME}`);
 
+    // Initialize ErrorLoggingMonitoringService globally
+    const ErrorLoggingMonitoringService = require('./services/ErrorLoggingMonitoringService');
+    global.errorLoggingService = new ErrorLoggingMonitoringService(db);
+    console.log('📝 Error logging and monitoring service initialized');
+
     // Initialize sample data
     await initializeData();
 
@@ -364,29 +369,7 @@ app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PER
   });
 });
 
-// Admin dashboard stats endpoint
-app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (_, res) => {
-  // const currentDate = new Date();
-  // const currentMonth = currentDate.toISOString().substring(0, 7);
-
-  // Get current month data
-  const totalUsers = await db.collection('users').countDocuments({ role: { $ne: 'admin' } });
-  // const activeUsers = await db.collection('users').countDocuments({ isActive: true, role: { $ne: 'admin' } });
-
-  // Basic payroll stats (placeholder data for now)
-  const payrollData = {
-    total_employees: totalUsers,
-    total_payroll: 0,
-    total_incentive: 0,
-    total_bonus: 0,
-    avg_salary: 0
-  };
-
-  res.json({
-    success: true,
-    data: payrollData
-  });
-}));
+// Admin dashboard stats endpoint is now handled in routes/admin/systemAdmin.js
 
 // Admin system health endpoint
 app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => {

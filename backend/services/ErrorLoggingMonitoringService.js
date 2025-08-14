@@ -240,6 +240,50 @@ class ErrorLoggingMonitoringService {
   }
 
   /**
+   * DomainMeaning: Log audit trail for sensitive operations like payroll edits
+   * MisleadingNames: None
+   * SideEffects: Creates database entry in monitoring_data collection
+   * Invariants: Must log all sensitive operations for compliance
+   * RAG_Keywords: audit trail, payroll audit, security logging, compliance
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: log-audit-trail-001
+   */
+  async logAuditTrail(auditData) {
+    try {
+      const auditLog = {
+        _id: new ObjectId(),
+        timestamp: new Date(),
+        type: 'audit_trail',
+        action: auditData.action || 'unknown',
+        category: auditData.category || 'general',
+        userId: auditData.userId,
+        userName: auditData.userName,
+        targetId: auditData.targetId,
+        previousData: auditData.previousData,
+        newData: auditData.newData,
+        verificationToken: auditData.verificationToken,
+        verifiedAt: auditData.verifiedAt,
+        metadata: {
+          ...auditData.metadata,
+          serverTimestamp: new Date(),
+          environment: process.env.NODE_ENV || 'development'
+        }
+      };
+
+      // Store audit log in monitoring collection
+      await this.monitoringCollection.insertOne(auditLog);
+
+      console.log(`📝 Audit trail logged: ${auditLog.action} by ${auditLog.userName} - ${auditLog._id}`);
+      return auditLog._id;
+
+    } catch (error) {
+      console.error('❌ Failed to log audit trail:', error);
+      // Don't throw - audit logging should not break the main operation
+      return null;
+    }
+  }
+
+  /**
    * DomainMeaning: Determine error severity based on error characteristics
    * MisleadingNames: None
    * SideEffects: None - pure function

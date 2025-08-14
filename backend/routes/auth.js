@@ -424,6 +424,63 @@ function createAuthRoutes(db) {
     }
   });
 
+  // Password verification endpoint for sensitive operations
+  router.post('/verify-password', requireAuth, async (req, res) => {
+    try {
+      const { password } = req.body;
+      const userId = req.user.id;
+
+      if (!password) {
+        return res.status(400).json({ error: 'Password is required' });
+      }
+
+      // Get user from database
+      const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify password
+      const isPasswordValid = bcrypt.compareSync(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Invalid password' });
+      }
+
+      // Generate temporary verification token (5 min expiry)
+      const crypto = require('crypto');
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      // Store verification token in memory cache (or database)
+      // Using a simple in-memory store for now
+      if (!global.passwordVerificationTokens) {
+        global.passwordVerificationTokens = new Map();
+      }
+      
+      global.passwordVerificationTokens.set(verificationToken, {
+        userId: userId,
+        expiresAt: expiresAt
+      });
+
+      // Clean up expired tokens periodically
+      for (const [token, data] of global.passwordVerificationTokens.entries()) {
+        if (new Date() > data.expiresAt) {
+          global.passwordVerificationTokens.delete(token);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        verificationToken: verificationToken,
+        expiresAt: expiresAt,
+        message: 'Password verified successfully'
+      });
+    } catch (error) {
+      console.error('Password verification error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   return router;
 }
 

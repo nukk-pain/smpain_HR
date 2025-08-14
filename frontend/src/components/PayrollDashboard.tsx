@@ -87,8 +87,14 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
     setLoading(true);
     try {
       const response = await apiService.getPayrollReport(yearMonth);
-      if (response.success) {
-        setStats(response.data);
+      if (response.success && response.data?.summary) {
+        // Map summary data to stats structure
+        setStats({
+          ...response.data.summary,
+          departmentStats: [],  // Empty for now - can be calculated from reportData later
+          monthlyTrends: [],    // Empty for now - requires multiple months data
+          topPerformers: []     // Empty for now - can be calculated from reportData later
+        });
       }
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load payroll statistics');
