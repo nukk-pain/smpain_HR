@@ -39,8 +39,13 @@ function createSystemAdminRoutes(db) {
         }
       ]).toArray();
 
-      // Get payroll summary for current month
-      const payrollSummary = await db.collection('monthlyPayments').aggregate([
+      // Parse year and month for new payroll collection
+      const [yearStr, monthStr] = currentMonth.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+
+      // Get payroll summary from monthlyPayments collection (old system)
+      const monthlyPayrollSummary = await db.collection('monthlyPayments').aggregate([
         { $match: { yearMonth: currentMonth } },
         {
           $group: {
@@ -53,19 +58,73 @@ function createSystemAdminRoutes(db) {
           }
         }
       ]).toArray();
+      
+      // Get payroll summary from payroll collection (new system - Excel uploads)
+      const newPayrollSummary = await db.collection('payroll').aggregate([
+        { $match: { year, month } },
+        {
+          $group: {
+            _id: null,
+            totalEmployees: { $sum: 1 },
+            totalPayroll: { $sum: '$netSalary' },
+            totalIncentive: { $sum: { $ifNull: ['$allowances.incentive', 0] } },
+            totalBonus: { $sum: 0 },
+            avgSalary: { $avg: '$netSalary' }
+          }
+        }
+      ]).toArray();
+      
+      // Combine payroll summaries from both collections
+      const monthlyResult = monthlyPayrollSummary[0] || {
+        totalEmployees: 0,
+        totalPayroll: 0,
+        totalIncentive: 0,
+        totalBonus: 0,
+        avgSalary: 0
+      };
+      
+      const newResult = newPayrollSummary[0] || {
+        totalEmployees: 0,
+        totalPayroll: 0,
+        totalIncentive: 0,
+        totalBonus: 0,
+        avgSalary: 0
+      };
+      
+      const payrollSummary = {
+        totalEmployees: monthlyResult.totalEmployees + newResult.totalEmployees,
+        totalPayroll: monthlyResult.totalPayroll + newResult.totalPayroll,
+        totalIncentive: monthlyResult.totalIncentive + newResult.totalIncentive,
+        totalBonus: monthlyResult.totalBonus + newResult.totalBonus,
+        avgSalary: (monthlyResult.totalEmployees + newResult.totalEmployees) > 0 
+          ? (monthlyResult.totalPayroll + newResult.totalPayroll) / (monthlyResult.totalEmployees + newResult.totalEmployees)
+          : 0
+      };
+      
+      // Get pending uploads count
+      const pendingUploads = await db.collection('payrollUploads').countDocuments({
+        processed: false
+      });
+
+      // Get total employees count (excluding admin)
+      const totalEmployees = await db.collection('users').countDocuments({
+        role: { $nin: ['admin', 'Admin'] },
+        isActive: { $ne: false }
+      });
 
       res.json({
         success: true,
         data: {
+          // Fields expected by frontend PayrollManagement component
+          total_employees: totalEmployees,
+          total_payroll: payrollSummary.totalPayroll,
+          pending_uploads: pendingUploads,
+          current_month: currentMonth,
+          
+          // Additional statistics
           userStatistics: userStats,
           monthlyActivity: activityStats,
-          payrollSummary: payrollSummary[0] || {
-            totalEmployees: 0,
-            totalPayroll: 0,
-            totalIncentive: 0,
-            totalBonus: 0,
-            avgSalary: 0
-          },
+          payrollSummary: payrollSummary,
           systemHealth: {
             uptime: process.uptime(),
             memoryUsage: process.memoryUsage(),

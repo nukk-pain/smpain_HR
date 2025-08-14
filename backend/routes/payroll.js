@@ -179,9 +179,13 @@ function createPayrollRoutes(db) {
         {
           $project: {
             id: '$_id',
+            _id: '$_id',
             user_id: '$userId',
-            name: { $arrayElemAt: ['$user.name', 0] },
-            username: { $arrayElemAt: ['$user.username', 0] },
+            employee: {
+              full_name: { $arrayElemAt: ['$user.name', 0] },
+              username: { $arrayElemAt: ['$user.username', 0] },
+              department: { $arrayElemAt: ['$user.department', 0] }
+            },
             year_month: '$yearMonth',
             base_salary: '$baseSalary',
             incentive: '$incentive',
@@ -194,7 +198,7 @@ function createPayrollRoutes(db) {
             sales_amount: { $arrayElemAt: ['$salesData.salesAmount', 0] }
           }
         },
-        { $sort: { name: 1 } }
+        { $sort: { 'employee.full_name': 1 } }
       ]).toArray();
       
       // Query payroll collection (new system from Excel uploads)
@@ -211,9 +215,13 @@ function createPayrollRoutes(db) {
         {
           $project: {
             id: '$_id',
+            _id: '$_id',
             user_id: '$userId',
-            name: { $arrayElemAt: ['$user.name', 0] },
-            username: { $arrayElemAt: ['$user.username', 0] },
+            employee: {
+              full_name: { $arrayElemAt: ['$user.name', 0] },
+              username: { $arrayElemAt: ['$user.username', 0] },
+              department: { $arrayElemAt: ['$user.department', 0] }
+            },
             year_month: { $literal: year_month }, // Convert to string format for consistency
             base_salary: '$baseSalary',
             incentive: { $ifNull: ['$allowances.incentive', 0] },
@@ -238,7 +246,7 @@ function createPayrollRoutes(db) {
             sales_amount: { $literal: 0 } // Not tracked in new system
           }
         },
-        { $sort: { name: 1 } }
+        { $sort: { 'employee.full_name': 1 } }
       ]).toArray();
       
       // Combine results from both collections
