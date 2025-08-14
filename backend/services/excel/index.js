@@ -139,20 +139,6 @@ class ExcelService {
   }
 
   /**
-   * Generate payroll template (backwards compatible)
-   * DomainMeaning: Template generation with original interface
-   * MisleadingNames: None
-   * SideEffects: None - delegates to cache service
-   * Invariants: Same template generation logic and response format as original
-   * RAG_Keywords: template generation, backwards compatibility
-   * DuplicatePolicy: supersedes original ExcelProcessor.generatePayrollTemplate
-   * FunctionIdentity: hash_generate_template_compat_001
-   */
-  async generatePayrollTemplate() {
-    return this.cache.generatePayrollTemplate();
-  }
-
-  /**
    * Generate payroll summary (backwards compatible)
    * DomainMeaning: Summary generation with original interface
    * MisleadingNames: None

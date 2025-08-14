@@ -876,53 +876,6 @@ function createUploadRoutes(db, previewStorage, idempotencyStorage) {
   );
 
   /**
-   * GET /api/upload/excel/template - Download Excel template
-   * DomainMeaning: Download Excel template for payroll data entry
-   * MisleadingNames: None
-   * SideEffects: None
-   * Invariants: Returns Excel file with proper structure
-   * RAG_Keywords: excel template, download, payroll headers
-   * DuplicatePolicy: canonical
-   * FunctionIdentity: hash_get_excel_template_001
-   */
-  router.get('/excel/template', 
-    requireAuth, 
-    requirePermission('payroll:manage'),
-    payrollRateLimiter,
-    asyncHandler(async (req, res) => {
-      try {
-        console.log(`📥 Excel template download requested by: ${req.user.name}`);
-
-        // Generate template using ExcelService
-        const excelService = new ExcelService();
-        const templateBuffer = await excelService.generatePayrollTemplate();
-
-        // Generate filename with timestamp
-        const timestamp = new Date().toISOString().slice(0, 10);
-        const filename = `payroll-template-${timestamp}.xlsx`;
-
-        // Set response headers
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Content-Length', templateBuffer.length);
-
-        // Send the Excel template
-        res.send(templateBuffer);
-
-        console.log(`📊 Excel template downloaded: ${filename}`);
-
-      } catch (error) {
-        console.error('Excel template generation error:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to generate template: ' + error.message
-        });
-      }
-    })
-  );
-
-  /**
    * GET /api/upload/excel/export - Export payroll data to Excel
    * DomainMeaning: Generate Excel file with payroll data
    * MisleadingNames: None

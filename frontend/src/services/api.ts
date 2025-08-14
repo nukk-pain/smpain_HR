@@ -483,13 +483,6 @@ class ApiService {
     return response.data;
   }
 
-  async downloadPayrollTemplate() {
-    const response = await this.api.get('/upload/excel/template', {
-      responseType: 'blob',
-    });
-    return response.data;
-  }
-
   // Payslip Management
   async uploadPayslip(payrollId: string, file: File) {
     const formData = new FormData();

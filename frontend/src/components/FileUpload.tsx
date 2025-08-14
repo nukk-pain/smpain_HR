@@ -25,7 +25,6 @@ import {
 import { Grid } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
-  GetApp as DownloadIcon,
   Preview as PreviewIcon,
   Compare as CompareIcon,
   CheckCircle as CheckIcon,
@@ -138,22 +137,6 @@ const FileUpload: React.FC = () => {
     }
   };
 
-  const handleDownloadTemplate = async () => {
-    try {
-      const blob = await apiService.downloadPayrollTemplate();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'payroll_template.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      showNotification('error', 'Error', 'Failed to download template');
-    }
-  };
-
   const handleDownloadReport = async () => {
     if (!uploadResult || !comparisonResult) return;
     
@@ -188,14 +171,6 @@ const FileUpload: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">File Upload</Typography>
-                <Button
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadTemplate}
-                  variant="outlined"
-                  size="small"
-                >
-                  Template
-                </Button>
               </Box>
 
               <TextField

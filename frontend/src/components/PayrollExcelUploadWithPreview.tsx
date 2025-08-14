@@ -39,7 +39,6 @@ import {
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
-  GetApp as DownloadIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
@@ -72,6 +71,9 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
   const [recordActions, setRecordActions] = React.useState<Map<number, {action: 'skip' | 'manual', userId?: string}>>(new Map());
   const [employeeList, setEmployeeList] = React.useState<Array<{id: string; name: string; department: string; employeeId: string}>>([]);
   
+  // State for managing selected records
+  const [selectedRecords, setSelectedRecords] = React.useState<Set<number>>(new Set());
+  
   // Fetch employee list when preview data is available
   React.useEffect(() => {
     if (state.previewData) {
@@ -95,20 +97,83 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
         }
       };
       fetchEmployees();
+      
+      // Initialize selected records (select valid and warning records by default)
+      const initialSelected = new Set<number>();
+      state.previewData.records.forEach((record, index) => {
+        const rowNumber = index + 1;
+        if (record.status === 'valid' || record.status === 'warning') {
+          initialSelected.add(rowNumber);
+        }
+      });
+      setSelectedRecords(initialSelected);
     }
   }, [state.previewData]);
   
-  // Handle record action changes
+  // Handle record selection changes
+  const handleRecordSelectionChange = (rowNumber: number, selected: boolean) => {
+    const newSelected = new Set(selectedRecords);
+    const updated = new Map(recordActions);
+    
+    if (selected) {
+      newSelected.add(rowNumber);
+      // Remove skip action if record is selected
+      if (updated.get(rowNumber)?.action === 'skip') {
+        updated.delete(rowNumber);
+      }
+    } else {
+      newSelected.delete(rowNumber);
+      // Add skip action if record is deselected (unless it's manually matched)
+      if (!updated.has(rowNumber) || updated.get(rowNumber)?.action !== 'manual') {
+        updated.set(rowNumber, { action: 'skip' });
+      }
+    }
+    
+    setSelectedRecords(newSelected);
+    setRecordActions(updated);
+  };
+  
+  // Handle select all
+  const handleSelectAll = (selected: boolean) => {
+    if (selected && state.previewData) {
+      const allRecords = new Set<number>();
+      state.previewData.records.forEach((_, index) => {
+        allRecords.add(index + 1);
+      });
+      setSelectedRecords(allRecords);
+      // Clear all skip actions
+      setRecordActions(new Map());
+    } else {
+      setSelectedRecords(new Set());
+      // Mark all as skip
+      if (state.previewData) {
+        const allSkip = new Map<number, {action: 'skip' | 'manual', userId?: string}>();
+        state.previewData.records.forEach((_, index) => {
+          allSkip.set(index + 1, { action: 'skip' });
+        });
+        setRecordActions(allSkip);
+      }
+    }
+  };
+  
+  // Handle record action changes (for manual matching)
   const handleRecordActionChange = (rowNumber: number, action: 'process' | 'skip' | 'manual', userId?: string) => {
     const updated = new Map(recordActions);
+    const newSelected = new Set(selectedRecords);
+    
     if (action === 'skip') {
       updated.set(rowNumber, { action: 'skip' });
+      newSelected.delete(rowNumber);
     } else if (action === 'manual' && userId) {
       updated.set(rowNumber, { action: 'manual', userId });
+      newSelected.add(rowNumber); // Auto-select manually matched records
     } else if (action === 'process') {
       updated.delete(rowNumber); // Remove from manual actions if it's auto-processed
+      newSelected.add(rowNumber);
     }
+    
     setRecordActions(updated);
+    setSelectedRecords(newSelected);
   };
 
   // File validation
@@ -288,11 +353,33 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       console.log('🔑 Generated idempotency key:', idempotencyKey);
       
       // Convert recordActions Map to array format for API
-      const recordActionsArray = Array.from(recordActions.entries()).map(([rowNumber, action]) => ({
-        rowNumber,
-        action: action.action,
-        userId: action.userId
-      }));
+      // Include all unselected records as 'skip' actions
+      const recordActionsArray = [];
+      
+      if (state.previewData) {
+        state.previewData.records.forEach((record, index) => {
+          const rowNumber = index + 1;
+          
+          // If record is not selected, mark it as skip
+          if (!selectedRecords.has(rowNumber)) {
+            recordActionsArray.push({
+              rowNumber,
+              action: 'skip',
+              userId: undefined
+            });
+          }
+          // If record has manual matching, include it
+          else if (recordActions.has(rowNumber)) {
+            const action = recordActions.get(rowNumber);
+            recordActionsArray.push({
+              rowNumber,
+              action: action.action,
+              userId: action.userId
+            });
+          }
+          // Selected records without special actions will be processed normally
+        });
+      }
       
       const response = await executeWithRetry(async () => {
         return await apiService.confirmPayrollExcel(
@@ -328,24 +415,6 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
     actions.reset();
   };
 
-  // Handle template download
-  const handleTemplateDownload = async () => {
-    try {
-      const blob = await apiService.downloadPayrollTemplate();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'payroll-template.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Template download failed:', error);
-      actions.setError('템플릿 다운로드에 실패했습니다.');
-    }
-  };
-
   // Render file selection step
   const renderFileSelectStep = () => (
     <>
@@ -372,18 +441,6 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
               inputProps={{ min: 1, max: 12 }}
             />
           </Box>
-        </Box>
-        <Box>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleTemplateDownload}
-          >
-            템플릿 다운로드
-          </Button>
-          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-            표준 형식의 Excel 템플릿을 다운로드하여 데이터를 입력하세요.
-          </Typography>
         </Box>
       </Box>
 
@@ -554,7 +611,13 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
         )}
 
         <Box sx={{ mt: 3 }}>
-          <PreviewDataTable records={state.previewData.records} />
+          <PreviewDataTable 
+            records={state.previewData.records} 
+            selectedRecords={selectedRecords}
+            onRecordSelectionChange={handleRecordSelectionChange}
+            onSelectAll={handleSelectAll}
+            onRecordActionChange={handleRecordActionChange}
+          />
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
@@ -571,11 +634,11 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
             disabled={
               state.confirming ||
               submitAttempted ||
-              state.previewData.summary.invalidRecords > 0
+              selectedRecords.size === 0  // Changed: Must have at least 1 record selected
             }
             startIcon={<SaveIcon />}
           >
-            {submitAttempted ? '처리 중...' : state.confirming ? '저장 중...' : '데이터베이스에 저장'}
+            {submitAttempted ? '처리 중...' : state.confirming ? '저장 중...' : `선택한 ${selectedRecords.size}개 레코드 저장`}
           </Button>
         </Box>
 
@@ -756,21 +819,32 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
             {state.previewData && (
               <>
                 <Typography variant="body2" gutterBottom>
-                  다음 급여 데이터를 데이터베이스에 저장하시겠습니까?
+                  선택한 급여 데이터를 데이터베이스에 저장하시겠습니까?
                 </Typography>
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Typography variant="body2">
-                    • 총 {state.previewData.summary.totalRecords}건의 급여 데이터
+                  <Typography variant="body2" fontWeight="medium" color="primary.main">
+                    • 선택한 레코드: {selectedRecords.size}건
                   </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    • 제외될 레코드: {state.previewData.summary.totalRecords - selectedRecords.size}건
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
                   <Typography variant="body2">
-                    • 유효한 데이터: {state.previewData.summary.validRecords}건
+                    • 총 {state.previewData.summary.totalRecords}건 중 {selectedRecords.size}건 저장 예정
                   </Typography>
                   {state.previewData.summary.warningRecords > 0 && (
                     <Typography variant="body2" color="warning.main">
-                      • 경고가 있는 데이터: {state.previewData.summary.warningRecords}건
+                      • 경고가 있는 데이터 포함 가능
                     </Typography>
                   )}
                 </Box>
+                {selectedRecords.size < state.previewData.summary.totalRecords && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      선택하지 않은 {state.previewData.summary.totalRecords - selectedRecords.size}개 레코드는 저장되지 않습니다.
+                    </Typography>
+                  </Alert>
+                )}
                 <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
                   저장 후에는 데이터를 수정할 수 없습니다.
                 </Typography>

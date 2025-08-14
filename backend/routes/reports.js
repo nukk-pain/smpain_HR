@@ -79,12 +79,18 @@ function createReportsRoutes(db) {
     };
   };
 
-  // Generate payroll report data
+  // Generate payroll report data (queries both collections)
   router.get('/payroll/:year_month', requireAuth, requirePermission('reports:view'), asyncHandler(async (req, res) => {
     try {
       const { year_month } = req.params;
+      
+      // Parse year and month from year_month string (e.g., "2025-06")
+      const [yearStr, monthStr] = year_month.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
 
-      const payrollReport = await db.collection('monthlyPayments').aggregate([
+      // Query from monthlyPayments collection (old system)
+      const monthlyPayrollReport = await db.collection('monthlyPayments').aggregate([
         { $match: { yearMonth: year_month } },
         {
           $lookup: {
@@ -153,22 +159,70 @@ function createReportsRoutes(db) {
         { $sort: { name: 1 } }
       ]).toArray();
 
+      
+      // Query from payroll collection (new system from Excel uploads)
+      const newPayrollReport = await db.collection('payroll').aggregate([
+        { $match: { year, month } },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            employeeId: { $arrayElemAt: ['$user.employeeId', 0] },
+            name: { $arrayElemAt: ['$user.name', 0] },
+            department: { $arrayElemAt: ['$user.department', 0] },
+            position: { $arrayElemAt: ['$user.position', 0] },
+            yearMonth: { $literal: year_month }, // Add for consistency
+            baseSalary: '$baseSalary',
+            incentive: { $ifNull: ['$allowances.incentive', 0] },
+            bonus: { $literal: 0 }, // Not in new schema
+            award: { $literal: 0 }, // Not in new schema  
+            totalInput: {
+              $add: [
+                '$baseSalary',
+                { $ifNull: ['$allowances.incentive', 0] },
+                { $ifNull: ['$allowances.meal', 0] },
+                { $ifNull: ['$allowances.transportation', 0] },
+                { $ifNull: ['$allowances.childCare', 0] },
+                { $ifNull: ['$allowances.overtime', 0] },
+                { $ifNull: ['$allowances.nightShift', 0] },
+                { $ifNull: ['$allowances.holidayWork', 0] },
+                { $ifNull: ['$allowances.other', 0] }
+              ]
+            },
+            actualPayment: '$netSalary',
+            difference: { $subtract: ['$netSalary', '$baseSalary'] },
+            salesAmount: { $literal: 0 }, // Not tracked in new system
+            bonusDetails: { $literal: [] }
+          }
+        },
+        { $sort: { name: 1 } }
+      ]).toArray();
+      
+      // Combine results from both collections
+      const combinedPayrollReport = [...monthlyPayrollReport, ...newPayrollReport];
+      
       // Calculate summary statistics
       const summary = {
-        totalEmployees: payrollReport.length,
-        totalBaseSalary: payrollReport.reduce((sum, p) => sum + (p.baseSalary || 0), 0),
-        totalIncentive: payrollReport.reduce((sum, p) => sum + (p.incentive || 0), 0),
-        totalBonus: payrollReport.reduce((sum, p) => sum + (p.bonus || 0), 0),
-        totalAward: payrollReport.reduce((sum, p) => sum + (p.award || 0), 0),
-        totalPayroll: payrollReport.reduce((sum, p) => sum + (p.actualPayment || 0), 0),
-        avgSalary: payrollReport.length > 0 ? 
-          Math.round(payrollReport.reduce((sum, p) => sum + (p.actualPayment || 0), 0) / payrollReport.length) : 0
+        totalEmployees: combinedPayrollReport.length,
+        totalBaseSalary: combinedPayrollReport.reduce((sum, p) => sum + (p.baseSalary || 0), 0),
+        totalIncentive: combinedPayrollReport.reduce((sum, p) => sum + (p.incentive || 0), 0),
+        totalBonus: combinedPayrollReport.reduce((sum, p) => sum + (p.bonus || 0), 0),
+        totalAward: combinedPayrollReport.reduce((sum, p) => sum + (p.award || 0), 0),
+        totalPayroll: combinedPayrollReport.reduce((sum, p) => sum + (p.actualPayment || 0), 0),
+        avgSalary: combinedPayrollReport.length > 0 ? 
+          Math.round(combinedPayrollReport.reduce((sum, p) => sum + (p.actualPayment || 0), 0) / combinedPayrollReport.length) : 0
       };
 
       res.json({
         success: true,
         data: {
-          reportData: payrollReport,
+          reportData: combinedPayrollReport,
           summary,
           generatedAt: new Date(),
           generatedBy: req.user.name,
@@ -275,26 +329,6 @@ function createReportsRoutes(db) {
 
     } catch (error) {
       console.error('Download payslip error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }));
-
-  // Download payroll template
-  router.get('/template/payroll', requireAuth, requirePermission('reports:view'), asyncHandler(async (req, res) => {
-    try {
-      // Mock template Excel file
-      const mockTemplateData = Buffer.from('Mock Payroll Template');
-
-      res.set({
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="payroll_template.xlsx"',
-        'Content-Length': mockTemplateData.length
-      });
-
-      res.send(mockTemplateData);
-
-    } catch (error) {
-      console.error('Download template error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }));
