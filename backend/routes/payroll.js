@@ -125,21 +125,29 @@ function createPayrollRoutes(db) {
     }
   }));
 
-  // Get monthly payroll data
+  // Get monthly payroll data (queries both collections)
   router.get('/monthly/:year_month', requireAuth, asyncHandler(async (req, res) => {
     try {
       const { year_month } = req.params;
       const userRole = req.user.role;
       const userId = req.user.id;
+      
+      // Parse year and month from year_month string (e.g., "2025-06")
+      const [yearStr, monthStr] = year_month.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
 
       let matchCondition = { yearMonth: year_month };
+      let newMatchCondition = { year, month };
 
       // If not admin/manager, only show own data
       if (userRole === 'user') {
         matchCondition.userId = new ObjectId(userId);
+        newMatchCondition.userId = new ObjectId(userId);
       }
 
-      const payrollData = await db.collection('monthlyPayments').aggregate([
+      // Query monthlyPayments collection (old system)
+      const monthlyPayrollData = await db.collection('monthlyPayments').aggregate([
         { $match: matchCondition },
         {
           $lookup: {
@@ -188,8 +196,55 @@ function createPayrollRoutes(db) {
         },
         { $sort: { name: 1 } }
       ]).toArray();
+      
+      // Query payroll collection (new system from Excel uploads)
+      const newPayrollData = await db.collection('payroll').aggregate([
+        { $match: newMatchCondition },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            id: '$_id',
+            user_id: '$userId',
+            name: { $arrayElemAt: ['$user.name', 0] },
+            username: { $arrayElemAt: ['$user.username', 0] },
+            year_month: { $literal: year_month }, // Convert to string format for consistency
+            base_salary: '$baseSalary',
+            incentive: { $ifNull: ['$allowances.incentive', 0] },
+            bonus: { $literal: 0 }, // Not in new schema
+            award: { $literal: 0 }, // Not in new schema
+            total_input: {
+              $add: [
+                '$baseSalary',
+                { $ifNull: ['$allowances.incentive', 0] },
+                { $ifNull: ['$allowances.meal', 0] },
+                { $ifNull: ['$allowances.transportation', 0] },
+                { $ifNull: ['$allowances.childCare', 0] },
+                { $ifNull: ['$allowances.overtime', 0] },
+                { $ifNull: ['$allowances.nightShift', 0] },
+                { $ifNull: ['$allowances.holidayWork', 0] },
+                { $ifNull: ['$allowances.other', 0] }
+              ]
+            },
+            actual_payment: '$netSalary',
+            difference: { $subtract: ['$netSalary', '$baseSalary'] },
+            incentive_formula: { $arrayElemAt: ['$user.incentiveFormula', 0] },
+            sales_amount: { $literal: 0 } // Not tracked in new system
+          }
+        },
+        { $sort: { name: 1 } }
+      ]).toArray();
+      
+      // Combine results from both collections
+      const combinedPayrollData = [...monthlyPayrollData, ...newPayrollData];
 
-      res.json({ success: true, data: payrollData });
+      res.json({ success: true, data: combinedPayrollData });
 
     } catch (error) {
       console.error('Get monthly payroll error:', error);
@@ -442,12 +497,18 @@ function createPayrollRoutes(db) {
     }
   }));
 
-  // Get payroll statistics
+  // Get payroll statistics (queries both collections)
   router.get('/stats/:yearMonth', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
     try {
       const { yearMonth } = req.params;
+      
+      // Parse year and month from yearMonth string (e.g., "2025-06")
+      const [yearStr, monthStr] = yearMonth.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
 
-      const stats = await db.collection('monthlyPayments').aggregate([
+      // Query monthlyPayments collection (old system)
+      const monthlyStats = await db.collection('monthlyPayments').aggregate([
         { $match: { yearMonth } },
         {
           $group: {
@@ -465,8 +526,45 @@ function createPayrollRoutes(db) {
           }
         }
       ]).toArray();
+      
+      // Query payroll collection (new system from Excel uploads)
+      const payrollStats = await db.collection('payroll').aggregate([
+        { $match: { year, month } },
+        {
+          $group: {
+            _id: null,
+            totalEmployees: { $sum: 1 },
+            totalBaseSalary: { $sum: '$baseSalary' },
+            // Extract incentive from allowances object
+            totalIncentive: { $sum: '$allowances.incentive' },
+            totalBonus: { $sum: 0 }, // Not in new schema
+            totalAward: { $sum: 0 }, // Not in new schema
+            // Calculate total input from baseSalary + all allowances
+            totalInput: { 
+              $sum: {
+                $add: [
+                  '$baseSalary',
+                  { $ifNull: ['$allowances.incentive', 0] },
+                  { $ifNull: ['$allowances.meal', 0] },
+                  { $ifNull: ['$allowances.transportation', 0] },
+                  { $ifNull: ['$allowances.childCare', 0] },
+                  { $ifNull: ['$allowances.overtime', 0] },
+                  { $ifNull: ['$allowances.nightShift', 0] },
+                  { $ifNull: ['$allowances.holidayWork', 0] },
+                  { $ifNull: ['$allowances.other', 0] }
+                ]
+              }
+            },
+            totalActualPayment: { $sum: '$netSalary' }, // netSalary is the actual payment
+            avgSalary: { $avg: '$netSalary' },
+            maxSalary: { $max: '$netSalary' },
+            minSalary: { $min: '$netSalary' }
+          }
+        }
+      ]).toArray();
 
-      const result = stats[0] || {
+      // Merge results from both collections
+      const monthlyResult = monthlyStats[0] || {
         totalEmployees: 0,
         totalBaseSalary: 0,
         totalIncentive: 0,
@@ -478,8 +576,44 @@ function createPayrollRoutes(db) {
         maxSalary: 0,
         minSalary: 0
       };
+      
+      const payrollResult = payrollStats[0] || {
+        totalEmployees: 0,
+        totalBaseSalary: 0,
+        totalIncentive: 0,
+        totalBonus: 0,
+        totalAward: 0,
+        totalInput: 0,
+        totalActualPayment: 0,
+        avgSalary: 0,
+        maxSalary: 0,
+        minSalary: 0
+      };
+      
+      // Combine stats from both collections
+      const combinedResult = {
+        totalEmployees: monthlyResult.totalEmployees + payrollResult.totalEmployees,
+        totalBaseSalary: monthlyResult.totalBaseSalary + payrollResult.totalBaseSalary,
+        totalIncentive: monthlyResult.totalIncentive + payrollResult.totalIncentive,
+        totalBonus: monthlyResult.totalBonus + payrollResult.totalBonus,
+        totalAward: monthlyResult.totalAward + payrollResult.totalAward,
+        totalInput: monthlyResult.totalInput + payrollResult.totalInput,
+        totalActualPayment: monthlyResult.totalActualPayment + payrollResult.totalActualPayment,
+        // For averages, calculate weighted average if both collections have data
+        avgSalary: monthlyResult.totalEmployees + payrollResult.totalEmployees > 0
+          ? (monthlyResult.totalActualPayment + payrollResult.totalActualPayment) / 
+            (monthlyResult.totalEmployees + payrollResult.totalEmployees)
+          : 0,
+        maxSalary: Math.max(monthlyResult.maxSalary || 0, payrollResult.maxSalary || 0),
+        minSalary: monthlyResult.totalEmployees + payrollResult.totalEmployees > 0
+          ? Math.min(
+              monthlyResult.minSalary || Number.MAX_VALUE,
+              payrollResult.minSalary || Number.MAX_VALUE
+            )
+          : 0
+      };
 
-      res.json({ success: true, data: result });
+      res.json({ success: true, data: combinedResult });
 
     } catch (error) {
       console.error('Get payroll stats error:', error);
