@@ -37,6 +37,7 @@ const createSalesRoutes = require('./routes/sales');
 const createUploadRoutes = require('./routes/upload');
 const createReportsRoutes = require('./routes/reports');
 const createAdminRoutes = require('./routes/admin');
+const featureFlagManagementRoutes = require('./routes/featureFlagManagement');
 
 // Import middleware
 const {
@@ -52,6 +53,10 @@ const { setupSwagger } = require('./config/swagger');
 // Import JWT utilities
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
 const { tokenBlacklist, TokenBlacklist } = require('./utils/tokenBlacklist');
+
+// Import feature flag services
+const featureFlags = require('./config/featureFlags');
+const healthMonitor = require('./services/FeatureFlagHealthMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -545,6 +550,10 @@ async function initializeRoutes() {
   app.use('/api/reports', createReportsRoutes(db));
   app.use('/api/admin', createAdminRoutes(db));
   app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
+  app.use('/api/feature-flags', featureFlagManagementRoutes);
+
+  // Add feature flag middleware
+  app.use(featureFlags.middleware());
 
   // Health check endpoint for Cloud Run
   app.get('/health', (req, res) => {
@@ -594,6 +603,9 @@ async function startServer() {
   await connectDB();
   await ensureAdminPermissions();
   await initializeRoutes();
+  
+  // Initialize feature flag health monitoring
+  await healthMonitor.initialize();
 
   server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
@@ -605,8 +617,11 @@ async function startServer() {
 // Handle graceful shutdown
 let server;
 
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   console.log(`🛑 ${signal} received. Starting graceful shutdown...`);
+
+  // Shutdown health monitor
+  await healthMonitor.shutdown();
 
   if (server) {
     server.close(() => {
