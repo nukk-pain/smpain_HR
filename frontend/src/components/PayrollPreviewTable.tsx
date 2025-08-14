@@ -32,7 +32,9 @@ import {
   Grid,
   InputAdornment,
   Autocomplete,
-  Alert
+  Alert,
+  Checkbox,
+  Button
 } from '@mui/material';
 import {
   CheckCircle as MatchedIcon,
@@ -41,7 +43,9 @@ import {
   Error as ErrorIcon,
   CheckCircle,
   Search as SearchIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon
 } from '@mui/icons-material';
 import { PreviewRecord } from '../types/payrollUpload';
 import { useAuth } from './AuthProvider';
@@ -50,9 +54,18 @@ import { apiService } from '../services/api';
 interface PreviewDataTableProps {
   records: PreviewRecord[];
   onRecordActionChange?: (rowNumber: number, action: 'process' | 'skip' | 'manual', userId?: string) => void;
+  selectedRecords?: Set<number>;  // Optional for backward compatibility
+  onRecordSelectionChange?: (rowNumber: number, selected: boolean) => void;  // Optional
+  onSelectAll?: (selected: boolean) => void;  // Optional
 }
 
-export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onRecordActionChange }) => {
+export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ 
+  records, 
+  onRecordActionChange,
+  selectedRecords,
+  onRecordSelectionChange,
+  onSelectAll 
+}) => {
   const { user } = useAuth();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -235,11 +248,84 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onR
     page * rowsPerPage + rowsPerPage
   );
 
+  // Check if all visible records are selected
+  const isAllPageSelected = React.useMemo(() => {
+    if (!selectedRecords || paginatedRecords.length === 0) return false;
+    return paginatedRecords.every(record => selectedRecords.has(record.rowNumber));
+  }, [selectedRecords, paginatedRecords]);
+
+  // Check if some visible records are selected
+  const isSomePageSelected = React.useMemo(() => {
+    if (!selectedRecords || paginatedRecords.length === 0) return false;
+    return paginatedRecords.some(record => selectedRecords.has(record.rowNumber)) && !isAllPageSelected;
+  }, [selectedRecords, paginatedRecords, isAllPageSelected]);
+
+  // Handle select all on current page
+  const handleSelectAllPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (onSelectAll && onRecordSelectionChange) {
+      paginatedRecords.forEach(record => {
+        onRecordSelectionChange(record.rowNumber, event.target.checked);
+      });
+    }
+  };
+
+  // Calculate selection summary
+  const selectionSummary = React.useMemo(() => {
+    if (!selectedRecords) return null;
+    const selectedCount = selectedRecords.size;
+    const totalCount = records.length;
+    return { selectedCount, totalCount };
+  }, [selectedRecords, records]);
+
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        데이터 미리보기 ({filteredRecords.length}건)
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">
+          데이터 미리보기 ({filteredRecords.length}건)
+        </Typography>
+        {selectionSummary && onRecordSelectionChange && (
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {selectionSummary.selectedCount}개 선택됨 / 전체 {selectionSummary.totalCount}개
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                records.forEach(record => {
+                  if (record.status === 'valid' || record.status === 'warning') {
+                    onRecordSelectionChange(record.rowNumber, true);
+                  }
+                });
+              }}
+            >
+              유효한 레코드만 선택
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                if (onSelectAll) {
+                  onSelectAll(true);
+                }
+              }}
+            >
+              모두 선택
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                if (onSelectAll) {
+                  onSelectAll(false);
+                }
+              }}
+            >
+              모두 해제
+            </Button>
+          </Box>
+        )}
+      </Box>
       
       {/* Filter Controls */}
       <Paper sx={{ p: 2, mb: 2 }}>
@@ -295,6 +381,15 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onR
         <Table sx={{ minWidth: 1000 }} size="small">
           <TableHead>
             <TableRow>
+              {onRecordSelectionChange && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={isSomePageSelected}
+                    checked={isAllPageSelected}
+                    onChange={handleSelectAllPage}
+                  />
+                </TableCell>
+              )}
               <TableCell align="center" sx={{ fontWeight: 'bold' }}>행</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>직원명</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>사번</TableCell>
@@ -307,23 +402,36 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onR
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedRecords.map((record) => (
-              <TableRow
-                key={record.rowIndex}
-                sx={{
-                  backgroundColor:
-                    record.status === 'invalid' ? 'error.50' :
-                    record.status === 'warning' ? 'warning.50' :
-                    'inherit',
-                  '&:hover': {
+            {paginatedRecords.map((record) => {
+              const isSelected = selectedRecords?.has(record.rowNumber) || false;
+              return (
+                <TableRow
+                  key={record.rowIndex}
+                  selected={isSelected}
+                  sx={{
                     backgroundColor:
-                      record.status === 'invalid' ? 'error.100' :
-                      record.status === 'warning' ? 'warning.100' :
-                      'action.hover'
-                  }
-                }}
-              >
-                <TableCell align="center">{record.rowIndex}</TableCell>
+                      isSelected ? 'action.selected' :
+                      record.status === 'invalid' ? 'error.50' :
+                      record.status === 'warning' ? 'warning.50' :
+                      'inherit',
+                    '&:hover': {
+                      backgroundColor:
+                        record.status === 'invalid' ? 'error.100' :
+                        record.status === 'warning' ? 'warning.100' :
+                        'action.hover'
+                    }
+                  }}
+                >
+                  {onRecordSelectionChange && (
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={(event) => onRecordSelectionChange(record.rowNumber, event.target.checked)}
+                        color={record.status === 'invalid' ? 'error' : record.status === 'warning' ? 'warning' : 'primary'}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell align="center">{record.rowIndex}</TableCell>
                 <TableCell>
                   <Typography variant="body2" fontWeight="medium">
                     {record.employeeName}
@@ -355,10 +463,11 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({ records, onR
                   {getStatusChip(record.status)}
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {paginatedRecords.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={onRecordSelectionChange ? 10 : 9} align="center">
                   <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                     표시할 데이터가 없습니다.
                   </Typography>
