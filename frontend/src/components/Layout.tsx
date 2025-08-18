@@ -40,6 +40,7 @@ import {
   Event,
   Group,
   Edit as EditProfileIcon,
+  Folder,
 } from '@mui/icons-material'
 import { useAuth } from './AuthProvider'
 import { useNotification } from './NotificationProvider'
@@ -73,6 +74,12 @@ const baseNavigationItems: NavigationItem[] = [
     icon: <Event />,
     path: '/leave/calendar',
     permissions: ['leave:view', 'leave:manage'],
+  },
+  {
+    text: '내 문서함',
+    icon: <Folder />,
+    path: '/my-documents',
+    permissions: ['leave:view'], // All employees can access
   },
 ]
 
@@ -134,6 +141,12 @@ const adminNavigationItems: NavigationItem[] = [
     text: '휴가 정책 설정',
     icon: <Settings />,
     path: '/admin/leave/policy',
+    permissions: ['admin:permissions'],
+  },
+  {
+    text: '문서 관리',
+    icon: <Folder />,
+    path: '/admin/documents',
     permissions: ['admin:permissions'],
   },
 ]

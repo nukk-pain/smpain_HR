@@ -22,6 +22,8 @@ const Reports = React.lazy(() => import('./pages/Reports'))
 const FileManagement = React.lazy(() => import('./pages/FileManagement'))
 const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview'))
 const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
+const MyDocuments = React.lazy(() => import('./pages/MyDocuments'))
+const AdminDocuments = React.lazy(() => import('./pages/AdminDocuments'))
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
@@ -147,6 +149,14 @@ const AppContent: React.FC = () => {
           </React.Suspense>
         } />
         
+        <Route path="my-documents" element={
+          <ProtectedRoute>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <MyDocuments />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
         {/* Redirect old URLs to new structure */}
         <Route path="leave-calendar" element={<Navigate to="/leave/calendar" replace />} />
         <Route path="employee-leave-status" element={<Navigate to="/supervisor/leave/status" replace />} />
@@ -236,6 +246,14 @@ const AppContent: React.FC = () => {
           <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <AdminLeavePolicy />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="admin/documents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminDocuments />
             </React.Suspense>
           </ProtectedRoute>
         } />

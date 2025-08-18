@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>급여 Preview 버튼 활성화 테스트</h1>
+    
+    <div class="status info">
+        <h3>테스트 방법:</h3>
+        <ol>
+            <li>브라우저에서 <a href="http://localhost:3727" target="_blank">http://localhost:3727</a> 열기</li>
+            <li>Admin (admin/admin)으로 로그인</li>
+            <li>급여 관리 → Excel 업로드 페이지로 이동</li>
+            <li>6월 데이터 파일 업로드 (모든 레코드가 duplicate/unmatched)</li>
+            <li>Console 로그 확인 (F12 → Console)</li>
+        </ol>
+    </div>
+
+    <div class="status info">
+        <h3>예상 콘솔 출력:</h3>
+        <pre>
+📊 Preview Records Auto-Selection: {
+  total: 9,
+  selected: 9,    // ← 이제 9개 모두 선택됨!
+  invalid: 0,
+  unmatched: 3,
+  statuses: {
+    duplicate: 6,
+    unmatched: 3
+  }
+}
+        </pre>
+    </div>
+
+    <div class="status success">
+        <h3>✅ 수정 내용:</h3>
+        <ul>
+            <li>기존: valid/warning 상태만 자동 선택</li>
+            <li><strong>수정: invalid를 제외한 모든 레코드 자동 선택</strong></li>
+            <li>duplicate 레코드도 이제 선택됨 (업데이트 가능)</li>
+            <li>unmatched 레코드도 선택됨 (수동 매칭 가능)</li>
+        </ul>
+    </div>
+
+    <div class="status info">
+        <h3>테스트 시나리오:</h3>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tr>
+                <th>파일</th>
+                <th>상태 분포</th>
+                <th>기존 동작</th>
+                <th>수정 후 동작</th>
+            </tr>
+            <tr>
+                <td>7월 데이터</td>
+                <td>valid: 7, unmatched: 1</td>
+                <td>7개 선택 → 버튼 활성화 ✅</td>
+                <td>8개 선택 → 버튼 활성화 ✅</td>
+            </tr>
+            <tr style="background-color: #ffe6e6;">
+                <td><strong>6월 데이터</strong></td>
+                <td><strong>duplicate: 6, unmatched: 3</strong></td>
+                <td><strong>0개 선택 → 버튼 비활성화 ❌</strong></td>
+                <td><strong>9개 선택 → 버튼 활성화 ✅</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="status info">
+        <h3>수정된 코드 위치:</h3>
+        <code>frontend/src/components/PayrollExcelUploadWithPreview.tsx</code>
+        <ul>
+            <li>Line 101-141: 자동 선택 로직 개선</li>
+            <li>Line 168-180: Select All 함수 개선</li>
+            <li>디버깅 로그 추가</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simple console log viewer
+        const originalLog = console.log;
+        const logDiv = document.createElement('div');
+        logDiv.innerHTML = '<h3>실시간 콘솔 로그:</h3><pre id="console-output"></pre>';
+        document.body.appendChild(logDiv);
+        
+        const output = document.getElementById('console-output');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+            ).join(' ');
+            
+            if (message.includes('Preview Records Auto-Selection')) {
+                output.textContent += message + '\n\n';
+                output.parentElement.classList.add('success');
+            }
+        };
+    </script>
+</body>
+</html>

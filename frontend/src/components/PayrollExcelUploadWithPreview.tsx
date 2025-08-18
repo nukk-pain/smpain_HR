@@ -98,15 +98,46 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
       };
       fetchEmployees();
       
-      // Initialize selected records (select valid and warning records by default)
+      // Initialize selected records (select all except invalid records by default)
       const initialSelected = new Set<number>();
+      let invalidCount = 0;
+      let unmatchedCount = 0;
+      
       state.previewData.records.forEach((record, index) => {
         const rowNumber = index + 1;
-        if (record.status === 'valid' || record.status === 'warning') {
+        
+        // Select all records except 'invalid' ones
+        // This includes: valid, warning, duplicate, and even unmatched (for manual matching)
+        if (!record.status || record.status !== 'invalid') {
           initialSelected.add(rowNumber);
+        } else {
+          invalidCount++;
+        }
+        
+        if (record.status === 'unmatched') {
+          unmatchedCount++;
         }
       });
+      
+      // Debug logging to track selection behavior
+      console.log('📊 Preview Records Auto-Selection:', {
+        total: state.previewData.records.length,
+        selected: initialSelected.size,
+        invalid: invalidCount,
+        unmatched: unmatchedCount,
+        statuses: state.previewData.records.reduce((acc, r) => {
+          const status = r.status || 'undefined';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+      
       setSelectedRecords(initialSelected);
+      
+      // Show warning if no records can be selected
+      if (initialSelected.size === 0 && state.previewData.records.length > 0) {
+        actions.setError('⚠️ 처리 가능한 레코드가 없습니다. 모든 레코드가 오류 상태입니다.');
+      }
     }
   }, [state.previewData]);
   
@@ -137,8 +168,12 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
   const handleSelectAll = (selected: boolean) => {
     if (selected && state.previewData) {
       const allRecords = new Set<number>();
-      state.previewData.records.forEach((_, index) => {
-        allRecords.add(index + 1);
+      state.previewData.records.forEach((record, index) => {
+        const rowNumber = index + 1;
+        // Only select non-invalid records
+        if (!record.status || record.status !== 'invalid') {
+          allRecords.add(rowNumber);
+        }
       });
       setSelectedRecords(allRecords);
       // Clear all skip actions

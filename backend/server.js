@@ -39,6 +39,7 @@ const createReportsRoutes = require('./routes/reports');
 const createPayslipVerifyRoutes = require('./routes/payslip-verify');
 const createAdminRoutes = require('./routes/admin');
 const featureFlagManagementRoutes = require('./routes/featureFlagManagement');
+const createDocumentsRoutes = require('./routes/documents');
 
 // Import middleware
 const {
@@ -536,6 +537,7 @@ async function initializeRoutes() {
   app.use('/api/admin', createAdminRoutes(db));
   app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/feature-flags', featureFlagManagementRoutes);
+  app.use('/api/documents', createDocumentsRoutes(db));
 
   // Add feature flag middleware
   app.use(featureFlags.middleware());

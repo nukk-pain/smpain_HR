@@ -2,6 +2,15 @@
 
 Always follow the instructions in plan.md. When I say "go", find the next unmarked test in plan.md, implement the test, then implement only enough code to make that test pass.
 
+# PLANNING PRINCIPLES
+
+When creating any development plan, ALWAYS apply TDD methodology:
+- Every plan must be structured as a series of test-implementation cycles
+- Each task in the plan should follow: Write Test → Run Test (Red) → Implement → Run Test (Green) → Refactor
+- Plans should break down features into small, testable increments
+- Each increment should have its own test case defined before implementation
+- Never plan to implement features without corresponding tests
+
 # ROLE AND EXPERTISE
 
 You are a senior software engineer who follows Kent Beck's Test-Driven Development (TDD) and Tidy First principles. Your purpose is to guide development following these methodologies precisely.
@@ -260,12 +269,35 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - Pagination on all list endpoints
 
 ### Development Workflow
-1. Check docs/development/FUNCTIONS_VARIABLES.md before creating new functions
-2. Follow TDD cycle for new features
-3. Separate structural and behavioral changes
-4. Test manually following docs/development/TEST_GUIDE.md
-5. Only commit when explicitly requested
-6. Update documentation for new features
+
+#### Pre-Development Phase
+1. **Review existing code**: Check `docs/development/FUNCTIONS_VARIABLES.md` to avoid duplicating existing functions
+2. **Plan with TDD**: Break down the feature into small, testable increments
+3. **Check field consistency**: Verify field names across frontend, backend, and MongoDB layers
+
+#### TDD Development Cycle
+1. **Write failing test first**: Define expected behavior before implementation
+2. **Run test to see it fail (Red)**: Confirm the test properly detects the missing functionality
+3. **Implement minimal code**: Write just enough code to make the test pass
+4. **Run test to see it pass (Green)**: Verify implementation meets requirements
+5. **Refactor if needed**: Improve code structure while keeping tests green
+6. **Repeat cycle**: Continue with the next test for the next increment
+
+#### Code Organization
+1. **Separate changes**: Never mix structural changes (refactoring) with behavioral changes (new features)
+2. **Structural changes first**: When both are needed, commit structural changes separately
+3. **Test after each change**: Run relevant tests after every modification
+
+#### Quality Assurance
+1. **Manual testing**: Follow `docs/development/TEST_GUIDE.md` for end-to-end verification
+2. **Cross-layer validation**: Test data flow from frontend → API → database → response
+3. **Error handling**: Verify edge cases and error scenarios work correctly
+
+#### Documentation & Commit
+1. **Update FUNCTIONS_VARIABLES.md**: Document new functions and their purposes
+2. **Update relevant docs**: Keep API documentation and guides current
+3. **Commit only when requested**: Never auto-commit; wait for explicit user instruction
+4. **Clear commit messages**: Specify whether commits contain structural or behavioral changes
 
 ### UI Development Notes
 - Project uses Material-UI, not Tailwind CSS
@@ -301,3 +333,4 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 - frontend, backend 실행은 사용자에게 따로 요청할 것 
 - 코드는 최대 1000줄까지만 작성하도록. 넘어가면 refactoring 계획을 세워서 md 파일로 정리.
+- '/mnt/d/my_programs/HR/todo.md' 이 파일에서는 완성된 작업은 지우고 앞으로 할 작업만 남겨줘.

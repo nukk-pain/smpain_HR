@@ -617,6 +617,37 @@ class ApiService {
   async bulkApproveLeaveRequests(requestIds: string[], action: 'approve' | 'reject', comment?: string) {
     return this.post('/admin/leave/bulk-approve', { requestIds, action, comment });
   }
+
+  // My Documents
+  async getMyDocuments(params?: {
+    type?: string;
+    year?: number;
+    month?: number;
+    category?: string;
+  }): Promise<ApiResponse<any[]>> {
+    const queryString = new URLSearchParams(params as any).toString();
+    return this.get(`/documents${queryString ? '?' + queryString : ''}`);
+  }
+
+  async downloadDocument(documentId: string) {
+    const response = await this.api.get(`/documents/${documentId}/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  getDocumentPreviewUrl(documentId: string): string {
+    const token = getValidToken();
+    return `${this.api.defaults.baseURL}/documents/${documentId}/preview?token=${token}`;
+  }
+
+  async generateCertificate(data: {
+    type: 'employment' | 'career' | 'income';
+    purpose: string;
+    language?: 'ko' | 'en';
+  }): Promise<ApiResponse> {
+    return this.post('/documents/certificate/generate', data);
+  }
 }
 
 // Export class and singleton instance
