@@ -485,7 +485,7 @@ class ApiService {
     return this.post('/upload/excel/confirm', payload);
   }
 
-  async exportPayrollExcel(params?: {
+  async exportPayrollData(params?: {
     year?: number;
     month?: number;
     userId?: string;

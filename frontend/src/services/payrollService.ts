@@ -384,7 +384,7 @@ export class PayrollService {
     userId?: string;
   }): Promise<Blob> {
     try {
-      return await apiService.exportPayrollExcel(params);
+      return await apiService.exportPayrollData(params);
     } catch (error: any) {
       console.error('Error exporting Excel file:', error);
       throw error;

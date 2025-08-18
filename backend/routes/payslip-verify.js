@@ -1,0 +1,177 @@
+const express = require('express');
+const { ObjectId } = require('mongodb');
+const fs = require('fs');
+const path = require('path');
+const { requireAuth, requirePermission } = require('../middleware/permissions');
+const { asyncHandler } = require('../middleware/errorHandler');
+
+// Create payslip verify routes
+function createPayslipVerifyRoutes(db) {
+  const router = express.Router();
+
+  // Verify payslip upload status
+  router.get('/verify-status', 
+    requireAuth,
+    requirePermission('payroll:view'),
+    asyncHandler(async (req, res) => {
+    
+    try {
+      // 1. Check database records
+      const dbDocuments = await db.collection('payroll_documents')
+        .find({ documentType: 'payslip' })
+        .sort({ uploadedAt: -1 })
+        .limit(10)
+        .toArray();
+      
+      // 2. Check file system
+      const uploadsDir = path.join(__dirname, '../uploads/payslips');
+      let fileSystemFiles = [];
+      
+      if (fs.existsSync(uploadsDir)) {
+        fileSystemFiles = fs.readdirSync(uploadsDir).map(file => {
+          const filePath = path.join(uploadsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            fileName: file,
+            size: stats.size,
+            modified: stats.mtime
+          };
+        });
+      }
+      
+      // 3. Check data integrity
+      const missingFiles = [];
+      const validFiles = [];
+      
+      for (const doc of dbDocuments) {
+        const fileExists = fs.existsSync(doc.filePath);
+        if (fileExists) {
+          validFiles.push({
+            id: doc._id,
+            fileName: doc.originalFileName || doc.fileName,
+            uploadedAt: doc.uploadedAt,
+            status: 'valid'
+          });
+        } else {
+          missingFiles.push({
+            id: doc._id,
+            fileName: doc.originalFileName || doc.fileName,
+            uploadedAt: doc.uploadedAt,
+            status: 'missing_file'
+          });
+        }
+      }
+      
+      // 4. Calculate statistics
+      const stats = {
+        totalDbRecords: dbDocuments.length,
+        totalFiles: fileSystemFiles.length,
+        validUploads: validFiles.length,
+        missingFiles: missingFiles.length,
+        lastUploadTime: dbDocuments.length > 0 ? dbDocuments[0].uploadedAt : null
+      };
+      
+      res.json({
+        success: true,
+        stats,
+        recentUploads: validFiles.slice(0, 5),
+        missingFiles,
+        fileSystemFiles: fileSystemFiles.slice(0, 5)
+      });
+      
+    } catch (error) {
+      console.error('Error verifying upload status:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to verify upload status'
+      });
+    }
+    })
+  );
+
+  // Get detailed upload statistics
+  router.get('/statistics',
+    requireAuth,
+    requirePermission('payroll:view'),
+    asyncHandler(async (req, res) => {
+    
+    try {
+      // Get statistics by month
+      const monthlyStats = await db.collection('payroll_documents').aggregate([
+        {
+          $match: { documentType: 'payslip' }
+        },
+        {
+          $group: {
+            _id: {
+              year: '$year',
+              month: '$month'
+            },
+            count: { $sum: 1 },
+            totalSize: { $sum: '$fileSize' }
+          }
+        },
+        {
+          $sort: { '_id.year': -1, '_id.month': -1 }
+        },
+        {
+          $limit: 12
+        }
+      ]).toArray();
+      
+      // Get statistics by user
+      const userStats = await db.collection('payroll_documents').aggregate([
+        {
+          $match: { documentType: 'payslip' }
+        },
+        {
+          $group: {
+            _id: '$userId',
+            count: { $sum: 1 },
+            lastUpload: { $max: '$uploadedAt' }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            userId: '$_id',
+            userName: { $arrayElemAt: ['$user.name', 0] },
+            count: 1,
+            lastUpload: 1
+          }
+        },
+        {
+          $sort: { lastUpload: -1 }
+        },
+        {
+          $limit: 20
+        }
+      ]).toArray();
+      
+      res.json({
+        success: true,
+        monthlyStats,
+        userStats
+      });
+      
+    } catch (error) {
+      console.error('Error getting statistics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get statistics'
+      });
+    }
+    })
+  );
+
+  return router;
+}
+
+module.exports = createPayslipVerifyRoutes;

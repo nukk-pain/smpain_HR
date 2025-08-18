@@ -59,7 +59,7 @@ export const PayrollListPage: React.FC = () => {
         ...(filters.paymentStatus !== 'all' && { paymentStatus: filters.paymentStatus })
       };
       
-      const blob = await apiService.exportPayrollExcel(params);
+      const blob = await apiService.exportPayrollData(params);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -36,6 +36,7 @@ const createBonusRoutes = require('./routes/bonus');
 const createSalesRoutes = require('./routes/sales');
 const createUploadRoutes = require('./routes/upload');
 const createReportsRoutes = require('./routes/reports');
+const createPayslipVerifyRoutes = require('./routes/payslip-verify');
 const createAdminRoutes = require('./routes/admin');
 const featureFlagManagementRoutes = require('./routes/featureFlagManagement');
 
@@ -531,6 +532,7 @@ async function initializeRoutes() {
   app.use('/api/sales', createSalesRoutes(db));
   app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/reports', createReportsRoutes(db));
+  app.use('/api/payslip', createPayslipVerifyRoutes(db));
   app.use('/api/admin', createAdminRoutes(db));
   app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/feature-flags', featureFlagManagementRoutes);

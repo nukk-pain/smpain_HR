@@ -4,6 +4,7 @@ const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const PayrollRepository = require('../repositories/PayrollRepository');
 const PayrollDocumentRepository = require('../repositories/PayrollDocumentRepository');
 const { validateObjectId } = require('../validation/schemas');
@@ -12,6 +13,7 @@ const {
   validateObjectId: validateMongoId,
   preventNoSQLInjection
 } = require('../middleware/payrollSecurity');
+const { parseEmployeeFromFilename, extractYearMonth } = require('../utils/filenameParser');
 
 const router = express.Router();
 
@@ -587,9 +589,18 @@ function createReportsRoutes(db) {
         // Log the download access
         await documentRepo.logAccess(document._id, req.user.id, 'downloaded');
 
-        // Set response headers for PDF download
+        // Set response headers for PDF download with original filename
+        const originalName = document.originalFileName || document.displayName || document.fileName;
+        
+        // Encode filename for different browsers (RFC 5987)
+        const encodedFilename = encodeURIComponent(originalName);
+        const asciiFilename = originalName.replace(/[^\x00-\x7F]/g, '_');
+        
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
+        );
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Content-Length', document.fileSize);
 
@@ -715,6 +726,546 @@ function createReportsRoutes(db) {
           success: false,
           error: 'Failed to delete payslip: ' + error.message
         });
+      }
+    })
+  );
+
+  // Match employees by file names for bulk payslip upload
+  router.post('/payslip/match-employees', 
+    requireAuth,
+    requirePermission('payroll:manage'),
+    asyncHandler(async (req, res) => {
+      try {
+        const { fileNames } = req.body;
+        
+        if (!fileNames || !Array.isArray(fileNames)) {
+          return res.status(400).json({ error: 'File names array is required' });
+        }
+
+        // Get all active users for matching
+        const users = await db.collection('users').find(
+          { status: { $ne: 'inactive' } },
+          { projection: { _id: 1, name: 1, employeeId: 1, department: 1 } }
+        ).toArray();
+
+        const matches = [];
+        const availableUsers = users.map(u => ({
+          id: u._id.toString(),
+          name: u.name,
+          employeeId: u.employeeId,
+          department: u.department
+        }));
+
+        for (const fileInfo of fileNames) {
+          const { fileName, employeeName } = fileInfo;
+          
+          if (!employeeName) {
+            matches.push({
+              fileName,
+              matched: false,
+              error: 'No employee name found in filename'
+            });
+            continue;
+          }
+
+          // Try exact match first
+          let matchedUser = users.find(u => 
+            u.name && u.name.toLowerCase() === employeeName.toLowerCase()
+          );
+
+          // If no exact match, try partial match
+          if (!matchedUser) {
+            const lowerEmployeeName = employeeName.toLowerCase();
+            
+            // Try to match by last name or first name
+            const candidates = users.filter(u => {
+              if (!u.name) return false;
+              const lowerUserName = u.name.toLowerCase();
+              
+              // Check if employee name is contained in user name or vice versa
+              return lowerUserName.includes(lowerEmployeeName) || 
+                     lowerEmployeeName.includes(lowerUserName);
+            });
+
+            if (candidates.length === 1) {
+              matchedUser = candidates[0];
+            } else if (candidates.length > 1) {
+              // Multiple candidates, need manual selection
+              matches.push({
+                fileName,
+                matched: false,
+                suggestions: candidates.map(u => ({
+                  id: u._id.toString(),
+                  name: u.name,
+                  employeeId: u.employeeId,
+                  department: u.department
+                })),
+                error: 'Multiple matches found, manual selection required'
+              });
+              continue;
+            }
+          }
+
+          if (matchedUser) {
+            matches.push({
+              fileName,
+              matched: true,
+              user: {
+                id: matchedUser._id.toString(),
+                name: matchedUser.name,
+                employeeId: matchedUser.employeeId,
+                department: matchedUser.department
+              }
+            });
+          } else {
+            matches.push({
+              fileName,
+              matched: false,
+              error: 'No matching employee found'
+            });
+          }
+        }
+
+        res.json({
+          success: true,
+          matches,
+          availableUsers
+        });
+      } catch (error) {
+        console.error('Error matching employees:', error);
+        res.status(500).json({ error: 'Failed to match employees: ' + error.message });
+      }
+    })
+  );
+
+  // Get upload history for payslips
+  router.get('/payslip/upload-history',
+    requireAuth,
+    requirePermission('payroll:view'),
+    asyncHandler(async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit) || 50;
+        
+        // Get recent upload history
+        const history = await db.collection('payroll_documents').aggregate([
+          {
+            $match: {
+              documentType: 'payslip'
+            }
+          },
+          {
+            $sort: { uploadedAt: -1 }
+          },
+          {
+            $limit: limit
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'userId',
+              foreignField: '_id',
+              as: 'user'
+            }
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'uploadedBy',
+              foreignField: '_id',
+              as: 'uploader'
+            }
+          },
+          {
+            $project: {
+              uploadedAt: 1,
+              originalFileName: 1,
+              year: 1,
+              month: 1,
+              userName: { $arrayElemAt: ['$user.name', 0] },
+              userDepartment: { $arrayElemAt: ['$user.department', 0] },
+              uploadedByName: { $arrayElemAt: ['$uploader.name', 0] }
+            }
+          }
+        ]).toArray();
+
+        res.json({
+          success: true,
+          history: history
+        });
+      } catch (error) {
+        console.error('Error fetching upload history:', error);
+        res.status(500).json({ 
+          error: 'Failed to fetch upload history: ' + error.message 
+        });
+      }
+    })
+  );
+
+  // Bulk upload payslips with unique ID system to handle Korean filenames
+  const bulkPayslipUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, '../uploads/temp/');
+        // Ensure directory exists
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        // Generate unique ID for physical storage
+        const uniqueId = crypto.randomBytes(16).toString('hex');
+        const timestamp = Date.now();
+        const safeFilename = `payslip_${timestamp}_${uniqueId}.pdf`;
+        
+        // Store original filename metadata in request for later use
+        if (!req.fileMetadata) {
+          req.fileMetadata = [];
+        }
+        req.fileMetadata.push({
+          uniqueId: safeFilename,
+          originalName: file.originalname,
+          encoding: file.encoding,
+          mimetype: file.mimetype
+        });
+        
+        cb(null, safeFilename);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB per file
+      files: 50 // Maximum 50 files
+    },
+    fileFilter: (req, file, cb) => {
+      // Validate PDF files
+      const isPdf = file.mimetype === 'application/pdf' || 
+                    path.extname(file.originalname).toLowerCase() === '.pdf';
+      if (!isPdf) {
+        return cb(new Error('Only PDF files are allowed'), false);
+      }
+      cb(null, true);
+    }
+  });
+
+  router.post('/payslip/bulk-upload',
+    requireAuth,
+    requirePermission('payroll:manage'),
+    bulkPayslipUpload.array('payslips', 50),
+    asyncHandler(async (req, res) => {
+      try {
+        console.log('📥 Bulk upload request received');
+        console.log('Request body keys:', Object.keys(req.body));
+        console.log('Files received:', req.files?.length || 0);
+        console.log('File metadata:', req.fileMetadata);
+        
+        const { mappings } = req.body;
+        const files = req.files;
+        const fileMetadata = req.fileMetadata || [];
+
+        if (!files || files.length === 0) {
+          return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        if (!mappings) {
+          // Clean up uploaded files
+          for (const file of files) {
+            try {
+              await fs.promises.unlink(file.path);
+            } catch (err) {
+              console.error('Error deleting file:', err);
+            }
+          }
+          return res.status(400).json({ error: 'Mappings are required' });
+        }
+
+        console.log('Raw mappings:', mappings);
+        const parsedMappings = JSON.parse(mappings);
+        console.log('Parsed mappings:', parsedMappings);
+        const uploadResults = [];
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Process files in parallel batches for better performance
+        const BATCH_SIZE = 5; // Process 5 files at a time
+        const fileGroups = [];
+        
+        for (let i = 0; i < files.length; i += BATCH_SIZE) {
+          fileGroups.push(files.slice(i, i + BATCH_SIZE));
+        }
+
+        for (let groupIndex = 0; groupIndex < fileGroups.length; groupIndex++) {
+          const fileGroup = fileGroups[groupIndex];
+          const batchPromises = fileGroup.map(async (file, fileIndex) => {
+            // Calculate the overall file index
+            const overallIndex = groupIndex * BATCH_SIZE + fileIndex;
+            const metadata = fileMetadata[overallIndex] || {};
+            
+            // IMPORTANT: Use the mapping by index since file order is preserved
+            // The mapping at index N corresponds to the file at index N
+            const mapping = parsedMappings[overallIndex];
+            
+            // Use the original filename from the mapping (which is not corrupted)
+            const originalFilename = mapping ? mapping.fileName : (metadata.originalName || file.originalname);
+            
+            console.log(`📁 Processing file #${overallIndex + 1}: ${originalFilename}`);
+            console.log(`   Stored as: ${file.filename}`);
+            console.log(`   Mapping:`, mapping);
+            
+            if (!mapping || !mapping.userId) {
+              console.log(`❌ No mapping or userId for file #${overallIndex + 1}`);
+              // Clean up file if no mapping found
+              try {
+                await fs.promises.unlink(file.path);
+              } catch (err) {
+                console.error('Error deleting unmapped file:', err);
+              }
+              return {
+                fileName: originalFilename,
+                success: false,
+                error: 'No mapping or userId found for file'
+              };
+            }
+
+            try {
+            // Parse year and month from yearMonth (format: YYYYMM or YYYYMMDD)
+            let year, month;
+            if (mapping.yearMonth) {
+              year = parseInt(mapping.yearMonth.substring(0, 4));
+              month = parseInt(mapping.yearMonth.substring(4, 6));
+            } else {
+              // Default to current year/month if not provided
+              const now = new Date();
+              year = now.getFullYear();
+              month = now.getMonth() + 1;
+            }
+
+            // Check if user exists
+            const user = await db.collection('users').findOne({ 
+              _id: new ObjectId(mapping.userId) 
+            });
+
+            if (!user) {
+              throw new Error('User not found');
+            }
+
+            // Check for existing payslip for the same user and month
+            const existingPayslip = await db.collection('payroll_documents').findOne({
+              userId: new ObjectId(mapping.userId),
+              year: year,
+              month: month,
+              documentType: 'payslip'
+            });
+
+            if (existingPayslip) {
+              // Mark as duplicate but continue with other files
+              errorCount++;
+              
+              // Clean up the uploaded file
+              try {
+                await fs.promises.unlink(file.path);
+              } catch (err) {
+                console.error('Error deleting duplicate file:', err);
+              }
+              
+              return {
+                fileName: originalFilename,
+                success: false,
+                error: `급여명세서가 이미 존재합니다 (${user.name}, ${year}년 ${month}월)`,
+                isDuplicate: true
+              };
+            }
+
+            // Use the unique filename already generated by multer
+            const uniqueFileName = file.filename; // This is the safe filename from multer
+            const destinationDir = path.join(__dirname, '../uploads/payslips/');
+            
+            // Ensure destination directory exists
+            if (!fs.existsSync(destinationDir)) {
+              fs.mkdirSync(destinationDir, { recursive: true });
+            }
+            
+            const destinationPath = path.join(destinationDir, uniqueFileName);
+
+            // Move file to permanent location
+            await fs.promises.rename(file.path, destinationPath);
+
+            // Parse employee info from original filename
+            const parsedInfo = parseEmployeeFromFilename(originalFilename);
+            
+            // Save document record with both unique ID and original filename
+            const documentRecord = {
+              userId: new ObjectId(mapping.userId),
+              uniqueId: uniqueFileName,  // Unique ID for physical storage
+              fileName: uniqueFileName,   // Keep for backward compatibility
+              originalFileName: originalFilename,  // Original Korean filename
+              displayName: originalFilename,  // For UI display
+              filePath: destinationPath,
+              fileSize: file.size,
+              mimeType: metadata.mimetype || file.mimetype || 'application/pdf',
+              year,
+              month,
+              uploadedAt: new Date(),
+              uploadedBy: new ObjectId(req.user.id || req.user._id),
+              uploadedByName: req.user.username,
+              userName: user.name,
+              employeeId: user.employeeId,
+              department: user.department,
+              documentType: 'payslip',
+              metadata: {
+                encoding: metadata.encoding,
+                yearMonth: mapping.yearMonth,
+                parsedEmployeeName: parsedInfo.name,
+                parsedCompany: parsedInfo.company,
+                parsedEmploymentType: parsedInfo.employmentType,
+                parsedYearMonth: parsedInfo.yearMonth
+              }
+            };
+
+            await documentRepo.createDocument(documentRecord);
+
+              console.log(`✅ Payslip uploaded: ${originalFilename} for ${user.name} (${year}-${month})`);
+              console.log(`   Stored as: ${uniqueFileName}`);
+              
+              return {
+                fileName: originalFilename,
+                success: true,
+                uniqueId: uniqueFileName,
+                userId: mapping.userId,
+                userName: user.name
+              };
+
+            } catch (error) {
+              console.error(`Error uploading payslip ${originalFilename}:`, error);
+              
+              // Clean up file on error
+              try {
+                await fs.promises.unlink(file.path);
+              } catch (err) {
+                console.error('Error deleting file after error:', err);
+              }
+
+              return {
+                fileName: originalFilename,
+                success: false,
+                error: error.message
+              };
+            }
+          });
+
+          // Wait for batch to complete
+          const batchResults = await Promise.all(batchPromises);
+          
+          // Process results
+          batchResults.forEach(result => {
+            uploadResults.push(result);
+            if (result.success) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+          });
+        }
+
+        res.json({
+          success: true,
+          uploadedCount: successCount,
+          errorCount,
+          results: uploadResults
+        });
+
+      } catch (error) {
+        console.error('Bulk upload error:', error);
+        
+        // Clean up all uploaded files on error
+        if (req.files) {
+          for (const file of req.files) {
+            try {
+              await fs.promises.unlink(file.path);
+            } catch (err) {
+              console.error('Error deleting file:', err);
+            }
+          }
+        }
+
+        res.status(500).json({ 
+          error: 'Failed to process bulk upload: ' + error.message 
+        });
+      }
+    })
+  );
+
+  /**
+   * GET /api/reports/payslip/download/:documentId - Download PDF payslip by document ID
+   * DomainMeaning: Download PDF payslip with original Korean filename restoration
+   * MisleadingNames: None
+   * SideEffects: Logs download access, streams file content with UTF-8 filename
+   * Invariants: Users can only download their own payslips unless admin
+   * RAG_Keywords: pdf download, korean filename, utf-8 encoding, unique id system
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: hash_get_payslip_by_docid_001
+   */
+  router.get('/payslip/download/:documentId',
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      const { documentId } = req.params;
+      
+      try {
+        // Get document from database
+        const document = await db.collection('payroll_documents').findOne({
+          _id: new ObjectId(documentId)
+        });
+        
+        if (!document) {
+          return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        // Check permissions
+        const isOwner = document.userId.toString() === req.user.id;
+        const isAdmin = req.user.role === 'admin' || req.user.role === 'Admin';
+        const hasPermission = req.user.permissions?.includes('payroll:view');
+        
+        if (!isOwner && !isAdmin && !hasPermission) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        // Check file exists
+        if (!fs.existsSync(document.filePath)) {
+          console.error(`File not found: ${document.filePath}`);
+          return res.status(404).json({ error: 'File not found on server' });
+        }
+        
+        // Set headers for download with original filename
+        const originalName = document.originalFileName || document.displayName || document.fileName || 'payslip.pdf';
+        
+        // Encode filename for different browsers (RFC 5987)
+        const encodedFilename = encodeURIComponent(originalName);
+        const asciiFilename = originalName.replace(/[^\x00-\x7F]/g, '_');
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
+        );
+        res.setHeader('Content-Length', document.fileSize);
+        
+        // Stream file to response
+        const fileStream = fs.createReadStream(document.filePath);
+        fileStream.pipe(res);
+        
+        fileStream.on('end', () => {
+          console.log(`📄 Payslip downloaded: ${originalName} (stored as: ${document.uniqueId || document.fileName}) by ${req.user.username}`);
+        });
+        
+        fileStream.on('error', (error) => {
+          console.error('File stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Download failed' });
+          }
+        });
+        
+      } catch (error) {
+        console.error('Download error:', error);
+        res.status(500).json({ error: 'Download failed' });
       }
     })
   );
