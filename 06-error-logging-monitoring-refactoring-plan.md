@@ -123,6 +123,18 @@ backend/services/
 3. 성능 테스트
 4. 로그 검증
 
+### Phase 8: 테스트 파일 마이그레이션 (30분)
+1. **tests/unit/error-logging-monitoring.test.js 분할**
+   - `ErrorLoggingService.test.js` - 에러 로깅 테스트
+   - `AuditTrailService.test.js` - 감사 추적 테스트
+   - `SystemMonitoringService.test.js` - 시스템 모니터링 테스트
+   - `AlertingService.test.js` - 알림 시스템 테스트
+
+2. **테스트 케이스 업데이트**
+   - 각 서비스별 독립적인 테스트
+   - Mock 객체 사용으로 의존성 격리
+   - 기존 테스트 시나리오 모두 커버
+
 ## 💡 리팩토링 원칙
 
 ### 1. 의존성 주입
@@ -210,16 +222,50 @@ index.js                      - 50줄
 
 ## ✅ 완료 체크리스트
 
-- [ ] Phase 1: 준비 작업 완료
-- [ ] Phase 2: 코어 서비스 분리 완료
-- [ ] Phase 3: 모니터링 서비스 분리 완료
-- [ ] Phase 4: 분석 서비스 분리 완료
-- [ ] Phase 5: 유틸리티 추출 완료
-- [ ] Phase 6: 통합 및 마이그레이션 완료
-- [ ] Phase 7: 테스트 및 검증 완료
-- [ ] 문서 업데이트 완료
+### 준비 단계
+- [x] 현재 ErrorLoggingMonitoringService.js 백업
+- [x] backend/services/monitoring/ 디렉토리 생성
+- [x] backend/services/monitoring/utils/ 디렉토리 생성
+- [x] backend/services/monitoring/config/ 디렉토리 생성
+
+### Phase별 작업
+- [x] Phase 1: 준비 작업 완료
+- [x] Phase 2: 코어 서비스 분리 완료
+- [x] Phase 3: 모니터링 서비스 분리 완료
+- [x] Phase 4: 분석 서비스 분리 완료
+- [x] Phase 5: 유틸리티 추출 완료
+- [x] Phase 6: 통합 및 마이그레이션 완료
+- [x] Phase 7: 테스트 및 검증 완료
+- [ ] Phase 8: 테스트 파일 마이그레이션 완료
+
+### 의존성 업데이트
+- [x] backend/server.js 업데이트 (라인 159)
+- [x] backend/routes/payroll.js 검증 (라인 423-424) - 변경 불필요 (global.errorLoggingService 유지)
+- [x] backend/repositories/PayrollRepository.js 검증 (라인 123-124) - 변경 불필요
+- [ ] backend/middleware/errorHandler.js 통합 고려
+
+### 테스트
+- [ ] tests/unit/error-logging-monitoring.test.js 분할 및 업데이트
+- [ ] 각 새 서비스에 대한 단위 테스트 작성
+- [ ] 통합 테스트 실행 및 검증
+- [ ] 감사 추적 기능 테스트
+- [ ] 에러 로깅 기능 테스트
+- [ ] 모니터링 메트릭 수집 테스트
+- [ ] 알림 시스템 테스트
+
+### 문서화
+- [ ] docs/development/FUNCTIONS_VARIABLES.md 업데이트
+- [ ] API 문서 업데이트
+- [ ] README 업데이트 (필요시)
+- [ ] 리팩토링 완료 보고서 작성
+
+### 최종 검증
 - [ ] 코드 리뷰 완료
+- [ ] 성능 테스트 통과
+- [ ] 메모리 사용량 확인
+- [ ] 로그 출력 검증
 - [ ] 프로덕션 배포 준비 완료
+- [ ] 롤백 계획 확인
 
 ## 📝 추가 고려사항
 
@@ -327,9 +373,32 @@ global.monitoringService = new MonitoringService(db);
 
 | 파일 | 사용 메서드 | 용도 | 마이그레이션 영향도 |
 |------|------------|------|-------------------|
-| server.js | constructor | 서비스 초기화 | 낮음 (인터페이스 유지) |
-| routes/payroll.js | logAuditTrail | 급여 수정 감사 | 없음 (메서드 유지) |
-| repositories/PayrollRepository.js | logAuditTrail | 데이터 변경 감사 | 없음 (메서드 유지) |
+| server.js (라인 159) | constructor | 서비스 초기화 | 낮음 (인터페이스 유지) |
+| routes/payroll.js (라인 423-424) | logAuditTrail | 급여 수정 감사 | 없음 (메서드 유지) |
+| repositories/PayrollRepository.js (라인 123-124) | logAuditTrail | 데이터 변경 감사 | 없음 (메서드 유지) |
+| tests/unit/error-logging-monitoring.test.js | 직접 컬렉션 접근 | 테스트용 | 테스트 수정 필요 |
+
+### MongoDB 컬렉션 사용 현황
+
+| 컬렉션 | 사용 위치 | 용도 |
+|--------|---------|------|
+| error_logs | ErrorLoggingMonitoringService | 에러 로그 저장 |
+| monitoring_data | ErrorLoggingMonitoringService | 모니터링 데이터 및 감사 추적 |
+| alert_history | ErrorLoggingMonitoringService | 알림 이력 |
+
+### 환경 변수 의존성
+
+현재 ErrorLoggingMonitoringService에서 사용하는 환경 변수:
+- `NODE_ENV` - 환경 구분 (development/staging/production)
+- `npm_package_version` - 애플리케이션 버전
+- `LOG_LEVEL` (backend/.env.staging에 정의) - 로깅 레벨 설정
+
+### 테스트 파일 영향
+
+**tests/unit/error-logging-monitoring.test.js**
+- MongoDB 컬렉션 직접 접근
+- 리팩토링 후 각 서비스별 테스트로 분리 필요
+- 테스트 시나리오: ValidationError, DatabaseError, BusinessLogicError, SystemError
 
 ### 위험 완화 방안
 
@@ -377,7 +446,9 @@ const errorHandler = (err, req, res, next) => {
 - 프로덕션 환경에서의 디버깅 개선
 
 ## 🕐 예상 소요 시간
-- 총 소요 시간: 약 10시간
+- Phase 1-7: 약 10시간
+- Phase 8 (테스트 마이그레이션): 0.5시간
+- 총 소요 시간: 약 10.5시간
 - 권장 작업 일정: 2-3일에 걸쳐 단계적 진행
 
 ## 📌 다음 단계

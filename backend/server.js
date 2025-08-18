@@ -154,9 +154,9 @@ async function connectDB() {
     console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
     console.log(`📊 Using database: ${DB_NAME}`);
 
-    // Initialize ErrorLoggingMonitoringService globally
-    const ErrorLoggingMonitoringService = require('./services/ErrorLoggingMonitoringService');
-    global.errorLoggingService = new ErrorLoggingMonitoringService(db);
+    // Initialize MonitoringService globally (refactored from ErrorLoggingMonitoringService)
+    const MonitoringService = require('./services/monitoring');
+    global.errorLoggingService = new MonitoringService(db);
     console.log('📝 Error logging and monitoring service initialized');
 
     // Initialize sample data

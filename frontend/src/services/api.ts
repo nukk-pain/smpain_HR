@@ -313,6 +313,15 @@ class ApiService {
     return this.get(`/payroll/monthly/${yearMonth}`);
   }
 
+  async exportPayrollExcel(yearMonth: string) {
+    const response = await this.request({
+      method: 'GET',
+      url: `/payroll/monthly/${yearMonth}/export`,
+      responseType: 'blob'
+    });
+    return response;
+  }
+
   async updatePayroll(data: any) {
     return this.post('/payroll/monthly', data);
   }

@@ -5,6 +5,7 @@
     "db:reset:atlas": "NODE_ENV=production node scripts/resetDatabase.js"
   },
   "dependencies": {
-    "axios": "^1.11.0"
+    "axios": "^1.11.0",
+    "xlsx": "^0.18.5"
   }
 }

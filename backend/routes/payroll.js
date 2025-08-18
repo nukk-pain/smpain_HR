@@ -185,7 +185,9 @@ function createPayrollRoutes(db) {
             employee: {
               full_name: { $arrayElemAt: ['$user.name', 0] },
               username: { $arrayElemAt: ['$user.username', 0] },
-              department: { $arrayElemAt: ['$user.department', 0] }
+              department: { $arrayElemAt: ['$user.department', 0] },
+              employeeId: { $arrayElemAt: ['$user.employeeId', 0] },
+              position: { $arrayElemAt: ['$user.position', 0] }
             },
             year_month: '$yearMonth',
             base_salary: '$baseSalary',
@@ -221,13 +223,57 @@ function createPayrollRoutes(db) {
             employee: {
               full_name: { $arrayElemAt: ['$user.name', 0] },
               username: { $arrayElemAt: ['$user.username', 0] },
-              department: { $arrayElemAt: ['$user.department', 0] }
+              department: { $arrayElemAt: ['$user.department', 0] },
+              employeeId: { $arrayElemAt: ['$user.employeeId', 0] },
+              position: { $arrayElemAt: ['$user.position', 0] }
             },
             year_month: { $literal: year_month }, // Convert to string format for consistency
             base_salary: '$baseSalary',
             incentive: { $ifNull: ['$allowances.incentive', 0] },
             bonus: { $literal: 0 }, // Not in new schema
             award: { $literal: 0 }, // Not in new schema
+            // Add detailed allowances object
+            allowances: {
+              incentive: { $ifNull: ['$allowances.incentive', 0] },
+              meal: { $ifNull: ['$allowances.meal', 0] },
+              transportation: { $ifNull: ['$allowances.transportation', 0] },
+              childCare: { $ifNull: ['$allowances.childCare', 0] },
+              overtime: { $ifNull: ['$allowances.overtime', 0] },
+              nightShift: { $ifNull: ['$allowances.nightShift', 0] },
+              holidayWork: { $ifNull: ['$allowances.holidayWork', 0] },
+              other: { $ifNull: ['$allowances.other', 0] }
+            },
+            // Add detailed deductions object
+            deductions: {
+              nationalPension: { $ifNull: ['$deductions.nationalPension', 0] },
+              healthInsurance: { $ifNull: ['$deductions.healthInsurance', 0] },
+              employmentInsurance: { $ifNull: ['$deductions.employmentInsurance', 0] },
+              incomeTax: { $ifNull: ['$deductions.incomeTax', 0] },
+              localIncomeTax: { $ifNull: ['$deductions.localIncomeTax', 0] }
+            },
+            // Calculate total allowances
+            total_allowances: {
+              $add: [
+                { $ifNull: ['$allowances.incentive', 0] },
+                { $ifNull: ['$allowances.meal', 0] },
+                { $ifNull: ['$allowances.transportation', 0] },
+                { $ifNull: ['$allowances.childCare', 0] },
+                { $ifNull: ['$allowances.overtime', 0] },
+                { $ifNull: ['$allowances.nightShift', 0] },
+                { $ifNull: ['$allowances.holidayWork', 0] },
+                { $ifNull: ['$allowances.other', 0] }
+              ]
+            },
+            // Calculate total deductions
+            total_deductions: {
+              $add: [
+                { $ifNull: ['$deductions.nationalPension', 0] },
+                { $ifNull: ['$deductions.healthInsurance', 0] },
+                { $ifNull: ['$deductions.employmentInsurance', 0] },
+                { $ifNull: ['$deductions.incomeTax', 0] },
+                { $ifNull: ['$deductions.localIncomeTax', 0] }
+              ]
+            },
             total_input: {
               $add: [
                 '$baseSalary',
@@ -258,6 +304,178 @@ function createPayrollRoutes(db) {
     } catch (error) {
       console.error('Get monthly payroll error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
+  // Export monthly payroll data to Excel
+  router.get('/monthly/:year_month/export', requireAuth, asyncHandler(async (req, res) => {
+    try {
+      const { year_month } = req.params;
+      const XLSX = require('xlsx');
+      
+      // Parse year and month from year_month string (e.g., "2025-06")
+      const [yearStr, monthStr] = year_month.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      
+      // Query data from monthlyPayments collection (old system)
+      const monthlyPaymentsDb = db.collection('monthlyPayments');
+      const monthlyPayrollData = await monthlyPaymentsDb.aggregate([
+        {
+          $match: {
+            year_month: year_month
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'employee_id',
+            foreignField: '_id',
+            as: 'employee_data'
+          }
+        },
+        {
+          $project: {
+            employee_id: 1,
+            employee: { $arrayElemAt: ['$employee_data', 0] },
+            base_salary: 1,
+            incentive: 1,
+            bonus: 1,
+            award: 1,
+            total_input: 1,
+            actual_payment: 1,
+            difference: 1,
+            incentive_formula: 1,
+            sales_amount: 1
+          }
+        },
+        { $sort: { 'employee.full_name': 1 } }
+      ]).toArray();
+
+      // Query data from payroll collection (new system)
+      const payrollDb = db.collection('payroll');
+      const newPayrollData = await payrollDb.aggregate([
+        {
+          $match: {
+            year: year,
+            month: month
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'employeeId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $project: {
+            employee_id: '$employeeId',
+            employee: {
+              _id: { $arrayElemAt: ['$user._id', 0] },
+              full_name: { $arrayElemAt: ['$user.full_name', 0] },
+              username: { $arrayElemAt: ['$user.username', 0] },
+              department: { $arrayElemAt: ['$user.department', 0] },
+              employeeId: { $arrayElemAt: ['$user.employeeId', 0] },
+              position: { $arrayElemAt: ['$user.position', 0] }
+            },
+            base_salary: '$baseSalary',
+            
+            // Individual allowances for Excel export
+            meal_allowance: { $ifNull: ['$allowances.meal', 0] },
+            transportation_allowance: { $ifNull: ['$allowances.transportation', 0] },
+            childcare_allowance: { $ifNull: ['$allowances.childCare', 0] },
+            overtime_allowance: { $ifNull: ['$allowances.overtime', 0] },
+            nightshift_allowance: { $ifNull: ['$allowances.nightShift', 0] },
+            holiday_allowance: { $ifNull: ['$allowances.holidayWork', 0] },
+            other_allowance: { $ifNull: ['$allowances.other', 0] },
+            incentive: { $ifNull: ['$allowances.incentive', 0] },
+            
+            // Deductions
+            national_pension: { $ifNull: ['$deductions.nationalPension', 0] },
+            health_insurance: { $ifNull: ['$deductions.healthInsurance', 0] },
+            employment_insurance: { $ifNull: ['$deductions.employmentInsurance', 0] },
+            income_tax: { $ifNull: ['$deductions.incomeTax', 0] },
+            local_income_tax: { $ifNull: ['$deductions.localIncomeTax', 0] },
+            
+            bonus: { $ifNull: ['$bonuses', 0] },
+            award: { $ifNull: ['$awards', 0] },
+            total_input: '$grossSalary',
+            actual_payment: '$netSalary'
+          }
+        },
+        { $sort: { 'employee.full_name': 1 } }
+      ]).toArray();
+      
+      // Combine results from both collections
+      const combinedPayrollData = [...monthlyPayrollData, ...newPayrollData];
+      
+      // Transform data for Excel export
+      const excelData = combinedPayrollData.map(record => ({
+        '직원명': record.employee?.full_name || '',
+        '직원ID': record.employee?.employeeId || record.employee_id || '',
+        '부서': record.employee?.department || '',
+        '직급': record.employee?.position || '',
+        '기본급': record.base_salary || 0,
+        
+        // Allowances
+        '인센티브': record.incentive || 0,
+        '식대': record.meal_allowance || 0,
+        '교통비': record.transportation_allowance || 0,
+        '보육수당': record.childcare_allowance || 0,
+        '연장근무수당': record.overtime_allowance || 0,
+        '야간근무수당': record.nightshift_allowance || 0,
+        '휴일근무수당': record.holiday_allowance || 0,
+        '기타수당': record.other_allowance || 0,
+        
+        // Deductions
+        '국민연금': record.national_pension || 0,
+        '건강보험': record.health_insurance || 0,
+        '고용보험': record.employment_insurance || 0,
+        '소득세': record.income_tax || 0,
+        '지방소득세': record.local_income_tax || 0,
+        
+        // Bonuses
+        '상여금': record.bonus || 0,
+        '포상금': record.award || 0,
+        
+        // Totals
+        '지급총액': record.total_input || 0,
+        '실지급액': record.actual_payment || 0
+      }));
+      
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Auto-fit column widths
+      const columnWidths = [];
+      Object.keys(excelData[0] || {}).forEach((key, index) => {
+        const maxLength = Math.max(
+          key.length,
+          ...excelData.map(row => String(row[key]).length)
+        );
+        columnWidths[index] = { wch: Math.min(maxLength + 2, 20) };
+      });
+      worksheet['!cols'] = columnWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, `급여현황_${year_month}`);
+      
+      // Generate Excel buffer
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      // Set response headers
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=payroll_${year_month}.xlsx`);
+      
+      // Send the Excel file
+      res.send(excelBuffer);
+      
+    } catch (error) {
+      console.error('Export payroll Excel error:', error);
+      res.status(500).json({ error: 'Excel export failed' });
     }
   }));
 
