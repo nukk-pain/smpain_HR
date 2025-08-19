@@ -490,9 +490,6 @@ const DepartmentManagement: React.FC = () => {
             <Grid size={12}>
             <Card>
               <CardContent>
-                {(() => {
-                  return null;
-                })()}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <PositionIcon color="primary" />
                   <Typography variant="h6">Positions</Typography>

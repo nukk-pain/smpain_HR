@@ -33,7 +33,8 @@ import {
   PersonOutline,
   MoreVert,
   BlockOutlined,
-  CheckCircleOutline
+  CheckCircleOutline,
+  AttachMoney
 } from '@mui/icons-material';
 import { User } from '../types';
 import { SortField, SortOrder } from '../hooks/useUserFilters';
@@ -52,12 +53,14 @@ export interface UserListProps {
   onUserView: (user: User) => void;
   onUserDeactivate?: (user: User) => void;
   onUserReactivate?: (user: User) => void;
+  onUserIncentive?: (user: User) => void;
   onSort?: (field: SortField) => void;
   canEdit: (user: User) => boolean;
   canDelete: (user: User) => boolean;
   canView: (user: User) => boolean;
   canDeactivate?: (user: User) => boolean;
   canReactivate?: (user: User) => boolean;
+  canManageIncentive?: (user: User) => boolean;
   virtualized?: boolean;
   maxHeight?: number;
   emptyMessage?: string;
@@ -111,12 +114,14 @@ export const UserList: React.FC<UserListProps> = memo(({
   onUserView,
   onUserDeactivate,
   onUserReactivate,
+  onUserIncentive,
   onSort,
   canEdit,
   canDelete,
   canView,
   canDeactivate,
   canReactivate,
+  canManageIncentive,
   virtualized = false,
   maxHeight = 600,
   emptyMessage = '등록된 사용자가 없습니다',
@@ -133,6 +138,34 @@ export const UserList: React.FC<UserListProps> = memo(({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Memoize deactivation permissions for all users
+  const deactivationPermissions = useMemo(() => {
+    if (!canDeactivate) return {};
+    
+    const permissions: Record<string, boolean> = {};
+    users.forEach(user => {
+      permissions[user._id] = canDeactivate(user);
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 UserList permission cache updated for', users.length, 'users');
+    }
+    
+    return permissions;
+  }, [users, canDeactivate]);
+
+  // Memoize reactivation permissions for all users  
+  const reactivationPermissions = useMemo(() => {
+    if (!canReactivate) return {};
+    
+    const permissions: Record<string, boolean> = {};
+    users.forEach(user => {
+      permissions[user._id] = canReactivate(user);
+    });
+    
+    return permissions;
+  }, [users, canReactivate]);
+  
   // Memoized event handlers to prevent unnecessary re-renders
   const handleRowClick = useCallback((user: User) => {
     onUserSelect(user);
@@ -144,7 +177,7 @@ export const UserList: React.FC<UserListProps> = memo(({
     }
   }, [onSort]);
 
-  const handleActionClick = useCallback((e: React.MouseEvent, action: 'view' | 'edit' | 'delete' | 'deactivate' | 'reactivate', user: User) => {
+  const handleActionClick = useCallback((e: React.MouseEvent, action: 'view' | 'edit' | 'delete' | 'deactivate' | 'reactivate' | 'incentive', user: User) => {
     e.stopPropagation();
     switch (action) {
       case 'view':
@@ -166,8 +199,13 @@ export const UserList: React.FC<UserListProps> = memo(({
           onUserReactivate(user);
         }
         break;
+      case 'incentive':
+        if (onUserIncentive) {
+          onUserIncentive(user);
+        }
+        break;
     }
-  }, [onUserView, onUserEdit, onUserDelete, onUserDeactivate, onUserReactivate]);
+  }, [onUserView, onUserEdit, onUserDelete, onUserDeactivate, onUserReactivate, onUserIncentive]);
 
   // Memoized helper functions
   const isSelected = useCallback((user: User) => {
@@ -394,6 +432,21 @@ export const UserList: React.FC<UserListProps> = memo(({
                           </span>
                         </Tooltip>
                         
+                        {canManageIncentive && canManageIncentive(user) && (
+                          <Tooltip title="인센티브 설정">
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleActionClick(e, 'incentive', user)}
+                                aria-label="인센티브 설정"
+                                color="primary"
+                              >
+                                <AttachMoney fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                        
                         <Tooltip title="사용자 삭제">
                           <span>
                             <IconButton
@@ -408,29 +461,22 @@ export const UserList: React.FC<UserListProps> = memo(({
                           </span>
                         </Tooltip>
                         
-                        {(() => {
-                          const hasDeactivateFunction = !!canDeactivate;
-                          const canDeactivateResult = hasDeactivateFunction ? canDeactivate(user) : false;
-                          
-                          console.log(`🔍 UserList deactivate check: ${user.username} | hasFunction: ${hasDeactivateFunction} | canDeactivate: ${canDeactivateResult}`);
-                          
-                          return hasDeactivateFunction && canDeactivateResult && (
-                            <Tooltip title="사용자 비활성화">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  onClick={(e) => handleActionClick(e, 'deactivate', user)}
-                                  aria-label="사용자 비활성화"
-                                  color="warning"
-                                >
-                                  <BlockOutlined fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          );
-                        })()}
+                        {canDeactivate && deactivationPermissions[user._id] && (
+                          <Tooltip title="사용자 비활성화">
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleActionClick(e, 'deactivate', user)}
+                                aria-label="사용자 비활성화"
+                                color="warning"
+                              >
+                                <BlockOutlined fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
                         
-                        {canReactivate && canReactivate(user) && (
+                        {canReactivate && reactivationPermissions[user._id] && (
                           <Tooltip title="사용자 재활성화">
                             <span>
                               <IconButton

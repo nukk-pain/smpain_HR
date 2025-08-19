@@ -184,6 +184,11 @@ const supervisorItems = {
       path: '/supervisor/payroll',
       permissions: ['payroll:view', 'payroll:manage'],
     },
+    {
+      text: '인센티브 관리',
+      path: '/supervisor/incentives',
+      permissions: ['payroll:manage'],
+    },
   ],
   'documents': [
     {
@@ -402,6 +407,15 @@ const Layout: React.FC = () => {
       })
     }
   }, [location.pathname, userNavigationGroups, expandedGroups])
+  
+  // Memoize current page title
+  const currentPageTitle = React.useMemo(() => {
+    for (const group of userNavigationGroups) {
+      const item = group.items.find(item => item.path === location.pathname)
+      if (item) return item.text
+    }
+    return '대시보드'
+  }, [location.pathname, userNavigationGroups])
 
   const drawer = (
     <div>
@@ -498,13 +512,7 @@ const Layout: React.FC = () => {
           </IconButton>
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {(() => {
-              for (const group of userNavigationGroups) {
-                const item = group.items.find(item => item.path === location.pathname)
-                if (item) return item.text
-              }
-              return '대시보드'
-            })()}
+            {currentPageTitle}
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

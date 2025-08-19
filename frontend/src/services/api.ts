@@ -667,6 +667,49 @@ class ApiService {
     return this.upload(`/documents/${documentId}/replace`, formData);
   }
 
+  // Incentive Management
+  async getIncentiveTypes(): Promise<ApiResponse<any[]>> {
+    return this.get('/incentive/types');
+  }
+
+  async getIncentiveConfig(userId: string): Promise<ApiResponse<any>> {
+    return this.get(`/incentive/config/${userId}`);
+  }
+
+  async updateIncentiveConfig(userId: string, config: {
+    type: string;
+    parameters: Record<string, number>;
+    customFormula?: string;
+    isActive: boolean;
+    effectiveDate?: string;
+  }): Promise<ApiResponse> {
+    return this.put(`/incentive/config/${userId}`, config);
+  }
+
+  async calculateIncentive(userId: string, yearMonth: string): Promise<ApiResponse<any>> {
+    return this.post('/incentive/calculate', { userId, yearMonth });
+  }
+
+  async simulateIncentive(config: any, salesData: any): Promise<ApiResponse<any>> {
+    return this.post('/incentive/simulate', { config, salesData });
+  }
+
+  async batchCalculateIncentives(yearMonth: string): Promise<ApiResponse<any>> {
+    return this.post('/incentive/batch-calculate', { yearMonth });
+  }
+
+  async getIncentiveHistory(userId: string, startDate?: string, endDate?: string): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const queryString = params.toString();
+    return this.get(`/incentive/history/${userId}${queryString ? '?' + queryString : ''}`);
+  }
+
+  async validateIncentiveFormula(formula: string, testData?: any): Promise<ApiResponse<any>> {
+    return this.post('/incentive/validate', { formula, testData });
+  }
+
   async restoreDocument(documentId: string): Promise<ApiResponse> {
     return this.put(`/documents/${documentId}/restore`, {});
   }

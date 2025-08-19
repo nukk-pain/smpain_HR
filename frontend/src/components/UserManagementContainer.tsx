@@ -13,7 +13,12 @@ import {
   Snackbar,
   CircularProgress,
   Typography,
-  Paper
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from '@mui/material';
 import { User, UserForm as UserFormData } from '../types';
 import { UserFilters } from './UserFilters';
@@ -21,6 +26,7 @@ import { UserActions } from './UserActions';
 import { UserList } from './UserList';
 import { UserForm } from './UserForm';
 import { UserDetails } from './UserDetails';
+import { IncentiveConfig } from './Incentive';
 import { useUserFilters } from '../hooks/useUserFilters';
 import { useUserPermissions } from '../hooks/useUserPermissions';
 import { 
@@ -42,6 +48,8 @@ interface UIState {
   selectedUser: User | null;
   isFormOpen: boolean;
   isDetailsOpen: boolean;
+  isIncentiveOpen: boolean;
+  incentiveUser: User | null;
   editingUser: User | null;
   loading: boolean;
   error: string | null;
@@ -54,6 +62,8 @@ const initialUIState: UIState = {
   selectedUser: null,
   isFormOpen: false,
   isDetailsOpen: false,
+  isIncentiveOpen: false,
+  incentiveUser: null,
   editingUser: null,
   loading: true,
   error: null,
@@ -272,6 +282,21 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
     }
   }, [updateUIState, fetchUsers, showMessage]);
 
+  const handleUserIncentive = useCallback((user: User) => {
+    updateUIState({
+      isIncentiveOpen: true,
+      incentiveUser: user
+    });
+  }, [updateUIState]);
+
+  const handleCloseIncentive = useCallback(() => {
+    updateUIState({
+      isIncentiveOpen: false,
+      incentiveUser: null
+    });
+    fetchUsers(); // Reload users to get updated incentive config
+  }, [updateUIState, fetchUsers]);
+
   const handleFormSubmit = useCallback(async (userData: UserFormData) => {
     try {
       console.log('Submitting user data:', userData);
@@ -403,6 +428,11 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
     };
   }, [uiState.selectedUser, canUpdateUser, canDeleteUser, canViewUser]);
 
+  // Incentive permission check
+  const canManageIncentive = useCallback((user: User) => {
+    return currentUser?.role === 'admin';
+  }, [currentUser]);
+
   // Loading state
   if (isLoading && users.length === 0) {
     return (
@@ -489,12 +519,14 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
             onUserView={handleUserView}
             onUserDeactivate={handleUserDeactivate}
             onUserReactivate={handleUserReactivate}
+            onUserIncentive={handleUserIncentive}
             onSort={(field: any) => setSortBy(field)}
             canEdit={canUpdateUser}
             canDelete={canDeleteUser}
             canView={canViewUser}
             canDeactivate={canDeactivateUser}
             canReactivate={canReactivateUser}
+            canManageIncentive={canManageIncentive}
             emptyMessage="등록된 사용자가 없습니다"
             error={uiState.error}
           />
@@ -526,6 +558,30 @@ export const UserManagementContainer: React.FC<UserManagementContainerProps> = m
         canDelete={selectedUserPermissions.canDelete}
         loading={isLoading}
       />
+
+      {/* Incentive Configuration Dialog */}
+      <Dialog
+        open={uiState.isIncentiveOpen}
+        onClose={handleCloseIncentive}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          인센티브 설정 - {uiState.incentiveUser?.name}
+        </DialogTitle>
+        <DialogContent>
+          {uiState.incentiveUser && (
+            <IncentiveConfig
+              userId={uiState.incentiveUser._id}
+              userName={uiState.incentiveUser.name}
+              onConfigChange={handleCloseIncentive}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseIncentive}>닫기</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar for messages */}
       <Snackbar

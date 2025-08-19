@@ -3,6 +3,9 @@ import { User, AuthState } from '../types'
 import apiService from '../services/api'
 import { storeToken, getValidToken, clearAuth, getUserFromToken } from '../utils/tokenManager'
 
+// Debug flag - set to true only when debugging auth issues
+const DEBUG_AUTH = import.meta.env.DEV && false;
+
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<boolean>
   logout: () => Promise<void>
@@ -20,7 +23,8 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   
-  if (import.meta.env.DEV) {
+  // Only log when explicitly debugging auth issues
+  if (DEBUG_AUTH) {
     console.log('🔍 useAuth called, returning:', {
       isAuthenticated: context.isAuthenticated,
       hasUser: !!context.user,

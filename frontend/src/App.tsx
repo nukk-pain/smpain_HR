@@ -16,6 +16,7 @@ const LeaveManagement = React.lazy(() => import('./pages/LeaveManagement'))
 const EmployeeLeaveManagement = React.lazy(() => import('./pages/EmployeeLeaveManagement'))
 const LeaveCalendarPage = React.lazy(() => import('./pages/LeaveCalendarPage'))
 const TeamLeaveStatusPage = React.lazy(() => import('./pages/TeamLeaveStatusPage'))
+const UnifiedLeaveOverviewPage = React.lazy(() => import('./pages/UnifiedLeaveOverviewPage'))
 const UserManagementPage = React.lazy(() => import('./pages/UserManagementPage'))
 const DepartmentManagementPage = React.lazy(() => import('./pages/DepartmentManagementPage'))
 const Reports = React.lazy(() => import('./pages/Reports'))
@@ -24,6 +25,7 @@ const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview')
 const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
 const MyDocuments = React.lazy(() => import('./pages/MyDocuments'))
 const AdminDocuments = React.lazy(() => import('./pages/AdminDocuments'))
+const IncentiveManagement = React.lazy(() => import('./pages/IncentiveManagement'))
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
@@ -222,7 +224,13 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        
+        <Route path="supervisor/incentives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <IncentiveManagement />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
         
         <Route path="supervisor/reports" element={
           <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
@@ -241,7 +249,16 @@ const AppContent: React.FC = () => {
         } />
         
         
+        {/* Unified Leave Overview - replaces both admin/leave/overview and supervisor/leave/status */}
+        <Route path="leave/overview" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <UnifiedLeaveOverviewPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
         
+        {/* Keep old routes temporarily for backward compatibility */}
         <Route path="admin/leave/overview" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>

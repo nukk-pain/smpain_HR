@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -86,6 +86,23 @@ const LeaveManagement: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
 
   const apiService = new ApiService();
+
+  // Memoize date range calculation
+  const dateRange = useMemo(() => {
+    if (!formData.startDate || !formData.endDate) return [];
+    
+    const dates = [];
+    const start = parseISO(formData.startDate);
+    const end = parseISO(formData.endDate);
+    let current = new Date(start);
+    
+    while (current <= end) {
+      dates.push(format(current, 'yyyy-MM-dd'));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+  }, [formData.startDate, formData.endDate]);
 
   useEffect(() => {
     loadData();
@@ -678,41 +695,29 @@ const LeaveManagement: React.FC = () => {
                       개인적으로 정해진 오프일이 휴가 기간에 포함된 경우 선택하세요. 이 날들은 연차에서 차감되지 않습니다.
                     </Typography>
                     <Grid container spacing={1}>
-                      {(() => {
-                        const dates = [];
-                        const start = parseISO(formData.startDate);
-                        const end = parseISO(formData.endDate);
-                        let current = new Date(start);
+                      {dateRange.map(dateStr => {
+                        const date = parseISO(dateStr);
+                        const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+                        const isSelected = formData.personalOffDays?.includes(dateStr);
                         
-                        while (current <= end) {
-                          dates.push(format(current, 'yyyy-MM-dd'));
-                          current.setDate(current.getDate() + 1);
-                        }
-                        
-                        return dates.map(dateStr => {
-                          const date = parseISO(dateStr);
-                          const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-                          const isSelected = formData.personalOffDays?.includes(dateStr);
-                          
-                          return (
-                            <Grid key={dateStr}>
-                              <Chip
-                                label={`${format(date, 'MM/dd')} (${dayOfWeek})`}
-                                color={isSelected ? "primary" : "default"}
-                                variant={isSelected ? "filled" : "outlined"}
-                                onClick={() => {
-                                  const current = formData.personalOffDays || [];
-                                  const newOffDays = isSelected 
-                                    ? current.filter(d => d !== dateStr)
-                                    : [...current, dateStr];
-                                  setFormData({ ...formData, personalOffDays: newOffDays });
-                                }}
-                                sx={{ cursor: 'pointer' }}
-                              />
-                            </Grid>
-                          );
-                        });
-                      })()}
+                        return (
+                          <Grid key={dateStr}>
+                            <Chip
+                              label={`${format(date, 'MM/dd')} (${dayOfWeek})`}
+                              color={isSelected ? "primary" : "default"}
+                              variant={isSelected ? "filled" : "outlined"}
+                              onClick={() => {
+                                const current = formData.personalOffDays || [];
+                                const newOffDays = isSelected 
+                                  ? current.filter(d => d !== dateStr)
+                                  : [...current, dateStr];
+                                setFormData({ ...formData, personalOffDays: newOffDays });
+                              }}
+                              sx={{ cursor: 'pointer' }}
+                            />
+                          </Grid>
+                        );
+                      })}
                     </Grid>
                     {formData.personalOffDays && formData.personalOffDays.length > 0 && (
                       <Alert severity="success" sx={{ mt: 2 }}>
