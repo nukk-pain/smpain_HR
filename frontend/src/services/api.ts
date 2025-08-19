@@ -648,6 +648,28 @@ class ApiService {
   }): Promise<ApiResponse> {
     return this.post('/documents/certificate/generate', data);
   }
+
+  // Admin Document Management
+  async getAdminDocuments(params?: {
+    userId?: string;
+    type?: string;
+    includeDeleted?: boolean;
+  }): Promise<ApiResponse<any[]>> {
+    const queryString = new URLSearchParams(params as any).toString();
+    return this.get(`/documents/admin/all${queryString ? '?' + queryString : ''}`);
+  }
+
+  async deleteDocument(documentId: string, reason: string): Promise<ApiResponse> {
+    return this.delete(`/documents/${documentId}`, { reason });
+  }
+
+  async replaceDocument(documentId: string, formData: FormData): Promise<ApiResponse> {
+    return this.upload(`/documents/${documentId}/replace`, formData);
+  }
+
+  async restoreDocument(documentId: string): Promise<ApiResponse> {
+    return this.put(`/documents/${documentId}/restore`, {});
+  }
 }
 
 // Export class and singleton instance

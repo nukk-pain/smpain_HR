@@ -1053,7 +1053,11 @@ function createReportsRoutes(db) {
               userId: new ObjectId(mapping.userId),
               year: year,
               month: month,
-              documentType: 'payslip'
+              documentType: 'payslip',
+              $or: [
+                { deleted: false },
+                { deleted: { $exists: false } }
+              ]
             });
 
             if (existingPayslip) {

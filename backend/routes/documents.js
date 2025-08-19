@@ -215,7 +215,11 @@ function createDocumentsRoutes(db) {
       const file = req.file;
       
       if (!file) {
-        return res.status(400).json({ error: 'No file provided' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'No file provided',
+          message: 'Please select a file to upload'
+        });
       }
 
       // Find existing document
@@ -226,8 +230,16 @@ function createDocumentsRoutes(db) {
 
       if (!existingPayslip) {
         // Delete temporary file
-        await fs.unlink(file.path);
-        return res.status(404).json({ error: 'Document not found' });
+        try {
+          await fs.unlink(file.path);
+        } catch (unlinkError) {
+          console.error('Failed to delete temp file:', unlinkError);
+        }
+        return res.status(404).json({ 
+          success: false,
+          error: 'Document not found',
+          message: 'The document you are trying to replace does not exist'
+        });
       }
 
       // Backup old file (soft delete)
@@ -283,17 +295,29 @@ function createDocumentsRoutes(db) {
       const { id } = req.params;
       const { reason } = req.body;
 
-      const payslipsCollection = db.collection('payslips');
-      const payslip = await payslipsCollection.findOne({
+      // Check payroll_documents collection first
+      const payrollDocsCollection = db.collection('payroll_documents');
+      let document = await payrollDocsCollection.findOne({
         _id: new ObjectId(id)
       });
+      
+      let collectionToUpdate = payrollDocsCollection;
+      
+      // If not found in payroll_documents, check payslips collection
+      if (!document) {
+        const payslipsCollection = db.collection('payslips');
+        document = await payslipsCollection.findOne({
+          _id: new ObjectId(id)
+        });
+        collectionToUpdate = payslipsCollection;
+      }
 
-      if (!payslip) {
+      if (!document) {
         return res.status(404).json({ error: 'Document not found' });
       }
 
       // Soft delete - actual file deleted after 30 days
-      await payslipsCollection.updateOne(
+      await collectionToUpdate.updateOne(
         { _id: new ObjectId(id) },
         {
           $set: {
@@ -301,6 +325,14 @@ function createDocumentsRoutes(db) {
             deletedAt: new Date(),
             deletedBy: new ObjectId(req.user.id),
             deleteReason: reason || 'Admin deletion'
+          },
+          $push: {
+            modificationHistory: {
+              action: 'deleted',
+              performedBy: new ObjectId(req.user.id),
+              performedAt: new Date(),
+              reason: reason || 'Admin deletion'
+            }
           }
         }
       );
@@ -324,13 +356,23 @@ function createDocumentsRoutes(db) {
         query.deleted = { $ne: true };
       }
 
-      // Get all payslips
+      // Get all payslips from payroll_documents collection
+      const payrollDocsCollection = db.collection('payroll_documents');
+      let payrollQuery = { ...query };
+      if (type === 'payslip' || !type) {
+        payrollQuery.documentType = 'payslip';
+        delete payrollQuery.type;
+      }
+      const payrollDocs = await payrollDocsCollection.find(payrollQuery).toArray();
+      
+      // Also get payslips from legacy payslips collection
       const payslipsCollection = db.collection('payslips');
       const payslips = await payslipsCollection.find(query).toArray();
 
-      // Get user information for each payslip
+      // Get user information for all payslips
       const usersCollection = db.collection('users');
-      const userIds = [...new Set(payslips.map(p => p.userId.toString()))];
+      const allPayslipIds = [...payrollDocs.map(p => p.userId.toString()), ...payslips.map(p => p.userId.toString())];
+      const userIds = [...new Set(allPayslipIds)];
       const users = await usersCollection.find({
         _id: { $in: userIds.map(id => new ObjectId(id)) }
       }).toArray();
@@ -340,7 +382,30 @@ function createDocumentsRoutes(db) {
         return acc;
       }, {});
 
-      // Convert payslips to Document format with user info
+      // Convert payroll_documents to Document format with user info
+      const payrollDocuments = payrollDocs.map(p => ({
+        _id: p._id,
+        userId: p.userId,
+        userName: userMap[p.userId.toString()]?.name || 'Unknown',
+        userEmployeeId: userMap[p.userId.toString()]?.employeeId || 'Unknown',
+        type: 'payslip',
+        category: '급여명세서',
+        title: `${p.year}년 ${p.month}월 급여명세서`,
+        fileName: p.originalFilename || p.fileName || `payslip_${p.year}_${p.month}.pdf`,
+        fileSize: p.fileSize || 0,
+        mimeType: 'application/pdf',
+        date: p.uploadedAt || p.createdAt || new Date(),
+        year: p.year,
+        month: p.month,
+        status: p.deleted ? 'deleted' : 'available',
+        deleted: p.deleted,
+        deletedAt: p.deletedAt,
+        deletedBy: p.deletedBy,
+        deleteReason: p.deleteReason,
+        modificationHistory: p.modificationHistory || [],
+      }));
+      
+      // Convert legacy payslips to Document format with user info
       const payslipDocuments = payslips.map(p => ({
         _id: p._id,
         userId: p.userId,
@@ -367,8 +432,30 @@ function createDocumentsRoutes(db) {
       const documentsCollection = db.collection('documents');
       const otherDocuments = await documentsCollection.find(query).toArray();
 
-      // Merge and sort
-      const allDocuments = [...payslipDocuments, ...otherDocuments]
+      // Merge all documents, remove duplicates based on userId+year+month
+      const documentsMap = new Map();
+      
+      // Add payroll_documents first (priority)
+      payrollDocuments.forEach(doc => {
+        const key = `${doc.userId}_${doc.year}_${doc.month}`;
+        documentsMap.set(key, doc);
+      });
+      
+      // Add legacy payslips (won't override if already exists)
+      payslipDocuments.forEach(doc => {
+        const key = `${doc.userId}_${doc.year}_${doc.month}`;
+        if (!documentsMap.has(key)) {
+          documentsMap.set(key, doc);
+        }
+      });
+      
+      // Add other documents
+      otherDocuments.forEach(doc => {
+        documentsMap.set(doc._id.toString(), doc);
+      });
+      
+      // Convert map to array and sort
+      const allDocuments = Array.from(documentsMap.values())
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
       res.json({ success: true, data: allDocuments });
@@ -413,8 +500,9 @@ function createDocumentsRoutes(db) {
     asyncHandler(async (req, res) => {
       const { id } = req.params;
 
-      const payslipsCollection = db.collection('payslips');
-      const result = await payslipsCollection.updateOne(
+      // Try payroll_documents collection first
+      const payrollDocsCollection = db.collection('payroll_documents');
+      let result = await payrollDocsCollection.updateOne(
         { _id: new ObjectId(id) },
         {
           $set: {
@@ -432,6 +520,29 @@ function createDocumentsRoutes(db) {
           }
         }
       );
+
+      // If not found in payroll_documents, try payslips collection
+      if (result.matchedCount === 0) {
+        const payslipsCollection = db.collection('payslips');
+        result = await payslipsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: {
+              deleted: false,
+              restoredAt: new Date(),
+              restoredBy: new ObjectId(req.user.id)
+            },
+            $push: {
+              modificationHistory: {
+                action: 'restored',
+                performedBy: new ObjectId(req.user.id),
+                performedAt: new Date(),
+                reason: 'Document restored from trash'
+              }
+            }
+          }
+        );
+      }
 
       if (result.matchedCount === 0) {
         return res.status(404).json({ error: 'Document not found' });

@@ -2,6 +2,20 @@
 
 This document maintains a registry of all functions and variables in the HR system to prevent duplication and encourage reuse.
 
+## Document Type Management Functions
+
+### Configuration (`frontend/src/config/documentTypes.ts`)
+
+#### Constants
+- `DOCUMENT_TYPES` - Object containing document type constants (PAYSLIP, CERTIFICATE, CONTRACT, OTHER)
+- `DOCUMENT_TYPE_LABELS` - Maps internal type codes to Korean labels
+
+#### Functions
+- `getDocumentTypeLabel(type: string): string` - Returns Korean label for document type, or original type if not found
+  - Used in: AdminDocuments.tsx (line 423), can be used in MyDocuments.tsx
+  - Purpose: Translates internal document type codes (e.g., 'payslip') to user-friendly Korean labels (e.g., '급여명세서')
+  - Note: When adding new document types or changing labels, update this config file only
+
 ## Payroll Excel Upload Functions
 
 ### API Service Methods (`frontend/src/services/api.ts`)

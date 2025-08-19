@@ -156,6 +156,14 @@ const AppContent: React.FC = () => {
             </React.Suspense>
           </ProtectedRoute>
         } />
+
+        <Route path="admin/documents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminDocuments />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
         
         {/* Redirect old URLs to new structure */}
         <Route path="leave-calendar" element={<Navigate to="/leave/calendar" replace />} />
