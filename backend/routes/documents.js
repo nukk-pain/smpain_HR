@@ -5,8 +5,10 @@ const path = require('path');
 const fs = require('fs').promises;
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
 const { requirePermission } = require('../middleware/permissions');
+const UnifiedDocumentRepository = require('../repositories/UnifiedDocumentRepository');
 
 const router = express.Router();
+const unifiedRepo = new UnifiedDocumentRepository();
 
 function createDocumentsRoutes(db) {
   // Permission check middleware
@@ -40,59 +42,43 @@ function createDocumentsRoutes(db) {
       const userId = req.user.id;
       const { type, year, month, category } = req.query;
       
-      // Build query conditions
-      let query = { userId: new ObjectId(userId) };
-      if (type) query.type = type;
-      if (year) query.year = parseInt(year);
-      if (month) query.month = parseInt(month);
-      if (category) query.category = category;
-
-      // Get data from existing payslips collection (backward compatibility)
-      const payslipsCollection = db.collection('payslips');
-      const payslips = await payslipsCollection.find({
-        userId: new ObjectId(userId),
-        deleted: { $ne: true }  // Exclude soft deleted documents
-      }).toArray();
-
-      // Convert payslips to Document format
-      const payslipDocuments = payslips.map(p => ({
-        _id: p._id,
-        type: 'payslip',
-        category: '급여명세서',
-        title: `${p.year}년 ${p.month}월 급여명세서`,
-        fileName: p.originalFilename || p.fileName || 'payslip.pdf',
-        fileSize: p.fileSize || 0,
-        mimeType: 'application/pdf',
-        date: p.uploadedAt || p.createdAt || new Date(),
-        year: p.year,
-        month: p.month,
-        status: 'available',
+      // Use UnifiedDocumentRepository to get all user documents
+      const options = {
+        documentType: type,
+        year: year ? parseInt(year) : undefined,
+        month: month ? parseInt(month) : undefined,
+        includeDeleted: false
+      };
+      
+      // Get documents from unified collection
+      const unifiedDocuments = await unifiedRepo.findUserDocuments(userId, options);
+      
+      // Transform to frontend expected format for backward compatibility
+      const formattedDocuments = unifiedDocuments.map(doc => ({
+        _id: doc._id,
+        type: doc.documentType,
+        category: doc.documentCategory || '기타',
+        title: doc.file?.displayName || `${doc.temporal?.year}년 ${doc.temporal?.month}월 ${doc.documentType}`,
+        fileName: doc.file?.originalName || doc.file?.systemName || 'document.pdf',
+        fileSize: doc.file?.size || 0,
+        mimeType: doc.file?.mimeType || 'application/pdf',
+        date: doc.audit?.uploadedAt || doc.audit?.createdAt || new Date(),
+        year: doc.temporal?.year,
+        month: doc.temporal?.month,
+        status: doc.status?.current || 'available',
         canDownload: true,
         canView: true,
         metadata: {
-          yearMonth: p.yearMonth,
-          payrollId: p.payrollId
+          yearMonth: doc.temporal?.yearMonth,
+          payrollId: doc.metadata?.payroll?.payrollId,
+          ...doc.metadata
         }
       }));
 
-      // Get data from new documents collection (for future expansion)
-      const documentsCollection = db.collection('documents');
-      const otherDocuments = await documentsCollection.find(query).toArray();
-
-      // Merge and sort
-      const allDocuments = [...payslipDocuments, ...otherDocuments]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      // Apply type filter if specified
-      let filteredDocuments = allDocuments;
-      if (type) {
-        filteredDocuments = allDocuments.filter(doc => doc.type === type);
-      }
-      if (year) {
-        filteredDocuments = filteredDocuments.filter(doc => doc.year === parseInt(year));
-      }
-      if (month) {
-        filteredDocuments = filteredDocuments.filter(doc => doc.month === parseInt(month));
+      // Apply category filter if specified
+      let filteredDocuments = formattedDocuments;
+      if (category) {
+        filteredDocuments = formattedDocuments.filter(doc => doc.category === category);
       }
 
       res.json({ success: true, data: filteredDocuments });
@@ -106,71 +92,57 @@ function createDocumentsRoutes(db) {
       const { id } = req.params;
       const userId = req.user.id;
 
-      // Check payslips collection
-      const payslipsCollection = db.collection('payslips');
-      const payslip = await payslipsCollection.findOne({
-        _id: new ObjectId(id)
-      });
+      // Get document from unified collection
+      const document = await unifiedRepo.findById(id);
 
-      if (payslip) {
-        // Permission check - own document or Admin
-        if (payslip.userId.toString() !== userId && req.user.role !== 'Admin') {
-          return res.status(403).json({ error: 'Access denied' });
-        }
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
 
-        // Build file path
-        const fileName = payslip.uniqueFileName || payslip.fileName;
-        if (!fileName) {
-          return res.status(404).json({ error: 'File not found' });
-        }
+      // Permission check - own document or Admin
+      if (document.userId.toString() !== userId && req.user.role !== 'Admin' && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
 
-        const filePath = path.join(__dirname, '../uploads/payslips/', fileName);
-        
-        try {
-          await fs.access(filePath);
-          
-          // UTF-8 encoding for original filename
-          const originalFilename = payslip.originalFilename || 'payslip.pdf';
-          const encodedFilename = encodeURIComponent(originalFilename);
-          res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
-          res.setHeader('Content-Type', 'application/pdf');
-          
-          res.sendFile(filePath);
-        } catch (error) {
-          console.error('File access error:', error);
-          res.status(404).json({ error: 'File not found' });
-        }
+      // Check if file exists
+      if (!document.file?.path && !document.file?.systemName) {
+        return res.status(404).json({ error: 'File path not found' });
+      }
+
+      // Build file path - handle both absolute and relative paths
+      let filePath;
+      if (document.file.path?.startsWith('/')) {
+        // Relative path from project root
+        filePath = path.join(__dirname, '../..', document.file.path);
       } else {
-        // Check documents collection (for future expansion)
-        const documentsCollection = db.collection('documents');
-        const document = await documentsCollection.findOne({
-          _id: new ObjectId(id)
-        });
-
-        if (!document) {
-          return res.status(404).json({ error: 'Document not found' });
-        }
-
-        // Permission check
-        if (document.userId.toString() !== userId && req.user.role !== 'Admin') {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-
-        // Handle by document type
-        if (document.type === 'certificate') {
-          // Certificates are generated in real-time
-          // TODO: Implement PDF generation logic
-          res.status(501).json({ error: 'Certificate generation not implemented yet' });
+        // Try to construct path based on document type
+        const fileName = document.file.uniqueId || document.file.systemName || document.file.originalName;
+        if (document.documentType === 'payslip') {
+          filePath = path.join(__dirname, '../uploads/payslips/', fileName);
         } else {
-          // File download
-          const filePath = path.join(__dirname, '../uploads/documents/', document.fileName);
-          try {
-            await fs.access(filePath);
-            res.sendFile(filePath);
-          } catch (error) {
-            res.status(404).json({ error: 'File not found' });
-          }
+          filePath = path.join(__dirname, '../uploads/documents/', fileName);
         }
+      }
+      
+      try {
+        await fs.access(filePath);
+        
+        // Log access
+        await unifiedRepo.logAccess(id, userId, 'download', {
+          userName: req.user.name,
+          ipAddress: req.ip
+        });
+        
+        // UTF-8 encoding for original filename
+        const originalFilename = document.file.originalName || document.file.displayName || 'document.pdf';
+        const encodedFilename = encodeURIComponent(originalFilename);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
+        res.setHeader('Content-Type', document.file.mimeType || 'application/pdf');
+        
+        res.sendFile(filePath);
+      } catch (error) {
+        console.error('File access error:', error);
+        res.status(404).json({ error: 'File not found' });
       }
     })
   );
@@ -222,13 +194,10 @@ function createDocumentsRoutes(db) {
         });
       }
 
-      // Find existing document
-      const payslipsCollection = db.collection('payslips');
-      const existingPayslip = await payslipsCollection.findOne({
-        _id: new ObjectId(id)
-      });
+      // Find existing document in unified collection
+      const existingDoc = await unifiedRepo.findById(id);
 
-      if (!existingPayslip) {
+      if (!existingDoc) {
         // Delete temporary file
         try {
           await fs.unlink(file.path);
@@ -242,46 +211,50 @@ function createDocumentsRoutes(db) {
         });
       }
 
-      // Backup old file (soft delete)
-      const backupDir = path.join(__dirname, '../uploads/payslips/backup/');
+      // Determine upload directory based on document type
+      const uploadDir = existingDoc.documentType === 'payslip' ? 
+        path.join(__dirname, '../uploads/payslips/') : 
+        path.join(__dirname, '../uploads/documents/');
+      const backupDir = path.join(uploadDir, 'backup/');
       await fs.mkdir(backupDir, { recursive: true });
       
-      const oldFilePath = path.join(__dirname, '../uploads/payslips/', existingPayslip.uniqueFileName || existingPayslip.fileName);
-      const backupFilePath = path.join(backupDir, `${Date.now()}_${existingPayslip.uniqueFileName || existingPayslip.fileName}`);
+      // Backup old file
+      const oldFileName = existingDoc.file?.systemName || existingDoc.file?.uniqueId || 'unknown';
+      const oldFilePath = path.join(uploadDir, oldFileName);
+      const backupFilePath = path.join(backupDir, `${Date.now()}_${oldFileName}`);
       
       try {
+        await fs.access(oldFilePath);
         await fs.rename(oldFilePath, backupFilePath);
       } catch (error) {
         console.error('Failed to backup old file:', error);
       }
 
-      // Replace with new file
-      const newFileName = `payslip_${Date.now()}_${file.originalname}`;
-      const newFilePath = path.join(__dirname, '../uploads/payslips/', newFileName);
+      // Move new file to proper location
+      const newFileName = `${existingDoc.documentType}_${Date.now()}_${file.originalname}`;
+      const newFilePath = path.join(uploadDir, newFileName);
       await fs.rename(file.path, newFilePath);
 
-      // Update DB with audit trail
-      await payslipsCollection.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $set: {
-            uniqueFileName: newFileName,
-            originalFilename: file.originalname,
-            fileSize: file.size,
-            updatedAt: new Date(),
-            updatedBy: new ObjectId(req.user.id)
-          },
-          $push: {
-            modificationHistory: {
-              action: 'replaced',
-              performedBy: new ObjectId(req.user.id),
-              performedAt: new Date(),
-              oldFileName: existingPayslip.uniqueFileName || existingPayslip.fileName,
-              reason: req.body.reason || 'File replacement'
-            }
-          }
-        }
-      );
+      // Update document in unified collection
+      const updateData = {
+        'file.systemName': newFileName,
+        'file.originalName': file.originalname,
+        'file.size': file.size,
+        'file.mimeType': file.mimetype || 'application/pdf',
+        'audit.lastModifiedAt': new Date(),
+        'audit.lastModifiedBy': new ObjectId(req.user.id)
+      };
+
+      const historyEntry = {
+        action: 'replaced',
+        performedBy: new ObjectId(req.user.id),
+        performedAt: new Date(),
+        oldFileName: oldFileName,
+        newFileName: newFileName,
+        reason: req.body.reason || 'File replacement'
+      };
+
+      await unifiedRepo.updateDocument(id, updateData, historyEntry);
 
       res.json({ success: true, message: 'Document replaced successfully' });
     })
@@ -295,47 +268,16 @@ function createDocumentsRoutes(db) {
       const { id } = req.params;
       const { reason } = req.body;
 
-      // Check payroll_documents collection first
-      const payrollDocsCollection = db.collection('payroll_documents');
-      let document = await payrollDocsCollection.findOne({
-        _id: new ObjectId(id)
-      });
-      
-      let collectionToUpdate = payrollDocsCollection;
-      
-      // If not found in payroll_documents, check payslips collection
-      if (!document) {
-        const payslipsCollection = db.collection('payslips');
-        document = await payslipsCollection.findOne({
-          _id: new ObjectId(id)
-        });
-        collectionToUpdate = payslipsCollection;
-      }
+      // Soft delete using UnifiedDocumentRepository
+      const result = await unifiedRepo.softDelete(
+        id,
+        req.user.id,
+        reason || 'Admin deletion'
+      );
 
-      if (!document) {
+      if (!result) {
         return res.status(404).json({ error: 'Document not found' });
       }
-
-      // Soft delete - actual file deleted after 30 days
-      await collectionToUpdate.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $set: {
-            deleted: true,
-            deletedAt: new Date(),
-            deletedBy: new ObjectId(req.user.id),
-            deleteReason: reason || 'Admin deletion'
-          },
-          $push: {
-            modificationHistory: {
-              action: 'deleted',
-              performedBy: new ObjectId(req.user.id),
-              performedAt: new Date(),
-              reason: reason || 'Admin deletion'
-            }
-          }
-        }
-      );
 
       res.json({ success: true, message: 'Document deleted successfully' });
     })
@@ -348,31 +290,20 @@ function createDocumentsRoutes(db) {
     asyncHandler(async (req, res) => {
       const { userId, type, includeDeleted } = req.query;
       
-      // Build query
-      let query = {};
-      if (userId) query.userId = new ObjectId(userId);
-      if (type) query.type = type;
-      if (!includeDeleted || includeDeleted === 'false') {
-        query.deleted = { $ne: true };
-      }
+      // Build query for unified collection
+      const query = {
+        ...(userId && { userId: new ObjectId(userId) }),
+        ...(type && { documentType: type }),
+        ...(!includeDeleted || includeDeleted === 'false' ? { 'status.isDeleted': { $ne: true } } : {})
+      };
 
-      // Get all payslips from payroll_documents collection
-      const payrollDocsCollection = db.collection('payroll_documents');
-      let payrollQuery = { ...query };
-      if (type === 'payslip' || !type) {
-        payrollQuery.documentType = 'payslip';
-        delete payrollQuery.type;
-      }
-      const payrollDocs = await payrollDocsCollection.find(payrollQuery).toArray();
-      
-      // Also get payslips from legacy payslips collection
-      const payslipsCollection = db.collection('payslips');
-      const payslips = await payslipsCollection.find(query).toArray();
+      // Get all documents from unified collection
+      const unifiedCollection = db.collection('unified_documents');
+      const allDocuments = await unifiedCollection.find(query).toArray();
 
-      // Get user information for all payslips
+      // Get user information for documents
       const usersCollection = db.collection('users');
-      const allPayslipIds = [...payrollDocs.map(p => p.userId.toString()), ...payslips.map(p => p.userId.toString())];
-      const userIds = [...new Set(allPayslipIds)];
+      const userIds = [...new Set(allDocuments.map(doc => doc.userId?.toString()).filter(Boolean))];
       const users = await usersCollection.find({
         _id: { $in: userIds.map(id => new ObjectId(id)) }
       }).toArray();
@@ -382,83 +313,31 @@ function createDocumentsRoutes(db) {
         return acc;
       }, {});
 
-      // Convert payroll_documents to Document format with user info
-      const payrollDocuments = payrollDocs.map(p => ({
-        _id: p._id,
-        userId: p.userId,
-        userName: userMap[p.userId.toString()]?.name || 'Unknown',
-        userEmployeeId: userMap[p.userId.toString()]?.employeeId || 'Unknown',
-        type: 'payslip',
-        category: '급여명세서',
-        title: `${p.year}년 ${p.month}월 급여명세서`,
-        fileName: p.originalFilename || p.fileName || `payslip_${p.year}_${p.month}.pdf`,
-        fileSize: p.fileSize || 0,
-        mimeType: 'application/pdf',
-        date: p.uploadedAt || p.createdAt || new Date(),
-        year: p.year,
-        month: p.month,
-        status: p.deleted ? 'deleted' : 'available',
-        deleted: p.deleted,
-        deletedAt: p.deletedAt,
-        deletedBy: p.deletedBy,
-        deleteReason: p.deleteReason,
-        modificationHistory: p.modificationHistory || [],
-      }));
-      
-      // Convert legacy payslips to Document format with user info
-      const payslipDocuments = payslips.map(p => ({
-        _id: p._id,
-        userId: p.userId,
-        userName: userMap[p.userId.toString()]?.name || 'Unknown',
-        userEmployeeId: userMap[p.userId.toString()]?.employeeId || 'Unknown',
-        type: 'payslip',
-        category: '급여명세서',
-        title: `${p.year}년 ${p.month}월 급여명세서`,
-        fileName: p.originalFilename || p.fileName || 'payslip.pdf',
-        fileSize: p.fileSize || 0,
-        mimeType: 'application/pdf',
-        date: p.uploadedAt || p.createdAt || new Date(),
-        year: p.year,
-        month: p.month,
-        status: p.deleted ? 'deleted' : 'available',
-        deleted: p.deleted,
-        deletedAt: p.deletedAt,
-        deletedBy: p.deletedBy,
-        deleteReason: p.deleteReason,
-        modificationHistory: p.modificationHistory || [],
-      }));
-
-      // Get documents from documents collection
-      const documentsCollection = db.collection('documents');
-      const otherDocuments = await documentsCollection.find(query).toArray();
-
-      // Merge all documents, remove duplicates based on userId+year+month
-      const documentsMap = new Map();
-      
-      // Add payroll_documents first (priority)
-      payrollDocuments.forEach(doc => {
-        const key = `${doc.userId}_${doc.year}_${doc.month}`;
-        documentsMap.set(key, doc);
-      });
-      
-      // Add legacy payslips (won't override if already exists)
-      payslipDocuments.forEach(doc => {
-        const key = `${doc.userId}_${doc.year}_${doc.month}`;
-        if (!documentsMap.has(key)) {
-          documentsMap.set(key, doc);
-        }
-      });
-      
-      // Add other documents
-      otherDocuments.forEach(doc => {
-        documentsMap.set(doc._id.toString(), doc);
-      });
-      
-      // Convert map to array and sort
-      const allDocuments = Array.from(documentsMap.values())
+      // Format documents for admin view with user info
+      const formattedDocuments = allDocuments.map(doc => ({
+        _id: doc._id,
+        userId: doc.userId,
+        userName: doc.userInfo?.name || userMap[doc.userId?.toString()]?.name || 'Unknown',
+        userEmployeeId: doc.userInfo?.employeeId || userMap[doc.userId?.toString()]?.employeeId || 'Unknown',
+        type: doc.documentType,
+        category: doc.documentCategory || '기타',
+        title: doc.file?.displayName || `${doc.temporal?.year}년 ${doc.temporal?.month}월 ${doc.documentType}`,
+        fileName: doc.file?.originalName || doc.file?.systemName || 'document.pdf',
+        fileSize: doc.file?.size || 0,
+        mimeType: doc.file?.mimeType || 'application/pdf',
+        date: doc.audit?.uploadedAt || doc.audit?.createdAt || new Date(),
+        year: doc.temporal?.year,
+        month: doc.temporal?.month,
+        status: doc.status?.isDeleted ? 'deleted' : (doc.status?.current || 'available'),
+        deleted: doc.status?.isDeleted,
+        deletedAt: doc.status?.deletedAt,
+        deletedBy: doc.status?.deletedBy,
+        deleteReason: doc.status?.deleteReason,
+        modificationHistory: doc.history || [],
+      }))
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      res.json({ success: true, data: allDocuments });
+      res.json({ success: true, data: formattedDocuments });
     })
   );
 
@@ -500,51 +379,13 @@ function createDocumentsRoutes(db) {
     asyncHandler(async (req, res) => {
       const { id } = req.params;
 
-      // Try payroll_documents collection first
-      const payrollDocsCollection = db.collection('payroll_documents');
-      let result = await payrollDocsCollection.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $set: {
-            deleted: false,
-            restoredAt: new Date(),
-            restoredBy: new ObjectId(req.user.id)
-          },
-          $push: {
-            modificationHistory: {
-              action: 'restored',
-              performedBy: new ObjectId(req.user.id),
-              performedAt: new Date(),
-              reason: 'Document restored from trash'
-            }
-          }
-        }
+      // Restore using UnifiedDocumentRepository
+      const result = await unifiedRepo.restoreDocument(
+        id,
+        req.user.id
       );
 
-      // If not found in payroll_documents, try payslips collection
-      if (result.matchedCount === 0) {
-        const payslipsCollection = db.collection('payslips');
-        result = await payslipsCollection.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $set: {
-              deleted: false,
-              restoredAt: new Date(),
-              restoredBy: new ObjectId(req.user.id)
-            },
-            $push: {
-              modificationHistory: {
-                action: 'restored',
-                performedBy: new ObjectId(req.user.id),
-                performedAt: new Date(),
-                reason: 'Document restored from trash'
-              }
-            }
-          }
-        );
-      }
-
-      if (result.matchedCount === 0) {
+      if (!result) {
         return res.status(404).json({ error: 'Document not found' });
       }
 

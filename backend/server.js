@@ -538,6 +538,7 @@ async function initializeRoutes() {
   app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/feature-flags', featureFlagManagementRoutes);
   app.use('/api/documents', createDocumentsRoutes(db));
+  app.use('/api/incentive', require('./routes/incentive'));
 
   // Add feature flag middleware
   app.use(featureFlags.middleware());

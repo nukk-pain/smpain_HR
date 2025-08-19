@@ -8,8 +8,11 @@ class IncentiveCalculator {
     // 허용된 연산자들
     this.allowedOperators = ['+', '-', '*', '/', '(', ')', '>', '<', '>=', '<=', '==', '!=', '?', ':'];
     
-    // 허용된 변수들
-    this.allowedVariables = ['sales', 'baseSalary', 'years', 'performance'];
+    // 허용된 변수들 - both old and new names supported
+    this.allowedVariables = [
+      'sales', 'baseSalary', 'years', 'performance',
+      'personalSales', 'totalSales', 'teamSales' // New variable names
+    ];
     
     // 허용된 함수들
     this.allowedFunctions = ['Math.max', 'Math.min', 'Math.round', 'Math.floor', 'Math.ceil'];

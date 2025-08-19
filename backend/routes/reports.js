@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const PayrollRepository = require('../repositories/PayrollRepository');
-const PayrollDocumentRepository = require('../repositories/PayrollDocumentRepository');
+const UnifiedDocumentRepository = require('../repositories/UnifiedDocumentRepository');
 const { validateObjectId } = require('../validation/schemas');
 const {
   strictRateLimiter,
@@ -20,7 +20,7 @@ const router = express.Router();
 // Reports routes
 function createReportsRoutes(db) {
   const payrollRepo = new PayrollRepository();
-  const documentRepo = new PayrollDocumentRepository();
+  const documentRepo = new UnifiedDocumentRepository();
 
   // Configure multer for PDF payslip uploads
   const payslipUpload = multer({
@@ -846,15 +846,15 @@ function createReportsRoutes(db) {
       try {
         const limit = parseInt(req.query.limit) || 50;
         
-        // Get recent upload history
-        const history = await db.collection('payroll_documents').aggregate([
+        // Get recent upload history from unified collection
+        const history = await db.collection('unified_documents').aggregate([
           {
             $match: {
               documentType: 'payslip'
             }
           },
           {
-            $sort: { uploadedAt: -1 }
+            $sort: { 'audit.uploadedAt': -1 }
           },
           {
             $limit: limit
@@ -870,17 +870,17 @@ function createReportsRoutes(db) {
           {
             $lookup: {
               from: 'users',
-              localField: 'uploadedBy',
+              localField: 'audit.uploadedBy',
               foreignField: '_id',
               as: 'uploader'
             }
           },
           {
             $project: {
-              uploadedAt: 1,
-              originalFileName: 1,
-              year: 1,
-              month: 1,
+              uploadedAt: '$audit.uploadedAt',
+              originalFileName: '$file.originalName',
+              year: '$temporal.year',
+              month: '$temporal.month',
               userName: { $arrayElemAt: ['$user.name', 0] },
               userDepartment: { $arrayElemAt: ['$user.department', 0] },
               uploadedByName: { $arrayElemAt: ['$uploader.name', 0] }
@@ -1048,16 +1048,13 @@ function createReportsRoutes(db) {
               throw new Error('User not found');
             }
 
-            // Check for existing payslip for the same user and month
-            const existingPayslip = await db.collection('payroll_documents').findOne({
+            // Check for existing payslip for the same user and month in unified collection
+            const existingPayslip = await db.collection('unified_documents').findOne({
               userId: new ObjectId(mapping.userId),
-              year: year,
-              month: month,
+              'temporal.year': year,
+              'temporal.month': month,
               documentType: 'payslip',
-              $or: [
-                { deleted: false },
-                { deleted: { $exists: false } }
-              ]
+              'status.isDeleted': { $ne: true }
             });
 
             if (existingPayslip) {
@@ -1214,8 +1211,8 @@ function createReportsRoutes(db) {
       const { documentId } = req.params;
       
       try {
-        // Get document from database
-        const document = await db.collection('payroll_documents').findOne({
+        // Get document from unified collection
+        const document = await db.collection('unified_documents').findOne({
           _id: new ObjectId(documentId)
         });
         
@@ -1232,32 +1229,36 @@ function createReportsRoutes(db) {
           return res.status(403).json({ error: 'Access denied' });
         }
         
+        // Build file path
+        const filePath = document.file?.path || 
+                        path.join(__dirname, '../uploads/payslips/', document.file?.systemName || document.file?.uniqueId);
+        
         // Check file exists
-        if (!fs.existsSync(document.filePath)) {
-          console.error(`File not found: ${document.filePath}`);
+        if (!fs.existsSync(filePath)) {
+          console.error(`File not found: ${filePath}`);
           return res.status(404).json({ error: 'File not found on server' });
         }
         
         // Set headers for download with original filename
-        const originalName = document.originalFileName || document.displayName || document.fileName || 'payslip.pdf';
+        const originalName = document.file?.originalName || document.file?.displayName || 'payslip.pdf';
         
         // Encode filename for different browsers (RFC 5987)
         const encodedFilename = encodeURIComponent(originalName);
         const asciiFilename = originalName.replace(/[^\x00-\x7F]/g, '_');
         
-        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Type', document.file?.mimeType || 'application/pdf');
         res.setHeader(
           'Content-Disposition',
           `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
         );
-        res.setHeader('Content-Length', document.fileSize);
+        res.setHeader('Content-Length', document.file?.size || 0);
         
         // Stream file to response
-        const fileStream = fs.createReadStream(document.filePath);
+        const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
         
         fileStream.on('end', () => {
-          console.log(`📄 Payslip downloaded: ${originalName} (stored as: ${document.uniqueId || document.fileName}) by ${req.user.username}`);
+          console.log(`📄 Payslip downloaded: ${originalName} (stored as: ${document.file?.uniqueId || document.file?.systemName}) by ${req.user.username}`);
         });
         
         fileStream.on('error', (error) => {

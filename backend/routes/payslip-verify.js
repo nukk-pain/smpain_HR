@@ -16,10 +16,10 @@ function createPayslipVerifyRoutes(db) {
     asyncHandler(async (req, res) => {
     
     try {
-      // 1. Check database records
-      const dbDocuments = await db.collection('payroll_documents')
+      // 1. Check database records from unified collection
+      const dbDocuments = await db.collection('unified_documents')
         .find({ documentType: 'payslip' })
-        .sort({ uploadedAt: -1 })
+        .sort({ 'audit.uploadedAt': -1 })
         .limit(10)
         .toArray();
       
@@ -44,19 +44,26 @@ function createPayslipVerifyRoutes(db) {
       const validFiles = [];
       
       for (const doc of dbDocuments) {
-        const fileExists = fs.existsSync(doc.filePath);
+        // Build file path from unified schema
+        const filePath = doc.file?.path || 
+          (doc.file?.systemName ? path.join(__dirname, '../uploads/payslips/', doc.file.systemName) : null);
+        
+        const fileExists = filePath && fs.existsSync(filePath);
+        const fileName = doc.file?.originalName || doc.file?.systemName || 'unknown';
+        const uploadedAt = doc.audit?.uploadedAt || doc.audit?.createdAt;
+        
         if (fileExists) {
           validFiles.push({
             id: doc._id,
-            fileName: doc.originalFileName || doc.fileName,
-            uploadedAt: doc.uploadedAt,
+            fileName: fileName,
+            uploadedAt: uploadedAt,
             status: 'valid'
           });
         } else {
           missingFiles.push({
             id: doc._id,
-            fileName: doc.originalFileName || doc.fileName,
-            uploadedAt: doc.uploadedAt,
+            fileName: fileName,
+            uploadedAt: uploadedAt,
             status: 'missing_file'
           });
         }
@@ -68,7 +75,8 @@ function createPayslipVerifyRoutes(db) {
         totalFiles: fileSystemFiles.length,
         validUploads: validFiles.length,
         missingFiles: missingFiles.length,
-        lastUploadTime: dbDocuments.length > 0 ? dbDocuments[0].uploadedAt : null
+        lastUploadTime: dbDocuments.length > 0 ? 
+          (dbDocuments[0].audit?.uploadedAt || dbDocuments[0].audit?.createdAt) : null
       };
       
       res.json({
@@ -96,19 +104,19 @@ function createPayslipVerifyRoutes(db) {
     asyncHandler(async (req, res) => {
     
     try {
-      // Get statistics by month
-      const monthlyStats = await db.collection('payroll_documents').aggregate([
+      // Get statistics by month from unified collection
+      const monthlyStats = await db.collection('unified_documents').aggregate([
         {
           $match: { documentType: 'payslip' }
         },
         {
           $group: {
             _id: {
-              year: '$year',
-              month: '$month'
+              year: '$temporal.year',
+              month: '$temporal.month'
             },
             count: { $sum: 1 },
-            totalSize: { $sum: '$fileSize' }
+            totalSize: { $sum: '$file.size' }
           }
         },
         {
@@ -119,8 +127,8 @@ function createPayslipVerifyRoutes(db) {
         }
       ]).toArray();
       
-      // Get statistics by user
-      const userStats = await db.collection('payroll_documents').aggregate([
+      // Get statistics by user from unified collection
+      const userStats = await db.collection('unified_documents').aggregate([
         {
           $match: { documentType: 'payslip' }
         },
@@ -128,7 +136,7 @@ function createPayslipVerifyRoutes(db) {
           $group: {
             _id: '$userId',
             count: { $sum: 1 },
-            lastUpload: { $max: '$uploadedAt' }
+            lastUpload: { $max: '$audit.uploadedAt' }
           }
         },
         {
