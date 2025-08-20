@@ -156,8 +156,8 @@ const navigationGroups: NavigationGroup[] = [
 const supervisorItems = {
   'leave-management': [
     {
-      text: '직원 휴가 현황',
-      path: '/supervisor/leave/status',
+      text: '휴가 현황 관리',
+      path: '/leave/overview',
       permissions: ['leave:manage'],
     },
     {
@@ -208,13 +208,7 @@ const supervisorItems = {
 
 // Admin-specific items to be added to groups
 const adminItems = {
-  'leave-management': [
-    {
-      text: '전체 휴가 현황',
-      path: '/admin/leave/overview',
-      permissions: ['admin:permissions'],
-    },
-  ],
+  // leave-management items are already in supervisorItems and shared
   'documents': [
     {
       text: '문서 관리',
@@ -343,8 +337,6 @@ const Layout: React.FC = () => {
       ...group,
       items: [...group.items]
     }))
-    
-    console.log('🔍 Initial groups:', groups)
     
     // Add role-specific items to groups
     if (user.role === 'admin' || user.role === 'supervisor') {

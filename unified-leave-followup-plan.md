@@ -7,13 +7,13 @@ Unified Leave Overview 구현은 완료되었지만, 실제 프로덕션 환경�
 
 ### 🔴 Priority 1: 즉시 필요한 작업 (1-2일)
 
-#### 1.1 Navigation Menu 업데이트
-**현재 상태**: 
-- Admin: `/admin/leave/overview` 경로 사용 중
-- Supervisor: `/supervisor/leave/status` 경로 사용 중
-- 새 경로 `/leave/overview`가 추가되었지만 메뉴에 미반영
+#### 1.1 Navigation Menu 업데이트 ✅ (2025.08.20 완료)
+**완료 상태**: 
+- Admin: `/leave/overview` 경로로 업데이트 완료
+- Supervisor: `/leave/overview` 경로로 업데이트 완료
+- Layout.tsx의 adminItems와 supervisorItems 모두 새 경로 반영 완료
 
-**작업 내용**:
+**완료된 작업**:
 ```typescript
 // frontend/src/components/Layout.tsx 수정 필요
 
@@ -237,11 +237,14 @@ grep -r "AdminLeaveOverview\|TeamLeaveStatus" frontend/src/
 ## 체크리스트
 
 ### 즉시 작업
-- [ ] Navigation Menu에서 새 경로로 업데이트
-- [ ] TypeScript 오류 수정
-  - [ ] API service 중복 메서드 제거
-  - [ ] Grid 컴포넌트 타입 수정
-  - [ ] UnifiedLeaveOverview 타입 오류 수정
+- [x] Navigation Menu에서 새 경로로 업데이트 ✅ (2025.08.20 완료)
+- [x] TypeScript 오류 수정 ✅ (2025.08.20 완료)
+  - [x] API service 중복 메서드 제거 (line 333 calculateIncentive 제거 완료)
+  - [x] Grid 컴포넌트 타입 수정 (MUI v5 Grid size prop으로 변경 완료)
+  - [x] UnifiedLeaveOverview API 응답 구조 불일치 수정 ✅
+    - Backend API가 { success: true, data: { statistics, employees } } 구조로 반환
+    - Frontend에서 적절히 변환하도록 수정 완료
+  - [ ] 기타 타입 오류 수정 (19개 오류 남음)
 
 ### 중기 작업
 - [ ] FUNCTIONS_VARIABLES.md 문서화

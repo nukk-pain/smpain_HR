@@ -1,22 +1,18 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import { useAuth } from '../components/AuthProvider';
 import UnifiedLeaveOverview from '../components/UnifiedLeaveOverview';
 
 const UnifiedLeaveOverviewPage: React.FC = () => {
   const { user } = useAuth();
   
-  if (!user) {
-    return null; // Protected route will handle this
-  }
+  const userRole = user?.role as 'admin' | 'supervisor';
+  const initialViewMode = userRole === 'admin' ? 'overview' : 'team';
   
   return (
-    <Box>
-      <UnifiedLeaveOverview 
-        userRole={user.role as 'admin' | 'supervisor'}
-        initialViewMode={user.role === 'admin' ? 'overview' : 'team'}
-      />
-    </Box>
+    <UnifiedLeaveOverview 
+      userRole={userRole}
+      initialViewMode={initialViewMode as 'overview' | 'team' | 'department'}
+    />
   );
 };
 

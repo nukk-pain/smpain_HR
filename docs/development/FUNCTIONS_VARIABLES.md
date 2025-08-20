@@ -47,6 +47,85 @@ This document maintains a registry of all functions and variables in the HR syst
 - `PayrollExcelUploadWithPreview` - Main upload component with preview functionality
 - `PreviewDataTable` - Data table with filtering, pagination, and status indicators
 
+## PayrollGrid Column Customization Functions
+
+### Component (`frontend/src/components/PayrollGrid.tsx`)
+
+#### State Management
+- `visibleColumns: Record<string, boolean>` - Stores column visibility state, persisted in localStorage
+- `columnSettingsAnchor: HTMLElement | null` - Anchor element for column settings menu
+
+#### Functions
+- `handleColumnVisibilityChange(columnField: string, visible: boolean)` - Updates column visibility and saves to localStorage
+  - Purpose: Toggles individual column visibility and persists user preference
+  - Updates visibleColumns state and localStorage key 'payrollGridVisibleColumns'
+  
+- `handleColumnSettingsClick(event: React.MouseEvent<HTMLElement>)` - Opens column settings menu
+  - Purpose: Shows the column customization dropdown menu
+  
+- `handleColumnSettingsClose()` - Closes column settings menu
+  - Purpose: Hides the column customization dropdown menu
+
+#### Column Filtering
+- `allColumns` - Complete list of all available columns (useMemo)
+- `columns` - Filtered list of visible columns based on visibleColumns state (useMemo)
+  - Always includes 'actions' column regardless of visibility settings
+
+#### UI Components
+- Column Settings Button - Shows Settings icon, opens customization menu
+- Column Settings Menu - Material-UI Menu with:
+  - Checkbox list for each column
+  - "모두 표시" (Show All) button
+  - "필수만 표시" (Show Essential Only) button - keeps employeeName, base_salary, input_total, actual_payment
+
+#### LocalStorage
+- Key: `payrollGridVisibleColumns`
+- Value: JSON object with column field names as keys and boolean visibility as values
+- Default: All columns visible on first load
+
+## Unified Leave Overview Functions
+
+### Component (`frontend/src/components/UnifiedLeaveOverview.tsx`)
+
+#### State Management
+- `loadLeaveData()` - Role-based data loading for Admin/Supervisor
+  - Admin: Can load overview, team, and department data
+  - Supervisor: Can load team and department data only
+  - Automatically called on viewMode, department, year, or role changes
+  
+- `getStatusColor(status, type)` - Returns MUI color for status badges
+  - Type 'risk': high→error, medium→warning, low→success
+  - Type 'leave': pending→warning, approved→success, rejected→error
+  
+- `getStatusLabel(status, type)` - Returns Korean label for status
+  - Type 'risk': high→위험, medium→주의, low→정상
+  - Type 'leave': pending→대기중, approved→승인됨, rejected→거부됨
+
+#### View Mode Management
+- `renderViewModeSelector()` - Renders toggle buttons based on user role
+  - Admin: Shows 3 buttons (전체 현황, 팀 현황, 부서 통계)
+  - Supervisor: Shows 2 buttons (팀 현황, 부서 통계)
+  
+- `renderContent()` - Renders appropriate content based on selected view mode
+  - Routes to renderAdminOverview(), renderTeamView(), or renderDepartmentView()
+
+#### Admin-specific Functions
+- `renderAdminOverview()` - Renders admin dashboard with summary cards and employee table
+- `getFilteredEmployees()` - Filters and sorts employee list based on search, department, and risk level
+- `handleAdjustLeave(employeeId, employeeName)` - Opens leave adjustment dialog (admin only)
+- `handleExportExcel()` - Placeholder for Excel export functionality
+
+#### Team/Supervisor Functions
+- `renderTeamView()` - Renders team member cards with leave status
+- `renderDepartmentView()` - Renders department statistics table
+- `handleMemberClick(member)` - Opens team member detail dialog
+- `handleViewDetail(member)` - Loads and displays employee leave log
+
+#### Utility Functions
+- `getRiskIcon(riskLevel)` - Returns emoji icon for risk level (🔴/🟡/🟢)
+- `getLeaveTypeLabel(type)` - Translates leave type to Korean
+- `getLeaveUsageColor(percentage)` - Returns color based on usage percentage
+
 ## User Deactivation & Management Functions
 
 ### Utilities (`backend/utils/userDeactivation.js`)
@@ -98,6 +177,47 @@ This document maintains a registry of all functions and variables in the HR syst
 
 #### User Management API
 - `deactivateUser(id, reason?)` - Calls deactivation API
+
+## Leave Overview Components
+
+### Unified Leave Overview (`frontend/src/components/UnifiedLeaveOverview.tsx`)
+
+#### Component Props
+- `userRole: 'admin' | 'supervisor'` - User's role for conditional features
+- `initialViewMode?: 'overview' | 'team' | 'department'` - Default view mode
+
+#### State Management Functions
+- `loadLeaveData()` - Unified data loader for all view modes
+- `getStatusColor(status, type)` - Unified color function for risk/leave status
+- `getStatusLabel(status, type)` - Unified label function for risk/leave status
+- `getFilteredEmployees()` - Advanced filtering and sorting for admin overview
+- `getRiskIcon(riskLevel)` - Returns emoji for risk level (admin-specific)
+- `getLeaveTypeLabel(type)` - Returns Korean label for leave types
+- `getLeaveUsageColor(percentage)` - Returns color based on usage percentage
+
+#### Handler Functions
+- `handleViewModeChange(event, newMode)` - Switches between overview/team/department views
+- `handleExportExcel()` - Excel export placeholder
+- `handleAdjustLeave(employeeId, employeeName)` - Opens leave adjustment dialog (admin)
+- `handleAdjustmentComplete()` - Refreshes data after adjustment
+- `handleViewDetail(member)` - Loads employee leave log details
+- `handleCloseDetail()` - Closes detail dialog
+- `handleMemberClick(member)` - Opens team member detail dialog
+
+#### Render Functions
+- `renderViewModeSelector()` - Renders toggle buttons for view modes
+- `renderOverviewView()` - Renders admin overview with statistics and table
+- `renderTeamView()` - Renders team member cards with leave balances
+- `renderDepartmentView()` - Renders department statistics cards
+
+### Page Wrapper (`frontend/src/pages/UnifiedLeaveOverviewPage.tsx`)
+- Wrapper component that determines user role and initial view mode
+- Passes role and view mode to UnifiedLeaveOverview component
+
+### Routes (`frontend/src/App.tsx`)
+- `/leave/overview` - Main unified leave overview route
+- `/admin/leave/overview` - Redirects to `/leave/overview`
+- `/supervisor/leave/status` - Redirects to `/leave/overview`
 - `reactivateUser(id)` - Calls reactivation API
 - Both return standardized API response format
 
