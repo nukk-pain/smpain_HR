@@ -334,3 +334,4 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - frontend, backend 실행은 사용자에게 따로 요청할 것 
 - 코드는 최대 1000줄까지만 작성하도록. 넘어가면 refactoring 계획을 세워서 md 파일로 정리.
 - '/mnt/d/my_programs/HR/todo.md' 이 파일에서는 완성된 작업은 지우고 앞으로 할 작업만 남겨줘.
+- 계획을 세울 때에는 항상 todo.md파일에 기록을 남겨서 알아보기 쉽게 해줘.

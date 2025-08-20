@@ -1,41 +1,44 @@
+/**
+ * Vitest Setup File
+ * 
+ * IMPORTANT: No mock data - using real MongoDB data per CLAUDE.md
+ */
+
 import '@testing-library/jest-dom';
-import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 
 // Cleanup after each test
 afterEach(() => {
   cleanup();
 });
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+// Setup test environment
+beforeAll(async () => {
+  // Set API URL for tests
+  process.env.VITE_API_URL = 'http://localhost:5455/api';
+  
+  // Note: Real backend server should be running on port 5455
+  // Note: MongoDB test database should be available
+  console.log('🧪 Test environment setup complete');
+  console.log('📍 API URL:', process.env.VITE_API_URL);
+  console.log('⚠️  Ensure backend is running on port 5455');
+  console.log('⚠️  Ensure MongoDB is accessible');
 });
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-global.localStorage = localStorageMock as any;
+afterAll(async () => {
+  // Cleanup test data from MongoDB if needed
+  console.log('🧹 Test cleanup complete');
+});
 
-// Mock sessionStorage
-const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-global.sessionStorage = sessionStorageMock as any;
+// Global test utilities
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});

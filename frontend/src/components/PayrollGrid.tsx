@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid'
+import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams, GridRowSelectionModel } from '@mui/x-data-grid'
 import { Box, Paper, Button, IconButton, Tooltip, TextField, Collapse, Typography, Menu, MenuItem, FormControlLabel, Checkbox, Divider } from '@mui/material'
-import { Edit, Save, Cancel, Download, ExpandMore, ExpandLess, Settings } from '@mui/icons-material'
+import { Edit, Save, Cancel, Download, ExpandMore, ExpandLess, Settings, Print } from '@mui/icons-material'
 import { MonthlyPayment, User } from '@/types'
 import apiService from '@/services/api'
 import { useNotification } from './NotificationProvider'
+import PrintPreviewDialog, { PrintOptions } from './PrintPreviewDialog'
 
 interface PayrollGridProps {
   yearMonth: string
@@ -26,6 +27,8 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   const [expandedAllowances, setExpandedAllowances] = useState<Set<string>>(new Set())
   const [expandedDeductions, setExpandedDeductions] = useState<Set<string>>(new Set())
   const [columnSettingsAnchor, setColumnSettingsAnchor] = useState<null | HTMLElement>(null)
+  const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<any>([])
   const { showSuccess, showError } = useNotification()
 
   // Column visibility state with localStorage persistence
@@ -496,6 +499,97 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     }
   }
 
+  // Handle print button click - opens print dialog
+  const handlePrintClick = useCallback(() => {
+    setPrintDialogOpen(true)
+  }, [])
+
+  // Handle actual printing with options
+  const handlePrint = useCallback((options: PrintOptions) => {
+    // Save current expanded state
+    const prevExpandedAllowances = new Set(expandedAllowances)
+    const prevExpandedDeductions = new Set(expandedDeductions)
+    
+    // Apply print options as CSS classes
+    const printContainer = document.querySelector('.MuiPaper-root')
+    if (printContainer) {
+      // Apply orientation
+      printContainer.classList.add(`print-${options.orientation}`)
+      
+      // Apply color mode
+      if (options.colorMode === 'grayscale') {
+        printContainer.classList.add('print-grayscale')
+      } else if (options.colorMode === 'highContrast') {
+        printContainer.classList.add('print-high-contrast')
+      }
+      
+      // Apply font size
+      printContainer.classList.add(`print-font-${options.fontSize}`)
+      
+      // Apply backgrounds option
+      if (!options.includeBackgrounds) {
+        printContainer.classList.add('print-no-backgrounds')
+      }
+      
+      // Apply watermark
+      if (options.watermark) {
+        printContainer.classList.add('print-with-watermark')
+        printContainer.setAttribute('data-watermark', options.watermark)
+      }
+
+      // Apply header/footer options
+      if (!options.includeHeader) {
+        printContainer.classList.add('print-no-header')
+      }
+      if (!options.includeFooter) {
+        printContainer.classList.add('print-no-footer')
+      }
+      if (!options.includeSummary) {
+        printContainer.classList.add('print-no-summary')
+      }
+    }
+    
+    // Filter data based on options
+    let dataToPrint = rowData
+    const selectedRowsArray = selectedRows as unknown as string[]
+    if (options.selectedOnly && selectedRowsArray.length > 0) {
+      dataToPrint = rowData.filter(row => selectedRowsArray.includes(row.id))
+    }
+    
+    // TODO: Handle currentPageOnly option when pagination is implemented
+    
+    // Expand all sections for printing
+    const allRowIds = dataToPrint.map(row => row.id)
+    setExpandedAllowances(new Set(allRowIds))
+    setExpandedDeductions(new Set(allRowIds))
+    
+    // Clear any editing state
+    setEditingRows(new Set())
+    
+    // Wait for state updates then print
+    setTimeout(() => {
+      window.print()
+      
+      // Restore original state and cleanup after printing
+      setTimeout(() => {
+        setExpandedAllowances(prevExpandedAllowances)
+        setExpandedDeductions(prevExpandedDeductions)
+        
+        // Remove print-specific classes
+        if (printContainer) {
+          printContainer.classList.remove(
+            'print-portrait', 'print-landscape',
+            'print-grayscale', 'print-high-contrast',
+            'print-font-small', 'print-font-normal', 'print-font-large',
+            'print-no-backgrounds', 'print-with-watermark',
+            'print-no-header', 'print-no-footer', 'print-no-summary'
+          )
+          printContainer.removeAttribute('data-watermark')
+        }
+      }, 100)
+    }, 100)
+  }, [rowData, expandedAllowances, expandedDeductions, selectedRows])
+
   // Calculate totals
   const totals = useMemo(() => {
     return rowData.reduce((acc, row) => ({
@@ -516,8 +610,248 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   }, [rowData])
 
   return (
-    <Paper sx={{ height: '600px', width: '100%' }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <>
+      <style data-print-styles>
+        {`
+          @media print {
+            /* Hide unnecessary elements */
+            .MuiButton-root,
+            .MuiIconButton-root,
+            .MuiDataGrid-footerContainer,
+            .MuiDataGrid-columnHeaderTitleContainer button,
+            .edit-buttons-container,
+            .MuiCheckbox-root {
+              display: none !important;
+            }
+
+            /* Hide columns based on visibility settings */
+            ${Object.entries(visibleColumns)
+              .filter(([_, visible]) => !visible)
+              .map(([field]) => `
+                [data-field="${field}"] {
+                  display: none !important;
+                }
+              `).join('')}
+            
+            /* Show all content */
+            .MuiDataGrid-virtualScroller {
+              overflow: visible !important;
+              height: auto !important;
+            }
+            
+            .MuiDataGrid-main {
+              overflow: visible !important;
+            }
+            
+            /* Ensure all expandable sections are visible */
+            .MuiCollapse-hidden {
+              display: block !important;
+              visibility: visible !important;
+              min-height: auto !important;
+            }
+            
+            /* Default page setup */
+            @page {
+              size: A4 landscape;
+              margin: 1cm;
+            }
+            
+            /* Portrait orientation */
+            .print-portrait {
+              @page {
+                size: A4 portrait !important;
+              }
+            }
+            
+            /* Table styling */
+            .MuiDataGrid-root {
+              border: 1px solid #000 !important;
+              overflow: visible !important;
+            }
+            
+            .MuiDataGrid-cell {
+              border-bottom: 1px solid #ccc !important;
+              page-break-inside: avoid;
+            }
+            
+            .MuiDataGrid-columnHeaders {
+              background-color: #f5f5f5 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            /* Preserve background colors */
+            .MuiBox-root {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            /* Ensure paper container is visible */
+            .MuiPaper-root {
+              height: auto !important;
+              box-shadow: none !important;
+            }
+            
+            /* Hide column settings menu if open */
+            .MuiMenu-root, .MuiDialog-root {
+              display: none !important;
+            }
+            
+            /* Font sizes */
+            body {
+              font-size: 10pt !important;
+            }
+            
+            .MuiDataGrid-cell {
+              font-size: 9pt !important;
+              padding: 4px 8px !important;
+            }
+            
+            /* Font size options */
+            .print-font-small .MuiDataGrid-cell {
+              font-size: 8pt !important;
+              padding: 2px 4px !important;
+            }
+            
+            .print-font-large .MuiDataGrid-cell {
+              font-size: 11pt !important;
+              padding: 6px 10px !important;
+            }
+            
+            /* Grayscale mode */
+            .print-grayscale * {
+              color: #000 !important;
+              background-color: #fff !important;
+              -webkit-filter: grayscale(100%) !important;
+              filter: grayscale(100%) !important;
+            }
+            
+            .print-grayscale .MuiDataGrid-columnHeaders {
+              background-color: #eee !important;
+            }
+            
+            /* High contrast mode */
+            .print-high-contrast * {
+              color: #000 !important;
+              background-color: #fff !important;
+              border-color: #000 !important;
+            }
+            
+            .print-high-contrast .MuiDataGrid-columnHeaders {
+              background-color: #000 !important;
+              color: #fff !important;
+            }
+            
+            .print-high-contrast .MuiDataGrid-columnHeaders * {
+              color: #fff !important;
+            }
+            
+            /* No backgrounds option */
+            .print-no-backgrounds * {
+              background-color: transparent !important;
+              background: none !important;
+            }
+            
+            /* Watermark */
+            .print-with-watermark::after {
+              content: attr(data-watermark);
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-45deg);
+              font-size: 120px;
+              color: rgba(0, 0, 0, 0.1);
+              z-index: -1;
+              font-weight: bold;
+              pointer-events: none;
+            }
+
+            /* Header/Footer visibility control */
+            .print-no-header .print-header {
+              display: none !important;
+            }
+
+            .print-no-footer .print-footer {
+              display: none !important;
+            }
+
+            .print-no-summary .print-summary {
+              display: none !important;
+            }
+
+            /* Page break handling */
+            .MuiDataGrid-row {
+              page-break-inside: avoid;
+            }
+
+            /* Repeat table header on each page */
+            .MuiDataGrid-columnHeaders {
+              display: table-header-group;
+            }
+
+            /* Page numbers with CSS counters */
+            @page {
+              counter-increment: page;
+            }
+
+            .pageNumber::after {
+              content: counter(page);
+            }
+
+            .totalPages::after {
+              content: counter(pages);
+            }
+          }
+        `}
+      </style>
+      <Paper sx={{ height: '600px', width: '100%' }}>
+        {/* Print Header - only visible during print */}
+        <Box 
+          className="print-header" 
+          sx={{ 
+            display: 'none',
+            '@media print': {
+              display: 'block',
+              padding: '20px',
+              borderBottom: '2px solid #000',
+              marginBottom: '20px'
+            }
+          }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom>
+            {yearMonth} 급여 명세서
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body1">
+              총 인원: {rowData.length}명
+            </Typography>
+            <Typography variant="body1">
+              총 지급액: {totals.input_total.toLocaleString()}원
+            </Typography>
+          </Box>
+          {/* Summary statistics section */}
+          <Box className="print-summary" sx={{ mt: 2, pt: 2, borderTop: '1px solid #ccc' }}>
+            <Typography variant="subtitle2" gutterBottom>
+              급여 요약
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">기본급 합계</Typography>
+                <Typography variant="body1">{totals.base_salary.toLocaleString()}원</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">인센티브 합계</Typography>
+                <Typography variant="body1">{totals.incentive.toLocaleString()}원</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">실지급액 합계</Typography>
+                <Typography variant="body1">{totals.actual_payment.toLocaleString()}원</Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <strong>{yearMonth} 급여 현황</strong>
           <Box sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}>
@@ -531,6 +865,14 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
             onClick={handleColumnSettingsClick}
           >
             컬럼 설정
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Print />}
+            onClick={handlePrintClick}
+            disabled={rowData.length === 0}
+          >
+            인쇄 미리보기
           </Button>
           <Button
             variant="outlined"
@@ -572,6 +914,10 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
             }}
             checkboxSelection
             disableRowSelectionOnClick
+            rowSelectionModel={selectedRows}
+            onRowSelectionModelChange={(newSelectionModel) => {
+              setSelectedRows(newSelectionModel)
+            }}
             sx={{
               border: 'none',
               '& .MuiDataGrid-cell': {
@@ -667,7 +1013,47 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
           </Button>
         </Box>
       </Menu>
+
+      {/* Print Footer - only visible during print */}
+      <Box 
+        className="print-footer" 
+        sx={{ 
+          display: 'none',
+          '@media print': {
+            display: 'block',
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '10px 20px',
+            borderTop: '1px solid #ccc',
+            backgroundColor: '#fff',
+            fontSize: '0.85em'
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Typography variant="caption">
+            인쇄일: {new Date().toLocaleDateString('ko-KR')} {new Date().toLocaleTimeString('ko-KR')}
+          </Typography>
+          <Typography variant="caption" className="page-number">
+            페이지: <span className="pageNumber"></span> / <span className="totalPages"></span>
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Print Preview Dialog */}
+      <PrintPreviewDialog
+        open={printDialogOpen}
+        onClose={() => setPrintDialogOpen(false)}
+        onPrint={handlePrint}
+        totalEmployees={rowData.length}
+        totalPayment={totals.input_total}
+        selectedCount={(selectedRows as unknown as string[]).length}
+        yearMonth={yearMonth}
+      />
     </Paper>
+    </>
   )
 }
 

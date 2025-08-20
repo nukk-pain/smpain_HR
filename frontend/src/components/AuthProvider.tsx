@@ -39,14 +39,15 @@ export const useAuth = (): AuthContextType => {
 
 interface AuthProviderProps {
   children: ReactNode
+  initialUser?: User | null  // For testing purposes
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUser }) => {
   const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
+    isAuthenticated: !!initialUser,
+    user: initialUser || null,
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialUser) // Skip loading if we have initial user
 
   // Auto-logout functionality
   useEffect(() => {
@@ -86,7 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check if user is already authenticated on app start
   useEffect(() => {
-    checkAuthStatus()
+    // Skip auth check if we have an initial user (for testing)
+    if (!initialUser) {
+      checkAuthStatus()
+    }
   }, [])
 
   const checkAuthStatus = async () => {

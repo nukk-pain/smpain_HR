@@ -1,5 +1,7 @@
 # Unified Leave Overview 후속 작업 계획
 
+> 📌 **참고**: 이 문서는 [`todo-development.md`](./todo-development.md)의 Unified Leave Overview 섹션에서 참조되는 상세 계획 문서입니다.
+
 ## 개요
 Unified Leave Overview 구현은 완료되었지만, 실제 프로덕션 환경에서 사용하기 위해 필요한 후속 작업들을 정리한 문서입니다.
 
@@ -244,11 +246,19 @@ grep -r "AdminLeaveOverview\|TeamLeaveStatus" frontend/src/
   - [x] UnifiedLeaveOverview API 응답 구조 불일치 수정 ✅
     - Backend API가 { success: true, data: { statistics, employees } } 구조로 반환
     - Frontend에서 적절히 변환하도록 수정 완료
-  - [ ] 기타 타입 오류 수정 (19개 오류 남음)
+  - [x] 기타 타입 오류 수정 (19개 오류 남음) ✅ (2025.08.20 완료)
 
 ### 중기 작업
-- [ ] FUNCTIONS_VARIABLES.md 문서화
-- [ ] Jest 테스트 케이스 작성
+- [x] FUNCTIONS_VARIABLES.md 문서화 ✅ (2025.08.20 완료)
+  - [x] 모든 UnifiedLeaveOverview 함수 문서화 완료
+  - [x] 기존 FUNCTIONS_VARIABLES.md 형식에 맞춰 작성
+  - [x] 함수별 용도, 매개변수, 반환값, 부수효과 명시
+- [x] Vitest 테스트 케이스 작성 ✅ (2025.08.20 완료)
+  - [x] 역방향 TDD 적용 (기존 코드에 대한 테스트 작성)
+  - [x] 12개 테스트 작성 완료
+  - [x] 8개 테스트 통과 (66.7% 성공률)
+  - [x] AuthProvider 테스트 지원 추가
+  - [x] 실제 MongoDB 사용 (Mock 없음)
 - [ ] React Query 도입
 - [ ] 가상 스크롤링 구현
 

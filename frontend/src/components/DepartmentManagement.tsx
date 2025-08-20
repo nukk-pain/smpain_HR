@@ -388,6 +388,7 @@ const DepartmentManagement: React.FC = () => {
                               </Box>
                             </Box>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
                               <Chip

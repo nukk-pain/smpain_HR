@@ -83,6 +83,58 @@ This document maintains a registry of all functions and variables in the HR syst
 - Value: JSON object with column field names as keys and boolean visibility as values
 - Default: All columns visible on first load
 
+### Print Functions (`frontend/src/components/PayrollGrid.tsx`)
+
+#### Functions
+- `handlePrint()` - Handles printing functionality with expandable section management
+  - Purpose: Prepares grid for printing and triggers browser print dialog
+  - Saves current expand state before printing
+  - Expands all allowances and deductions sections
+  - Clears editing state to prevent input fields in print
+  - Restores original state after printing
+  - Uses setTimeout to ensure state updates before printing
+
+#### Print CSS
+- Print-specific styles defined in `<style data-print-styles>` tag
+- Key features:
+  - Hides buttons, checkboxes, and footer elements
+  - Disables virtualization to show all rows
+  - Forces expanded sections to be visible
+  - Sets landscape A4 page format
+  - Preserves background colors with print-color-adjust
+  - Adjusts font sizes for readability
+
+### PrintPreviewDialog Component (`frontend/src/components/PrintPreviewDialog.tsx`)
+
+#### Props
+- `open: boolean` - Dialog visibility state
+- `onClose: () => void` - Close dialog handler
+- `onPrint: (options: PrintOptions) => void` - Print handler with options
+- `totalEmployees: number` - Total employee count
+- `totalPayment: number` - Total payment amount
+- `selectedCount: number` - Selected rows count
+- `yearMonth: string` - Current year-month display
+
+#### PrintOptions Interface
+- `selectedOnly: boolean` - Print only selected rows
+- `currentPageOnly: boolean` - Print only current page (for pagination)
+- `includeHeader: boolean` - Include page header
+- `includeFooter: boolean` - Include page footer
+- `includeSummary: boolean` - Include summary statistics
+- `watermark: string` - Watermark text (CONFIDENTIAL, DRAFT, INTERNAL, or empty)
+- `orientation: 'portrait' | 'landscape'` - Page orientation
+- `colorMode: 'color' | 'grayscale' | 'highContrast'` - Print color mode
+- `fontSize: 'small' | 'normal' | 'large'` - Font size option
+- `includeBackgrounds: boolean` - Include cell background colors
+
+#### Functions
+- `handlePrintClick()` - Opens print preview dialog
+- `handlePrint(options: PrintOptions)` - Processes print with selected options
+  - Applies CSS classes based on options
+  - Filters data if selectedOnly is true
+  - Manages expandable sections
+  - Handles cleanup after printing
+
 ## Unified Leave Overview Functions
 
 ### Component (`frontend/src/components/UnifiedLeaveOverview.tsx`)
@@ -93,13 +145,11 @@ This document maintains a registry of all functions and variables in the HR syst
   - Supervisor: Can load team and department data only
   - Automatically called on viewMode, department, year, or role changes
   
-- `getStatusColor(status, type)` - Returns MUI color for status badges
-  - Type 'risk': high→error, medium→warning, low→success
-  - Type 'leave': pending→warning, approved→success, rejected→error
+- `getStatusColor(status)` - Returns MUI color for leave request status
+  - pending→warning, approved→success, rejected→error, default→default
   
-- `getStatusLabel(status, type)` - Returns Korean label for status
-  - Type 'risk': high→위험, medium→주의, low→정상
-  - Type 'leave': pending→대기중, approved→승인됨, rejected→거부됨
+- `getStatusLabel(status)` - Returns Korean label for leave request status
+  - pending→대기중, approved→승인됨, rejected→거부됨
 
 #### View Mode Management
 - `renderViewModeSelector()` - Renders toggle buttons based on user role
@@ -114,17 +164,31 @@ This document maintains a registry of all functions and variables in the HR syst
 - `getFilteredEmployees()` - Filters and sorts employee list based on search, department, and risk level
 - `handleAdjustLeave(employeeId, employeeName)` - Opens leave adjustment dialog (admin only)
 - `handleExportExcel()` - Placeholder for Excel export functionality
+- `handleViewModeChange(event, newMode)` - Handles view mode toggle button changes
 
 #### Team/Supervisor Functions
 - `renderTeamView()` - Renders team member cards with leave status
 - `renderDepartmentView()` - Renders department statistics table
 - `handleMemberClick(member)` - Opens team member detail dialog
 - `handleViewDetail(member)` - Loads and displays employee leave log
+- `handleCloseDetail()` - Closes employee detail dialog and resets state
+- `handleAdjustmentComplete()` - Callback after leave adjustment, refreshes data
 
 #### Utility Functions
-- `getRiskIcon(riskLevel)` - Returns emoji icon for risk level (🔴/🟡/🟢)
 - `getLeaveTypeLabel(type)` - Translates leave type to Korean
+  - annual→연차, half→반차, sick→병가, special→특별휴가, unpaid→무급휴가
 - `getLeaveUsageColor(percentage)` - Returns color based on usage percentage
+  - ≥80%→error, ≥50%→warning, <50%→success
+
+#### Additional Render Functions
+- `renderOverviewView()` - Renders admin overview with summary cards and employee table (Admin only)
+  - Shows total employees, average usage rate, pending requests
+  - Includes filtering, sorting, and Excel export options
+- `renderTeamView()` - Renders team member cards with leave status
+  - Shows member profile, leave balance, and current status
+  - Supports department filtering and year selection
+- `renderDepartmentView()` - Renders department statistics in card format
+  - Shows total members, on leave count, average usage, and pending requests
 
 ## User Deactivation & Management Functions
 

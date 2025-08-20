@@ -209,6 +209,10 @@ env: {
 | 🔐 **JWT Authentication** | ✅ Complete | Modern token-based authentication |
 | 🌐 **Cross-Domain Support** | ✅ Complete | Vercel ↔ Cloud Run integration |
 | 📱 **Responsive Dashboard** | ✅ Complete | Role-based dashboards |
+| 📄 **Document Management** | ✅ Complete | Unified document storage and management system |
+| 📈 **Leave Overview** | ✅ Complete | Comprehensive unified leave tracking and analysis |
+| 💵 **Payslip Bulk Upload** | ✅ Complete | Bulk upload and management of payroll payslips |
+| ⚡ **Incentive Simulation** | ✅ Complete | Interactive incentive calculation simulator |
 
 ### 🚀 Phase 4 Advanced Features
 
@@ -225,6 +229,9 @@ env: {
 - **Rate Limiting**: API endpoint protection
 - **Advanced Monitoring**: JWT operation analytics
 - **Mobile App Support**: React Native application
+- **Advanced Analytics**: Data visualization and insights
+- **Workflow Automation**: Automated approval workflows
+- **Multi-language Support**: Internationalization (i18n)
 
 ---
 
@@ -329,6 +336,18 @@ HR/
 - `GET /api/payroll` - Get payroll data
 - `GET /api/payroll/monthly/:year_month` - Monthly payroll
 - `GET /api/payroll/employee/:userId` - Employee payroll
+- `POST /api/payroll/upload` - Upload payroll data
+- `GET /api/payroll/simulate` - Incentive simulation
+
+#### Document Management
+- `GET /api/documents` - Get all documents
+- `POST /api/documents/upload` - Upload document
+- `GET /api/documents/:id` - Get specific document
+- `DELETE /api/documents/:id` - Delete document
+
+#### Leave Overview
+- `GET /api/leave/unified-overview` - Get unified leave overview data
+- `GET /api/leave/summary/:userId` - Get user leave summary
 
 ---
 
@@ -632,4 +651,4 @@ This project is proprietary software developed for internal use.
 
 ---
 
-*Last updated: August 2025 - JWT Migration & Phase 4 Complete*
+*Last updated: December 2025 - Unified Leave Overview & Document Management Complete*

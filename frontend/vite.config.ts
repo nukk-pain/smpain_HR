@@ -106,7 +106,7 @@ export default defineConfig(({ mode }) => {
             
             // Leave management features
             'leave-components': [
-              './src/components/TeamLeaveStatus.tsx',
+              './src/components/UnifiedLeaveOverview.tsx',
               './src/components/LeaveAdjustmentDialog.tsx',
               './src/components/LeaveCalendar.tsx'
             ],
@@ -114,7 +114,7 @@ export default defineConfig(({ mode }) => {
               './src/pages/LeaveManagement.tsx',
               './src/pages/EmployeeLeaveManagement.tsx',
               './src/pages/LeaveCalendarPage.tsx',
-              './src/pages/TeamLeaveStatusPage.tsx'
+              './src/pages/UnifiedLeaveOverviewPage.tsx'
             ],
             
             // Admin features
@@ -126,7 +126,6 @@ export default defineConfig(({ mode }) => {
               './src/components/DeactivationDialog.tsx'
             ],
             'admin-pages': [
-              './src/pages/AdminLeaveOverview.tsx',
               './src/pages/AdminLeavePolicy.tsx',
               './src/pages/AdminBulkOperations.tsx',
               './src/pages/DepartmentManagementPage.tsx',
