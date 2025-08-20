@@ -11,8 +11,9 @@ interface PayrollGridProps {
   onDataChange?: () => void
 }
 
-interface PayrollRowData extends MonthlyPayment {
-  id: string // MUI DataGrid requires an id field
+interface PayrollRowData extends Omit<MonthlyPayment, 'id'> {
+  id: string // MUI DataGrid requires string id field
+  monthlyPaymentId?: number // Original id from MonthlyPayment
   employeeName: string
   department: string
   isEditing?: boolean
@@ -425,7 +426,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     try {
       const response = await apiService.getMonthlyPayments(yearMonth)
       if (response.success && response.data) {
-        const transformedData: PayrollRowData[] = response.data.map((payment: any, index: number) => ({
+        const transformedData: PayrollRowData[] = (response.data as any[]).map((payment: any, index: number) => ({
           ...payment,
           // Map backend field names to frontend expected field names
           bonus_total: payment.bonus ?? payment.bonus_total ?? 0,

@@ -181,15 +181,26 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
         if (selectedDepartment !== 'all') {
           params.department = selectedDepartment;
         }
-        const response = await apiService.get('/leave/team-status', params);
-        const data = response.data as { members?: TeamMember[], departments?: string[] };
-        setTeamMembers(data?.members || []);
-        setDepartments(data?.departments || []);
+        const response = await apiService.get<{ members: TeamMember[], departments: string[] }>('/leave/team-status', params);
+        // The response already contains { success: true, data: {...} }
+        // apiService.get returns the whole response, so we need to access response.data
+        if (response?.data) {
+          setTeamMembers(response.data.members || []);
+          setDepartments(response.data.departments || []);
+        } else {
+          setTeamMembers([]);
+          setDepartments([]);
+        }
       } else if (viewMode === 'department') {
-        const response = await apiService.get('/leave/team-status/department-stats', {
+        const response = await apiService.get<DepartmentStats[]>('/leave/team-status/department-stats', {
           year: selectedYear
         });
-        setDepartmentStats(response.data as DepartmentStats[] || []);
+        // Check if response has data property (standard API response format)
+        if (response?.data) {
+          setDepartmentStats(response.data as DepartmentStats[] || []);
+        } else {
+          setDepartmentStats([]);
+        }
       }
     } catch (error: any) {
       showError(`데이터를 불러오는 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);

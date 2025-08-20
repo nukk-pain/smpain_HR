@@ -149,7 +149,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
             <Divider sx={{ mb: 3 }} />
 
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Base Salary"
                   type="number"
@@ -163,7 +163,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Incentive"
                   type="number"
@@ -177,7 +177,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Bonus"
                   type="number"
@@ -191,7 +191,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Award"
                   type="number"
@@ -205,11 +205,11 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Divider />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Total Input"
                   type="number"
@@ -223,7 +223,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Actual Payment"
                   type="number"
@@ -237,7 +237,7 @@ const PayrollEditDialog: React.FC<PayrollEditDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label="Difference"
                   type="number"

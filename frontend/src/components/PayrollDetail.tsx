@@ -82,7 +82,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
   const [formData, setFormData] = useState<Partial<PayrollRecord>>({});
 
   // Check if user can edit
-  const canEdit = user?.permissions?.includes('payroll:manage') || user?.role === 'Admin';
+  const canEdit = user?.permissions?.includes('payroll:manage') || user?.role === 'admin';
 
   // Fetch payroll data
   const fetchPayrollData = async () => {
@@ -91,8 +91,8 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
       setError(null);
       const response = await apiService.getPayrollRecord(payrollId);
       if (response.success) {
-        setPayrollData(response.data);
-        setFormData(response.data);
+        setPayrollData(response.data as PayrollRecord);
+        setFormData(response.data as PayrollRecord);
       } else {
         setError(response.error || '급여 정보를 불러올 수 없습니다.');
       }
@@ -113,7 +113,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
       setFormData(prev => ({
         ...prev,
         [section]: {
-          ...prev[section as keyof PayrollRecord],
+          ...(prev[section as keyof PayrollRecord] as any || {}),
           [field]: value
         }
       }));
@@ -241,14 +241,14 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
 
       <Grid container spacing={3}>
         {/* Basic Information */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 기본 정보
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="body2" color="text.secondary">
                     사원명
                   </Typography>
@@ -256,7 +256,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     {payrollData.user?.name}
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="body2" color="text.secondary">
                     부서
                   </Typography>
@@ -264,7 +264,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     {payrollData.user?.department}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="body2" color="text.secondary">
                     년도
                   </Typography>
@@ -272,7 +272,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     {payrollData.year}년
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="body2" color="text.secondary">
                     월
                   </Typography>
@@ -280,7 +280,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     {payrollData.month}월
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="body2" color="text.secondary">
                     상태
                   </Typography>
@@ -296,14 +296,14 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
         </Grid>
 
         {/* Salary Information */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 급여 정보
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   {editMode ? (
                     <TextField
                       fullWidth
@@ -323,7 +323,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     </>
                   )}
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="body2" color="text.secondary">
                     총 수당
                   </Typography>
@@ -331,7 +331,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     총 수당: {formatCurrency(payrollData.totalAllowances)}원
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Typography variant="body2" color="text.secondary">
                     총 공제
                   </Typography>
@@ -339,7 +339,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
                     총 공제: {formatCurrency(payrollData.totalDeductions)}원
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                   <Divider />
                   <Typography variant="h6" color="success.main" sx={{ mt: 1 }}>
                     실수령액: {formatCurrency(payrollData.netSalary)}원
@@ -351,7 +351,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
         </Grid>
 
         {/* Allowances */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -398,7 +398,7 @@ export const PayrollDetail: React.FC<PayrollDetailProps> = ({ payrollId }) => {
         </Grid>
 
         {/* Deductions */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

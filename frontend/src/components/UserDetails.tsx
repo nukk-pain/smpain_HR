@@ -107,7 +107,7 @@ interface InfoRowProps {
 
 const InfoRow: React.FC<InfoRowProps> = memo(({ label, value, icon }) => (
   <Grid container spacing={2} sx={{ mb: 1.5 }}>
-    <Grid item xs={12} sm={4}>
+    <Grid size={{ xs: 12, sm: 4 }}>
       <Typography 
         variant="body2" 
         color="text.secondary"
@@ -122,7 +122,7 @@ const InfoRow: React.FC<InfoRowProps> = memo(({ label, value, icon }) => (
         {label}
       </Typography>
     </Grid>
-    <Grid item xs={12} sm={8}>
+    <Grid size={{ xs: 12, sm: 8 }}>
       <Typography variant="body1">
         {value || '-'}
       </Typography>

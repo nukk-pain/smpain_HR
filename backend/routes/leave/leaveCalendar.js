@@ -168,17 +168,14 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     // Get recent and upcoming leaves
     const now = new Date();
     const recentLeaves = userLeaveRequests
-      .filter(req => new Date(req.endDate) < now)
+      .filter(req => req.status === 'approved') // Only show approved leaves
       .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
       .slice(0, 5)
       .map(req => ({
-        id: req._id,
-        leaveType: req.leaveType,
+        type: req.leaveType, // Frontend expects 'type' not 'leaveType'
         startDate: req.startDate,
         endDate: req.endDate,
-        daysCount: req.daysCount,
-        status: req.status,
-        reason: req.reason
+        status: req.status
       }));
     
     const upcomingLeaves = userLeaveRequests
@@ -195,13 +192,27 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
         reason: req.reason
       }));
     
+    // Check if user is currently on leave
+    const currentLeave = userLeaveRequests.find(req => {
+      const start = new Date(req.startDate);
+      const end = new Date(req.endDate);
+      return req.status === 'approved' && start <= now && end >= now;
+    });
+    const currentStatus = currentLeave ? 'on_leave' : 'working';
+    
     return {
       _id: user._id,
       name: user.name,
       employeeId: user.employeeId,
       position: user.position,
       department: user.department,
+      currentStatus,
       leaveBalance: {
+        annual: totalAnnualLeave,
+        used: usedAnnualLeave,
+        remaining: remainingAnnualLeave,
+        pending: pendingAnnualLeave,
+        // Also include old field names for backward compatibility
         totalAnnualLeave,
         usedAnnualLeave,
         remainingAnnualLeave,
@@ -225,7 +236,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 /**
- * Get department leave statistics
+ * Get department leave statistics  
  * GET /api/leave/department-stats
  */
 router.get('/department-stats', requireAuth, asyncHandler(async (req, res) => {
@@ -234,6 +245,7 @@ router.get('/department-stats', requireAuth, asyncHandler(async (req, res) => {
   
   // Get all users excluding admin
   const users = await db.collection('users').find({ role: { $ne: 'admin' } }).toArray();
+  console.log(`[Department Stats] Found ${users.length} non-admin users`);
   
   // Get all leave requests for the year
   const leaveRequests = await db.collection('leaveRequests').find({
@@ -242,6 +254,7 @@ router.get('/department-stats', requireAuth, asyncHandler(async (req, res) => {
       $lte: `${year}-12-31` 
     }
   }).toArray();
+  console.log(`[Department Stats] Found ${leaveRequests.length} leave requests for year ${year}`);
   
   // Group by department
   const departmentMap = users.reduce((map, user) => {
@@ -258,6 +271,8 @@ router.get('/department-stats', requireAuth, asyncHandler(async (req, res) => {
     map[dept].activeMembers++; // Assuming all users are active
     return map;
   }, {});
+  
+  console.log(`[Department Stats] Department map:`, Object.keys(departmentMap));
   
   // Calculate statistics for each department
   const departmentStats = await Promise.all(

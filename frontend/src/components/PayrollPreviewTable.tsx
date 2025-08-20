@@ -84,8 +84,8 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
         const response = await apiService.get('/users');
         if (response.success && response.data) {
           // Transform to simple format for the component
-          const simpleList = response.data
-            .filter((user: any) => user.role !== 'admin' && user.role !== 'Admin')
+          const simpleList = (response.data as any[])
+            .filter((user: any) => user.role !== 'admin')
             .map((user: any) => ({
               id: user._id || user.id,
               name: user.name || '',
@@ -134,7 +134,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
 
   const maskSalaryAmount = (amount: number): string => {
     // Admin users can see full amounts
-    if (user?.role === 'Admin' || user?.role === 'admin') {
+    if (user?.role === 'admin') {
       return amount.toString();
     }
     
@@ -152,7 +152,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
   const formatCurrency = (amount: number, shouldMask: boolean = false) => {
     const displayAmount = shouldMask ? maskSalaryAmount(amount) : amount;
     
-    if (shouldMask && user?.role !== 'Admin' && user?.role !== 'admin') {
+    if (shouldMask && user?.role !== 'admin') {
       // For masked amounts, show with asterisks
       return `₩${displayAmount}`;
     }
@@ -330,7 +330,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
       {/* Filter Controls */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               size="small"
@@ -346,7 +346,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={3} md={2}>
+          <Grid size={{ xs: 12, sm: 3, md: 2 }}>
             <FormControl fullWidth size="small">
               <InputLabel>검증 상태</InputLabel>
               <Select
@@ -361,7 +361,7 @@ export const PreviewDataTable: React.FC<PreviewDataTableProps> = ({
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={3} md={2}>
+          <Grid size={{ xs: 12, sm: 3, md: 2 }}>
             <FormControl fullWidth size="small">
               <InputLabel>매칭 상태</InputLabel>
               <Select

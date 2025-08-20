@@ -247,7 +247,7 @@ const MyDocuments: React.FC = () => {
 
         <Box sx={{ p: 2 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -261,7 +261,7 @@ const MyDocuments: React.FC = () => {
             </Grid>
             {tabValue === 1 && (
               <>
-                <Grid item xs={6} sm={2}>
+                <Grid size={{ xs: 6, sm: 2 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>연도</InputLabel>
                     <Select
@@ -277,7 +277,7 @@ const MyDocuments: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={6} sm={2}>
+                <Grid size={{ xs: 6, sm: 2 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>월</InputLabel>
                     <Select
@@ -373,7 +373,7 @@ const MyDocuments: React.FC = () => {
           ) : (
             <Grid container spacing={2}>
               {filteredDocuments.map((doc) => (
-                <Grid item xs={12} sm={6} md={4} key={doc._id}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={doc._id}>
                   <Card>
                     <CardContent>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

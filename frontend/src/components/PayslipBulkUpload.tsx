@@ -173,8 +173,8 @@ export const PayslipBulkUpload: React.FC = () => {
   const loadUploadHistory = async () => {
     try {
       const response = await api.get('/reports/payslip/upload-history');
-      if (response && response.history) {
-        setUploadHistory(response.history);
+      if (response && (response as any).history) {
+        setUploadHistory((response as any).history);
       }
     } catch (error) {
       console.error('Error loading upload history:', error);
@@ -292,13 +292,13 @@ export const PayslipBulkUpload: React.FC = () => {
         fileNames,
       });
 
-      if (!response || !response.matches) {
+      if (!response || !(response as any).matches) {
         console.error('Invalid response from match-employees API:', response);
         setError('서버 응답 오류가 발생했습니다.');
         return;
       }
 
-      const matchResults = response.matches;
+      const matchResults = (response as any).matches;
 
       setFiles((prevFiles) => 
         prevFiles.map((file) => {
@@ -332,8 +332,8 @@ export const PayslipBulkUpload: React.FC = () => {
         })
       );
 
-      if (response.availableUsers) {
-        setAvailableUsers(response.availableUsers);
+      if ((response as any).availableUsers) {
+        setAvailableUsers((response as any).availableUsers);
       }
     } catch (error: any) {
       console.error('Error matching employees:', error);
@@ -420,20 +420,14 @@ export const PayslipBulkUpload: React.FC = () => {
       console.log('🚀 Sending request to:', '/reports/payslip/bulk-upload');
       
       // Use the raw axios instance for file upload with progress tracking
-      const response = await api.api.post('/reports/payslip/bulk-upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
-            console.log(`⏳ Upload progress: ${percentCompleted}%`);
-          }
-        },
-      });
+      const response = await api.uploadWithProgress(
+        '/reports/payslip/bulk-upload',
+        formData,
+        (percentCompleted) => {
+          setUploadProgress(percentCompleted);
+          console.log(`⏳ Upload progress: ${percentCompleted}%`);
+        }
+      );
 
       console.log('✅ Response received:', response.data);
 
@@ -542,7 +536,7 @@ export const PayslipBulkUpload: React.FC = () => {
       const verifyResponse = await api.get('/payslip/verify-status');
       
       if (verifyResponse && verifyResponse.success) {
-        const { stats, recentUploads } = verifyResponse;
+        const { stats, recentUploads } = verifyResponse as any;
         
         console.log('📊 Upload verification results:', {
           stats,
@@ -563,8 +557,8 @@ export const PayslipBulkUpload: React.FC = () => {
         // Fallback to old method
         const response = await api.get('/reports/payslip/upload-history?limit=10');
         
-        if (response && response.history) {
-          const recentUploads = response.history;
+        if (response && (response as any).history) {
+          const recentUploads = (response as any).history;
           console.log('📊 Recent uploads found:', recentUploads.length);
           
           if (recentUploads.length > 0) {

@@ -113,7 +113,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
     </Typography>
     <Grid container spacing={2}>
       {/* Username */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="사용자명"
@@ -135,7 +135,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
       </Grid>
 
       {/* Password - required for new users, optional for editing */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label={isEditing ? "비밀번호 (변경 시에만 입력)" : "비밀번호"}
@@ -165,7 +165,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
       </Grid>
 
       {/* Name */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="이름"
@@ -180,7 +180,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = memo(({
       </Grid>
 
       {/* Employee ID */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="사원번호"
@@ -220,7 +220,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
     <Grid container spacing={2}>
 
       {/* Phone Number */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="전화번호"
@@ -242,7 +242,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
       </Grid>
 
       {/* Department */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormControl fullWidth>
           <InputLabel>부서</InputLabel>
           <Select
@@ -263,7 +263,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = memo(({
       </Grid>
 
       {/* Position */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormControl fullWidth>
           <InputLabel>직책</InputLabel>
           <Select
@@ -307,7 +307,7 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
     </Typography>
     <Grid container spacing={2}>
       {/* Role */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormControl fullWidth error={Boolean(errors.role)}>
           <InputLabel>역할</InputLabel>
           <Select
@@ -328,7 +328,7 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
 
       {/* Supervisor - show only for non-admin roles */}
       {formData.role !== 'admin' && (
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth>
             <InputLabel>상급자</InputLabel>
             <Select
@@ -350,7 +350,7 @@ export const RolePermissionsSection: React.FC<RolePermissionsSectionProps> = mem
 
       {/* Visible Teams - only for admin users */}
       {currentUser?.role === 'admin' && (
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Autocomplete
             multiple
             freeSolo
@@ -413,7 +413,7 @@ export const EmploymentDetailsSection: React.FC<EmploymentDetailsSectionProps> =
     </Typography>
     <Grid container spacing={2}>
       {/* Base Salary */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="기본급"
@@ -430,7 +430,7 @@ export const EmploymentDetailsSection: React.FC<EmploymentDetailsSectionProps> =
       </Grid>
 
       {/* Hire Date */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="입사일"
@@ -443,7 +443,7 @@ export const EmploymentDetailsSection: React.FC<EmploymentDetailsSectionProps> =
       </Grid>
 
       {/* Birth Date */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="생년월일"
@@ -456,7 +456,7 @@ export const EmploymentDetailsSection: React.FC<EmploymentDetailsSectionProps> =
       </Grid>
 
       {/* Contract Type */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormControl fullWidth>
           <InputLabel>계약 형태</InputLabel>
           <Select
@@ -478,7 +478,7 @@ export const EmploymentDetailsSection: React.FC<EmploymentDetailsSectionProps> =
       </Grid>
 
       {/* Account Number */}
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <TextField
           fullWidth
           label="계좌번호"

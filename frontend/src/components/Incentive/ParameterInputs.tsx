@@ -70,7 +70,7 @@ const ParameterInputs: React.FC<ParameterInputsProps> = ({
       case 'TOTAL_PERCENT':
         return (
           <>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="요율"
@@ -92,7 +92,7 @@ const ParameterInputs: React.FC<ParameterInputsProps> = ({
       case 'TOTAL_EXCESS':
         return (
           <>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="기준 금액"
@@ -107,7 +107,7 @@ const ParameterInputs: React.FC<ParameterInputsProps> = ({
                 helperText="이 금액을 초과한 부분에만 인센티브 적용"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="초과분 요율"
@@ -145,13 +145,13 @@ const ParameterInputs: React.FC<ParameterInputsProps> = ({
         {renderFields()}
 
         {/* Common optional fields */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2, mb: 1 }}>
             선택 설정 (공통)
           </Typography>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
             label="최소 인센티브"
@@ -167,7 +167,7 @@ const ParameterInputs: React.FC<ParameterInputsProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
             label="최대 인센티브"

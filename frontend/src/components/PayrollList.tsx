@@ -51,7 +51,7 @@ interface PayrollListProps {
 export const PayrollList: React.FC<PayrollListProps> = ({ filters, searchText }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
   
   // State management
   const [payrollData, setPayrollData] = useState<PayrollRecord[]>([]);
@@ -84,18 +84,18 @@ export const PayrollList: React.FC<PayrollListProps> = ({ filters, searchText })
       const response = await apiService.getPayrollRecords(queryParams);
       
       if (response.success) {
-        let data = response.data || [];
+        let data = (response.data || []) as PayrollRecord[];
         
         // Client-side filtering for department (since backend might not support it yet)
         if (filters?.department && filters.department !== 'all') {
-          data = data.filter((record: PayrollRecord) => 
+          data = data.filter((record) => 
             record.user?.department === filters.department
           );
         }
         
         // Client-side filtering for search text
         if (searchText && searchText.trim()) {
-          data = data.filter((record: PayrollRecord) => 
+          data = data.filter((record) => 
             record.user?.name?.toLowerCase().includes(searchText.toLowerCase().trim())
           );
         }

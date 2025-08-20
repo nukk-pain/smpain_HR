@@ -188,17 +188,12 @@ const AppContent: React.FC = () => {
         <Route path="users" element={<Navigate to="/supervisor/users" replace />} />
         <Route path="departments" element={<Navigate to="/supervisor/departments" replace />} />
         {/* Make payroll redirect more specific to avoid matching /payroll/excel-upload */}
-        <Route path="payroll" end element={<Navigate to="/supervisor/payroll" replace />} />
+        <Route path="payroll" element={<Navigate to="/supervisor/payroll" replace />} />
         <Route path="reports" element={<Navigate to="/supervisor/reports" replace />} />
         <Route path="files" element={<Navigate to="/supervisor/files" replace />} />
         
-        <Route path="supervisor/leave/status" element={
-          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
-            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-              <TeamLeaveStatusPage />
-            </React.Suspense>
-          </ProtectedRoute>
-        } />
+        {/* Redirect old supervisor/leave/status to new unified route */}
+        <Route path="supervisor/leave/status" element={<Navigate to="/leave/overview" replace />} />
         
         <Route path="supervisor/leave/requests" element={
           <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
@@ -258,14 +253,8 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        {/* Keep old routes temporarily for backward compatibility */}
-        <Route path="admin/leave/overview" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-              <AdminLeaveOverview />
-            </React.Suspense>
-          </ProtectedRoute>
-        } />
+        {/* Redirect old admin/leave/overview to new unified route */}
+        <Route path="admin/leave/overview" element={<Navigate to="/leave/overview" replace />} />
         
         <Route path="admin/leave/policy" element={
           <ProtectedRoute allowedRoles={['admin']}>

@@ -154,21 +154,21 @@ const UnifiedDashboard: React.FC = () => {
 
       const combinedStats: SystemStats = {
         users: {
-          total: userStats.data?.totalUsers || 0,
-          active: userStats.data?.activeUsers || 0,
-          byDepartment: userStats.data?.byDepartment || {},
-          byRole: userStats.data?.byRole || {},
-          newThisMonth: userStats.data?.newThisMonth || 0,
+          total: (userStats as any).data?.totalUsers || 0,
+          active: (userStats as any).data?.activeUsers || 0,
+          byDepartment: (userStats as any).data?.byDepartment || {},
+          byRole: (userStats as any).data?.byRole || {},
+          newThisMonth: (userStats as any).data?.newThisMonth || 0,
         },
         payroll: {
           currentMonth: {
-            totalEmployees: payrollStats.data?.total_employees || 0,
-            totalPayroll: payrollStats.data?.total_payroll || 0,
-            totalIncentive: payrollStats.data?.total_incentive || 0,
-            totalBonus: payrollStats.data?.total_bonus || 0,
-            avgSalary: payrollStats.data?.avg_salary || 0,
+            totalEmployees: (payrollStats as any).data?.total_employees || 0,
+            totalPayroll: (payrollStats as any).data?.total_payroll || 0,
+            totalIncentive: (payrollStats as any).data?.total_incentive || 0,
+            totalBonus: (payrollStats as any).data?.total_bonus || 0,
+            avgSalary: (payrollStats as any).data?.avg_salary || 0,
           },
-          trends: payrollStats.data?.trends || [],
+          trends: (payrollStats as any).data?.trends || [],
         },
         performance: {
           topPerformers: performanceStats.data?.topPerformers || [],

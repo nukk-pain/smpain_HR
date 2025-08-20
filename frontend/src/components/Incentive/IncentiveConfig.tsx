@@ -102,7 +102,7 @@ const IncentiveConfig: React.FC<IncentiveConfigProps> = ({
           { value: 'TOTAL_EXCESS', name: '전체 매출 초과분', description: '전체 매출 중 기준 금액 초과분의 X%', requiredParams: ['threshold', 'rate'] },
           { value: 'CUSTOM', name: '커스텀 수식', description: '사용자 정의 수식', requiredParams: [] }
         ];
-        setIncentiveTypes(fallbackTypes);
+        setIncentiveTypes(fallbackTypes as IncentiveTypeInfo[]);
       }
     } catch (error) {
       console.error('Failed to load incentive types:', error);
@@ -115,7 +115,7 @@ const IncentiveConfig: React.FC<IncentiveConfigProps> = ({
         { value: 'TOTAL_EXCESS', name: '전체 매출 초과분', description: '전체 매출 중 기준 금액 초과분의 X%', requiredParams: ['threshold', 'rate'] },
         { value: 'CUSTOM', name: '커스텀 수식', description: '사용자 정의 수식', requiredParams: [] }
       ];
-      setIncentiveTypes(fallbackTypes);
+      setIncentiveTypes(fallbackTypes as IncentiveTypeInfo[]);
     }
   };
 
@@ -250,7 +250,7 @@ const IncentiveConfig: React.FC<IncentiveConfigProps> = ({
     try {
       const response = await apiService.updateIncentiveConfig(userId, {
         type: config.type,
-        parameters: config.parameters,
+        parameters: config.parameters as Record<string, number>,
         customFormula: config.customFormula,
         isActive: config.isActive,
         effectiveDate: config.effectiveDate as string

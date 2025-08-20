@@ -142,6 +142,28 @@ class ApiService {
     return response.data;
   }
 
+  // Upload with progress tracking
+  async uploadWithProgress(
+    url: string, 
+    formData: FormData, 
+    onProgress?: (progress: number) => void
+  ): Promise<any> {
+    const response = await this.api.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          onProgress(percentCompleted);
+        }
+      },
+    });
+    return response.data;
+  }
+
   // Authentication
   async login(username: string, password: string): Promise<AuthResponse> {
     console.log('🔐 Login attempt:', {
@@ -330,22 +352,6 @@ class ApiService {
     return this.get(`/sales/${yearMonth}`);
   }
 
-  async calculateIncentive(userId: number, yearMonth: string, salesAmount: number) {
-    // TODO: This endpoint doesn't exist in backend - needs implementation
-    // Temporarily returning mock data to prevent errors
-    console.warn('calculateIncentive endpoint not implemented in backend');
-    return Promise.resolve({ 
-      success: true, 
-      data: { incentive: 0 },
-      message: 'Endpoint not implemented' 
-    });
-    // Original call:
-    // return this.post('/payroll/calculate-incentive', { 
-    //   user_id: userId, 
-    //   year_month: yearMonth, 
-    //   sales_amount: salesAmount 
-    // });
-  }
 
   async getBonuses(userId: number, yearMonth?: string) {
     const url = yearMonth ? `/bonus/user/${userId}?yearMonth=${yearMonth}` : `/bonus/user/${userId}`;

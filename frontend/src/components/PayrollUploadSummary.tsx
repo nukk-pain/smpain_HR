@@ -56,7 +56,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
         </Typography>
         
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="primary">
                 {totalRecords}
@@ -67,7 +67,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
             </Box>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="success.main">
                 {matchedCount}
@@ -78,7 +78,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
             </Box>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="info.main">
                 {manualMatchCount}
@@ -89,7 +89,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
             </Box>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="warning.main">
                 {skipCount}
@@ -150,7 +150,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
         {/* Detail Stats */}
         <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
           <Grid container spacing={1}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <GroupIcon fontSize="small" color="action" />
                 <Typography variant="body2">
@@ -158,7 +158,7 @@ export const PayrollUploadSummary: React.FC<PayrollUploadSummaryProps> = ({
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WarningIcon fontSize="small" color="warning" />
                 <Typography variant="body2">

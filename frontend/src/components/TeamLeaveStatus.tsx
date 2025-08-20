@@ -125,7 +125,7 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
       
       if (viewMode === 'team') {
         // Load team members data
-        const response = await apiService.get('/leave/team-status', {
+        const response = await apiService.get<{members: any[], departments: string[]}>('/leave/team-status', {
           department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
           year: selectedYear
         });
@@ -134,7 +134,7 @@ const TeamLeaveStatus: React.FC<TeamLeaveStatusProps> = ({ viewMode = 'team' }) 
         setDepartments(response.data?.departments || []);
       } else {
         // Load department statistics
-        const response = await apiService.get('/leave/department-stats', {
+        const response = await apiService.get<any[]>('/leave/department-stats', {
           year: selectedYear
         });
         

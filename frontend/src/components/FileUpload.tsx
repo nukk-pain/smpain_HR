@@ -102,7 +102,7 @@ const FileUpload: React.FC = () => {
     
     try {
       const response = await apiService.getUploadPreview(uploadResult.uploadId);
-      setPreviewData(response.success ? response.data : []);
+      setPreviewData(response.success ? (response.data as any[]) : []);
       setIsPreviewOpen(true);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load preview data');
@@ -114,7 +114,7 @@ const FileUpload: React.FC = () => {
     
     try {
       const response = await apiService.compareUploadData(uploadResult.uploadId, yearMonth);
-      setComparisonResult(response.comparison);
+      setComparisonResult((response as any).comparison);
       setIsComparisonOpen(true);
     } catch (error) {
       showNotification('error', 'Error', 'Failed to compare data');

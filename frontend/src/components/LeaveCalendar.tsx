@@ -251,10 +251,11 @@ const LeaveCalendar: React.FC = () => {
         department: departmentFilter !== 'all' ? departmentFilter : undefined
       });
       
-      setCalendarEvents(response.data || []);
+      setCalendarEvents((response.data || []) as LeaveCalendarEvent[]);
       
       // Extract unique departments for filter
-      const uniqueDepartments = [...new Set(response.data?.map((event: LeaveCalendarEvent) => event.userDepartment) || [])];
+      const data = (response.data || []) as LeaveCalendarEvent[];
+      const uniqueDepartments = [...new Set(data.map((event) => event.userDepartment))];
       setDepartments(uniqueDepartments);
       
     } catch (error) {
@@ -269,7 +270,7 @@ const LeaveCalendar: React.FC = () => {
     try {
       const monthString = format(currentDate, 'yyyy-MM');
       const response = await apiService.get(`/leave/exceptions?month=${monthString}`);
-      setLeaveExceptions(response.data || []);
+      setLeaveExceptions((response as any).data || []);
     } catch (error) {
       console.error('Error loading leave exceptions:', error);
       showError('예외 설정을 불러오는 중 오류가 발생했습니다.');

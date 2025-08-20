@@ -70,7 +70,7 @@ export const PayslipManagement: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check permissions
-  const canManage = user?.permissions?.includes('payroll:manage') || user?.role === 'Admin';
+  const canManage = user?.permissions?.includes('payroll:manage') || user?.role === 'admin';
 
   // Fetch payroll records
   const fetchPayrollRecords = async () => {
@@ -79,7 +79,7 @@ export const PayslipManagement: React.FC = () => {
       setError(null);
       const response = await apiService.getPayrollRecords();
       if (response.success) {
-        setPayrollRecords(response.data || []);
+        setPayrollRecords((response.data || []) as PayrollRecord[]);
       } else {
         setError(response.error || '급여명세서 목록을 불러올 수 없습니다.');
       }
@@ -258,7 +258,7 @@ export const PayslipManagement: React.FC = () => {
           const statusInfo = getStatusDisplay(record.paymentStatus);
           
           return (
-            <Grid item xs={12} md={6} lg={4} key={record._id}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={record._id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>

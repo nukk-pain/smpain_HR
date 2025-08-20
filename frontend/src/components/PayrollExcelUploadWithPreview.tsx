@@ -82,8 +82,8 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
           const response = await apiService.get('/users');
           if (response.success && response.data) {
             // Transform to simple format for the component
-            const simpleList = response.data
-              .filter((user: any) => user.role !== 'admin' && user.role !== 'Admin')
+            const simpleList = (response.data as any[])
+              .filter((user: any) => user.role !== 'admin')
               .map((user: any) => ({
                 id: user._id || user.id,
                 name: user.name || '',
@@ -730,7 +730,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
               처리 요약
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   파일명
                 </Typography>
@@ -738,7 +738,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   {state.result?.summary?.fileName || 'N/A'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   처리 시간
                 </Typography>
@@ -748,7 +748,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                     : 'N/A'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   대상 기간
                 </Typography>
@@ -756,7 +756,7 @@ export const PayrollExcelUploadWithPreview: React.FC = () => {
                   {selectedYear}년 {selectedMonth}월
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   성공률
                 </Typography>

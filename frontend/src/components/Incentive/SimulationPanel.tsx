@@ -125,7 +125,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
           빠른 시뮬레이션
         </Typography>
         <Grid container spacing={1} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               size="small"
               label="개인 매출"
@@ -135,7 +135,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               size="small"
               label="전체 매출"
@@ -145,7 +145,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Button
               variant="contained"
               onClick={handleSimulate}
@@ -176,7 +176,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
       <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
         {/* Test Sales Data Input */}
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               label="개인 매출"
@@ -194,7 +194,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               label="전체 매출"
@@ -207,7 +207,7 @@ const SimulationPanel: React.FC<SimulationPanelProps> = ({
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               label="팀 매출"

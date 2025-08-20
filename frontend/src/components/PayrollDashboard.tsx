@@ -87,10 +87,10 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
     setLoading(true);
     try {
       const response = await apiService.getPayrollReport(yearMonth);
-      if (response.success && response.data?.summary) {
+      if (response.success && (response as any).data?.summary) {
         // Map summary data to stats structure
         setStats({
-          ...response.data.summary,
+          ...(response as any).data.summary,
           departmentStats: [],  // Empty for now - can be calculated from reportData later
           monthlyTrends: [],    // Empty for now - requires multiple months data
           topPerformers: []     // Empty for now - can be calculated from reportData later

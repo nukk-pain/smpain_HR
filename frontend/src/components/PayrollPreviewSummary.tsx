@@ -69,7 +69,7 @@ export const PreviewSummaryCard: React.FC<PreviewSummaryCardProps> = ({ summary 
 
         <Grid container spacing={3}>
           {/* File Information */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 파일 정보
@@ -87,7 +87,7 @@ export const PreviewSummaryCard: React.FC<PreviewSummaryCardProps> = ({ summary 
           </Grid>
 
           {/* Processing Statistics */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 처리 통계
@@ -131,7 +131,7 @@ export const PreviewSummaryCard: React.FC<PreviewSummaryCardProps> = ({ summary 
           </Grid>
 
           {/* Success Rate */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 처리 성공률
