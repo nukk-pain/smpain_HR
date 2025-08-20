@@ -129,7 +129,7 @@ const MyDocuments: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch documents:', error);
-      showNotification('문서 목록을 불러오는데 실패했습니다', 'error');
+      showNotification('error', 'Error', '문서 목록을 불러오는데 실패했습니다');
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -166,10 +166,10 @@ const MyDocuments: React.FC = () => {
         window.URL.revokeObjectURL(url);
       }, 100);
       
-      showNotification('문서를 다운로드했습니다', 'success');
+      showNotification('success', 'Success', '문서를 다운로드했습니다');
     } catch (error) {
       console.error('Download failed:', error);
-      showNotification('문서 다운로드에 실패했습니다', 'error');
+      showNotification('error', 'Error', '문서 다운로드에 실패했습니다');
     }
   };
 

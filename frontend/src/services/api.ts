@@ -336,7 +336,7 @@ class ApiService {
   }
 
   async exportPayrollExcel(yearMonth: string) {
-    const response = await this.request({
+    const response = await this.api.request({
       method: 'GET',
       url: `/payroll/monthly/${yearMonth}/export`,
       responseType: 'blob'
@@ -651,7 +651,7 @@ class ApiService {
     type: 'employment' | 'career' | 'income';
     purpose: string;
     language?: 'ko' | 'en';
-  }): Promise<ApiResponse> {
+  }): Promise<ApiResponse<any>> {
     return this.post('/documents/certificate/generate', data);
   }
 
@@ -665,11 +665,11 @@ class ApiService {
     return this.get(`/documents/admin/all${queryString ? '?' + queryString : ''}`);
   }
 
-  async deleteDocument(documentId: string, reason: string): Promise<ApiResponse> {
+  async deleteDocument(documentId: string, reason: string): Promise<ApiResponse<any>> {
     return this.delete(`/documents/${documentId}`, { reason });
   }
 
-  async replaceDocument(documentId: string, formData: FormData): Promise<ApiResponse> {
+  async replaceDocument(documentId: string, formData: FormData): Promise<ApiResponse<any>> {
     return this.upload(`/documents/${documentId}/replace`, formData);
   }
 
@@ -688,7 +688,7 @@ class ApiService {
     customFormula?: string;
     isActive: boolean;
     effectiveDate?: string;
-  }): Promise<ApiResponse> {
+  }): Promise<ApiResponse<any>> {
     return this.put(`/incentive/config/${userId}`, config);
   }
 
@@ -716,7 +716,7 @@ class ApiService {
     return this.post('/incentive/validate', { formula, testData });
   }
 
-  async restoreDocument(documentId: string): Promise<ApiResponse> {
+  async restoreDocument(documentId: string): Promise<ApiResponse<any>> {
     return this.put(`/documents/${documentId}/restore`, {});
   }
 }

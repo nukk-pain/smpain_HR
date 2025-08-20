@@ -179,7 +179,8 @@ export const usePayrollUpload = () => {
       uploading: false,
       confirming: false,
       result: null,
-      error: null
+      error: null,
+      duplicateMode: 'skip'
     });
   }, []);
 

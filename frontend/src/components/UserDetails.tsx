@@ -54,16 +54,16 @@ export interface UserDetailsProps {
 }
 
 // Memoized constants for performance
-const ROLE_NAMES = Object.freeze({
+const ROLE_NAMES = {
   admin: '관리자',
   supervisor: '팀장',
   user: '사용자'
-}) as const;
+} as const;
 
-const CONTRACT_TYPES = Object.freeze({
+const CONTRACT_TYPES = {
   regular: '정규직',
   contract: '계약직'
-}) as const;
+} as const;
 
 // Information section interface
 interface InfoSectionProps {

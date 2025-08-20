@@ -96,7 +96,7 @@ const AdminLeavePolicy: React.FC = () => {
       const response = await apiService.getLeavePolicy();
       
       if (response.success) {
-        setPolicy(response.data);
+        setPolicy(response.data as LeavePolicy);
       } else {
         showError('정책 정보를 불러올 수 없습니다.');
       }

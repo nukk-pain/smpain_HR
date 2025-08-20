@@ -147,7 +147,7 @@ const LeaveManagement: React.FC = () => {
   const loadLeaveRequests = async () => {
     try {
       const response = await apiService.getLeaveRequests();
-      setLeaveRequests(response.data || []);
+      setLeaveRequests((response.data || []) as LeaveRequest[]);
     } catch (error) {
       console.error('Error loading leave requests:', error);
     }
@@ -156,7 +156,7 @@ const LeaveManagement: React.FC = () => {
   const loadLeaveBalance = async () => {
     try {
       const response = await apiService.getLeaveBalance();
-      setLeaveBalance(response.data);
+      setLeaveBalance(response.data as LeaveBalance);
     } catch (error) {
       console.error('Error loading leave balance:', error);
     }

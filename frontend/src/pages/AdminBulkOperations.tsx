@@ -108,7 +108,7 @@ const AdminBulkOperations: React.FC = () => {
       const response = await apiService.getBulkPendingRequests(filters);
       
       if (response.success) {
-        setPendingRequests(response.data);
+        setPendingRequests((response.data || []) as PendingRequest[]);
       } else {
         showError('대기중인 휴가 신청을 불러오는데 실패했습니다.');
       }
@@ -163,8 +163,8 @@ const AdminBulkOperations: React.FC = () => {
       );
 
       if (response.success) {
-        setLastResult(response.data.results);
-        showSuccess(`${response.data.successful}건의 휴가 신청이 ${bulkAction === 'approve' ? '승인' : '거부'}되었습니다.`);
+        setLastResult((response.data as any).results);
+        showSuccess(`${(response.data as any).successful}건의 휴가 신청이 ${bulkAction === 'approve' ? '승인' : '거부'}되었습니다.`);
         
         // Reset selections and reload data
         setSelectedRequests([]);

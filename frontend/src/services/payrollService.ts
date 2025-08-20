@@ -78,7 +78,7 @@ export class PayrollService {
       const response = await apiService.getPayrollRecords(params);
       
       if (response.success) {
-        const records = response.data || [];
+        const records = (response.data || []) as PayrollRecord[];
         this.setCachedRecords(records);
         return records;
       } else {
@@ -100,7 +100,7 @@ export class PayrollService {
       const response = await apiService.getPayrollRecord(id);
       
       if (response.success) {
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to fetch payroll record');
       }
@@ -140,7 +140,7 @@ export class PayrollService {
       
       if (response.success) {
         this.invalidateCache();
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to create payroll record');
       }
@@ -176,7 +176,7 @@ export class PayrollService {
       
       if (response.success) {
         this.invalidateCache();
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to update payroll record');
       }
@@ -299,7 +299,7 @@ export class PayrollService {
 
       if (response.success) {
         this.invalidateCache();
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to update payroll');
       }
@@ -320,7 +320,7 @@ export class PayrollService {
       const response = await apiService.get(`/payroll/monthly/${payrollId}/history`);
       
       if (response.success) {
-        return response.data;
+        return (response.data || []) as any[];
       } else {
         throw new Error(response.error || 'Failed to get edit history');
       }
@@ -341,7 +341,7 @@ export class PayrollService {
       const response = await apiService.previewPayrollExcel(file, year, month);
       
       if (response.success) {
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to preview Excel file');
       }
@@ -363,7 +363,7 @@ export class PayrollService {
       
       if (response.success) {
         this.invalidateCache();
-        return response.data;
+        return response.data as PayrollRecord;
       } else {
         throw new Error(response.error || 'Failed to confirm Excel preview');
       }

@@ -110,7 +110,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
     try {
       const response = await apiService.getSalesData(yearMonth);
       if (response.success) {
-        setSalesData(response.data || []);
+        setSalesData((response.data || []) as SalesData[]);
       }
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load sales data');
@@ -201,8 +201,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
     try {
       const response = await apiService.calculateIncentive(
         sales.user_id,
-        sales.year_month,
-        sales.sales_amount
+        sales.year_month
       );
       
       if (response.success) {
@@ -224,7 +223,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
     setCalculatingIncentive(true);
     try {
       const promises = salesData.map(sales => 
-        apiService.calculateIncentive(sales.user_id, sales.year_month, sales.sales_amount)
+        apiService.calculateIncentive(sales.user_id, sales.year_month)
       );
       
       await Promise.all(promises);

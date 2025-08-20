@@ -9,6 +9,7 @@ const leaveApprovalRouter = require('./leaveApproval');
 const leaveCancellationRouter = require('./leaveCancellation');
 const leaveCalendarRouter = require('./leaveCalendar');
 const leaveExceptionsRouter = require('./leaveExceptions');
+const leaveTeamStatusRouter = require('./leaveTeamStatus');
 
 // Set up middleware to provide database access to all sub-routes
 router.use((req, res, next) => {
@@ -34,11 +35,13 @@ router.use('/pending', leaveApprovalRouter);
 // Cancellation routes
 router.use('/cancellations', leaveCancellationRouter);
 
-// Calendar and team status routes
+// Calendar routes
 router.use('/calendar', leaveCalendarRouter);
 router.use('/team-calendar', leaveCalendarRouter);
-router.use('/team-status', leaveCalendarRouter);
-router.use('/employee', leaveCalendarRouter);
+
+// Team status routes (moved to dedicated router)
+router.use('/team-status', leaveTeamStatusRouter);
+router.use('/employee', leaveTeamStatusRouter);
 
 // Approval and cancellation routes with ID parameter need to be handled by specific endpoints
 

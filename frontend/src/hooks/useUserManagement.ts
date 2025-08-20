@@ -200,7 +200,7 @@ export const useUserManagement = (): UseUserManagementReturn => {
       await fetchUsers(); // Refresh the user list
       
       // Clear selection if deleted user was selected
-      if (selectedUser?.id === id) {
+      if (selectedUser?._id === String(id)) {
         setSelectedUser(null);
       }
     } catch (err: any) {

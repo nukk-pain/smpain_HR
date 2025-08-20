@@ -68,7 +68,7 @@ const PayrollManagement: React.FC = () => {
     try {
       const response = await apiService.getDashboardStats()
       if (response.success) {
-        setDashboardStats(response.data)
+        setDashboardStats(response.data as DashboardStats)
       }
     } catch (error) {
       console.error('Failed to load dashboard stats:', error)
@@ -80,7 +80,7 @@ const PayrollManagement: React.FC = () => {
     try {
       const response = await apiService.getPayrollStats(selectedMonth)
       if (response.success) {
-        setStats(response.data)
+        setStats(response.data as PayrollStats)
       } else {
         setStats(null)
       }

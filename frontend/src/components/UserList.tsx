@@ -68,11 +68,11 @@ export interface UserListProps {
 }
 
 // Memoized constants for performance
-const ROLE_NAMES = Object.freeze({
+const ROLE_NAMES = {
   admin: '관리자',
   supervisor: '팀장',
   user: '사용자'
-}) as const;
+} as const;
 
 // Column definitions with responsive behavior
 interface ColumnDefinition {
@@ -84,7 +84,7 @@ interface ColumnDefinition {
   align?: 'left' | 'center' | 'right';
 }
 
-const COLUMNS: readonly ColumnDefinition[] = Object.freeze([
+const COLUMNS: readonly ColumnDefinition[] = [
   { id: 'username' as SortField, label: '사용자명', sortable: true, responsive: 'tablet', minWidth: 120 },
   { id: 'name' as SortField, label: '이름', sortable: true, minWidth: 100 },
   { id: 'role' as SortField, label: '역할', sortable: true, minWidth: 80 },
@@ -92,7 +92,7 @@ const COLUMNS: readonly ColumnDefinition[] = Object.freeze([
   { id: 'position' as SortField, label: '직책', sortable: false, responsive: 'desktop', minWidth: 100 },
   { id: 'status' as SortField, label: '상태', sortable: true, minWidth: 80, align: 'center' },
   { id: 'actions', label: '작업', sortable: false, minWidth: 120, align: 'center' }
-]) as const;
+] as const;
 
 // Row height for virtualization
 const ROW_HEIGHT = 73;

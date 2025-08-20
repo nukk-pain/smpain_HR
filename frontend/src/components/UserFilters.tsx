@@ -49,19 +49,19 @@ export interface UserFiltersProps {
 }
 
 // Constants memoized for performance
-const ROLE_NAMES = Object.freeze({
+const ROLE_NAMES = {
   admin: '관리자',
   supervisor: '팀장',
   user: '사용자'
-}) as const;
+} as const;
 
-const STATUS_OPTIONS = Object.freeze([
+const STATUS_OPTIONS = [
   { value: 'all', label: '전체' },
   { value: 'active', label: '활성' },
   { value: 'inactive', label: '비활성' }
-]) as const;
+] as const;
 
-const SORT_FIELD_OPTIONS = Object.freeze([
+const SORT_FIELD_OPTIONS = [
   { value: 'id' as SortField, label: 'ID' },
   { value: 'name' as SortField, label: '이름' },
   { value: 'username' as SortField, label: '사용자명' },
@@ -69,7 +69,7 @@ const SORT_FIELD_OPTIONS = Object.freeze([
   { value: 'role' as SortField, label: '역할' },
   { value: 'status' as SortField, label: '상태' },
   { value: 'position' as SortField, label: '직책' }
-]) as const;
+] as const;
 
 /**
  * Optimized UserFilters component with React.memo and performance enhancements

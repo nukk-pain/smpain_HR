@@ -143,9 +143,9 @@ const UnifiedDashboard: React.FC = () => {
       if (user?.role === 'admin') {
         try {
           [performanceStats, systemHealth, alerts] = await Promise.all([
-            apiService.get('/admin/performance-stats'),
-            apiService.get('/admin/system-health'),
-            apiService.get('/admin/alerts')
+            apiService.get<any>('/admin/performance-stats'),
+            apiService.get<any>('/admin/system-health'),
+            apiService.get<any[]>('/admin/alerts')
           ]);
         } catch (error) {
           console.warn('Admin stats not available:', error);

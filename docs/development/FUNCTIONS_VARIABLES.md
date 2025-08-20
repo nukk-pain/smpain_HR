@@ -416,4 +416,25 @@ const inactiveUserData = createTestUserData(baseData, false, adminId, 'Test reas
 ### Future Additions
 - Document new functions and variables as they're created
 - Update existing entries when functions are modified
+
+## TypeScript 관련 유틸리티
+
+### API Service 메서드
+- `uploadWithProgress(url, formData, onProgress)` - 파일 업로드 진행률 추적 기능
+  - 용도: 대용량 파일 업로드 시 진행 상황 표시
+  - 위치: `services/api.ts`
+
+### 타입 정의
+- `ApiResponse<T>` - 모든 API 응답의 기본 타입
+  - 주의: 항상 제네릭 타입 T를 명시해야 함
+- `TeamLeaveStatusResponse` - 팀 휴가 현황 응답 타입
+- `PayrollReportResponse` - 급여 보고서 응답 타입
+
+### 타입 유틸리티
+- `Omit<T, K>` - 기존 타입에서 특정 속성 제외
+  - 예시: `PayrollRowData extends Omit<MonthlyPayment, 'id'>`
+
+### 상수 패턴
+- `as const` - 리터럴 타입으로 고정
+  - 주의: Object.freeze()와 함께 사용하지 말 것
 - Remove entries when functions are deprecated

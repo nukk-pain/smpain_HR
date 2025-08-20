@@ -27,15 +27,20 @@
    ```javascript
    const leaveTeamStatusRouter = require('./leaveTeamStatus');
    
-   // 기존 leaveCalendarRouter 대신
+   // 기존 leaveCalendarRouter를 교체
    router.use('/team-status', leaveTeamStatusRouter);
-   router.use('/department-stats', leaveTeamStatusRouter);
+   // department-stats는 team-status 내부에서 처리 (/team-status/department-stats)
+   // router.use('/employee', leaveTeamStatusRouter); // 제거 - employee/:id/log는 team-status 내부에서 처리
+   
+   // 캘린더 관련은 유지
+   router.use('/calendar', leaveCalendarRouter);
+   router.use('/team-calendar', leaveCalendarRouter);
    ```
 
 2. **기존 라우트 정리**:
    - `/team-calendar`는 그대로 `leaveCalendarRouter` 유지
    - `/calendar`는 그대로 `leaveCalendarRouter` 유지
-   - `/employee`는 `leaveTeamStatusRouter`로 이동
+   - `/employee` 라우트 제거 (team-status 내부로 통합)
 
 ### Phase 3: Backend API 구조 개선
 1. **부서 통계 응답 필드 수정**:

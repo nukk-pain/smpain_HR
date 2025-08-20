@@ -83,7 +83,7 @@ const AdminLeaveOverview: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.get('/admin/leave/overview');
-      setData(response.data);
+      setData(response.data as LeaveOverviewData);
     } catch (error) {
       console.error('Error loading leave overview:', error);
       showError('직원 휴가 현황을 불러오는 중 오류가 발생했습니다.');
