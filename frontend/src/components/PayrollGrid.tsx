@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid'
-import { Box, Paper, Button, IconButton, Tooltip, TextField, Collapse, Typography } from '@mui/material'
-import { Edit, Save, Cancel, Download, ExpandMore, ExpandLess } from '@mui/icons-material'
+import { Box, Paper, Button, IconButton, Tooltip, TextField, Collapse, Typography, Menu, MenuItem, FormControlLabel, Checkbox, Divider } from '@mui/material'
+import { Edit, Save, Cancel, Download, ExpandMore, ExpandLess, Settings } from '@mui/icons-material'
 import { MonthlyPayment, User } from '@/types'
 import apiService from '@/services/api'
 import { useNotification } from './NotificationProvider'
@@ -24,7 +24,31 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   const [editingRows, setEditingRows] = useState<Set<number>>(new Set())
   const [expandedAllowances, setExpandedAllowances] = useState<Set<string>>(new Set())
   const [expandedDeductions, setExpandedDeductions] = useState<Set<string>>(new Set())
+  const [columnSettingsAnchor, setColumnSettingsAnchor] = useState<null | HTMLElement>(null)
   const { showSuccess, showError } = useNotification()
+
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('payrollGridVisibleColumns')
+    if (saved) {
+      return JSON.parse(saved)
+    }
+    // Default all columns visible
+    return {
+      employee_id: true,
+      employeeName: true,
+      department: true,
+      position: true,
+      base_salary: true,
+      incentive: true,
+      total_allowances: true,
+      bonus_total: true,
+      award_total: true,
+      total_deductions: true,
+      input_total: true,
+      actual_payment: true,
+    }
+  })
 
   // Currency formatter
   const currencyFormatter = (params: any) => {
@@ -36,6 +60,23 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   const formatCurrency = (value: number | null | undefined) => {
     if (value == null) return '0원'
     return `${Number(value).toLocaleString()}원`
+  }
+
+  // Handle column visibility change
+  const handleColumnVisibilityChange = (columnField: string, visible: boolean) => {
+    const newVisibleColumns = { ...visibleColumns, [columnField]: visible }
+    setVisibleColumns(newVisibleColumns)
+    localStorage.setItem('payrollGridVisibleColumns', JSON.stringify(newVisibleColumns))
+  }
+
+  // Open column settings menu
+  const handleColumnSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+    setColumnSettingsAnchor(event.currentTarget)
+  }
+
+  // Close column settings menu
+  const handleColumnSettingsClose = () => {
+    setColumnSettingsAnchor(null)
   }
 
   // Expandable Allowances Component
@@ -250,7 +291,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   }
 
   // Column definitions for MUI DataGrid
-  const columns: GridColDef[] = useMemo(() => [
+  const allColumns: GridColDef[] = useMemo(() => [
     {
       field: 'employeeName',
       headerName: '직원명',
@@ -367,6 +408,16 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     }
   ], [editingRows])
 
+  // Filter columns based on visibility settings
+  const columns = useMemo(() => {
+    return allColumns.filter(col => {
+      // Always show actions column
+      if (col.field === 'actions') return true
+      // Check visibility setting for other columns
+      return visibleColumns[col.field] !== false
+    })
+  }, [allColumns, visibleColumns])
+
 
   // Load payroll data
   const loadData = useCallback(async () => {
@@ -472,14 +523,23 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
             총 {rowData.length}명 | 총 지급액: {totals.input_total.toLocaleString()}원
           </Box>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Download />}
-          onClick={handleExportExcel}
-          disabled={rowData.length === 0}
-        >
-          Excel 내보내기
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Settings />}
+            onClick={handleColumnSettingsClick}
+          >
+            컬럼 설정
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download />}
+            onClick={handleExportExcel}
+            disabled={rowData.length === 0}
+          >
+            Excel 내보내기
+          </Button>
+        </Box>
       </Box>
       
       <Box sx={{ height: 'calc(100% - 80px)' }} className="ag-theme-alpine">
@@ -524,6 +584,88 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
           />
         )}
       </Box>
+      
+      {/* Column Settings Menu */}
+      <Menu
+        anchorEl={columnSettingsAnchor}
+        open={Boolean(columnSettingsAnchor)}
+        onClose={handleColumnSettingsClose}
+        PaperProps={{
+          sx: { width: 300, maxHeight: 400 }
+        }}
+      >
+        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="subtitle2" fontWeight="bold">
+            표시할 컬럼 선택
+          </Typography>
+        </Box>
+        <Box sx={{ px: 1, py: 1 }}>
+          {[
+            { field: 'employee_id', label: '직원ID' },
+            { field: 'employeeName', label: '직원명' },
+            { field: 'department', label: '부서' },
+            { field: 'position', label: '직급' },
+            { field: 'base_salary', label: '기본급' },
+            { field: 'incentive', label: '인센티브' },
+            { field: 'total_allowances', label: '수당' },
+            { field: 'bonus_total', label: '보너스' },
+            { field: 'award_total', label: '포상금' },
+            { field: 'total_deductions', label: '공제' },
+            { field: 'input_total', label: '지급총액' },
+            { field: 'actual_payment', label: '실지급액' },
+          ].map(column => (
+            <MenuItem key={column.field} sx={{ py: 0.5 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={visibleColumns[column.field] ?? true}
+                    onChange={(e) => handleColumnVisibilityChange(column.field, e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={column.label}
+                sx={{ width: '100%', margin: 0 }}
+              />
+            </MenuItem>
+          ))}
+        </Box>
+        <Divider />
+        <Box sx={{ px: 2, py: 1 }}>
+          <Button
+            size="small"
+            onClick={() => {
+              const allVisible = Object.keys(visibleColumns).reduce((acc, key) => {
+                acc[key] = true
+                return acc
+              }, {} as Record<string, boolean>)
+              setVisibleColumns(allVisible)
+              localStorage.setItem('payrollGridVisibleColumns', JSON.stringify(allVisible))
+            }}
+          >
+            모두 표시
+          </Button>
+          <Button
+            size="small"
+            onClick={() => {
+              // Keep only essential columns
+              const essential = {
+                employeeName: true,
+                base_salary: true,
+                input_total: true,
+                actual_payment: true,
+              }
+              const allHidden = Object.keys(visibleColumns).reduce((acc, key) => {
+                acc[key] = essential[key] || false
+                return acc
+              }, {} as Record<string, boolean>)
+              setVisibleColumns(allHidden)
+              localStorage.setItem('payrollGridVisibleColumns', JSON.stringify(allHidden))
+            }}
+          >
+            필수만 표시
+          </Button>
+        </Box>
+      </Menu>
     </Paper>
   )
 }
