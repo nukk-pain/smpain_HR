@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -37,7 +37,8 @@ import {
   DialogActions,
   ToggleButton,
   ToggleButtonGroup,
-  Grid
+  Grid,
+  Skeleton
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -61,6 +62,16 @@ import { useAuth } from './AuthProvider';
 import { useNotification } from './NotificationProvider';
 import { apiService } from '../services/api';
 import LeaveAdjustmentDialog from './LeaveAdjustmentDialog';
+import VirtualEmployeeList from './VirtualEmployeeList';
+import { 
+  useLeaveOverview, 
+  useTeamStatus, 
+  useDepartmentStats, 
+  useDepartments,
+  useEmployeeLeaveLog,
+  useLeaveAdjustment,
+  usePrefetchLeaveData
+} from '../hooks/useLeaveData';
 
 interface UnifiedLeaveOverviewProps {
   userRole: 'admin' | 'supervisor';
@@ -128,7 +139,6 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   const { showSuccess, showError } = useNotification();
 
   // Unified state variables
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
@@ -141,71 +151,84 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   // Admin-specific state (conditionally initialized)
   const [sortBy, setSortBy] = useState('name');
   const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
-  const [overviewData, setOverviewData] = useState<LeaveOverviewData | null>(null);
-
-  // Team-specific state (conditionally initialized)
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [employeeLeaveLog, setEmployeeLeaveLog] = useState<any>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
 
-  // Unified data loader
-  const loadLeaveData = async () => {
-    setLoading(true);
-    try {
-      if (userRole === 'admin' && viewMode === 'overview') {
-        const response = await apiService.get<any>('/admin/leave/overview');
-        
-        // The apiService.get already returns response.data, so response here is the actual data
-        // The API returns { success: true, data: { statistics: {...}, employees: [...] } }
-        if (response?.data) {
-          const apiData = response.data;
-          
-          const transformedData: LeaveOverviewData = {
-            summary: {
-              totalEmployees: apiData.statistics?.totalEmployees || 0,
-              averageUsageRate: apiData.statistics?.averageUsageRate || 0,
-              highRiskCount: 0, // Not used in UI anymore
-              pendingRequests: apiData.employees?.reduce((sum: number, emp: any) => sum + (emp.pendingAnnualLeave || 0), 0) || 0
-            },
-            employees: apiData.employees || [],
-            departments: [...new Set((apiData.employees || []).map((emp: any) => emp.department))] as string[],
-            lastUpdated: new Date().toISOString()
-          };
-          setOverviewData(transformedData);
-        }
-      } else if (viewMode === 'team') {
-        const params: any = { year: selectedYear };
-        if (selectedDepartment !== 'all') {
-          params.department = selectedDepartment;
-        }
-        const response = await apiService.get<{ members: TeamMember[], departments: string[] }>('/leave/team-status', params);
-        // The response already contains { success: true, data: {...} }
-        // apiService.get returns the whole response, so we need to access response.data
-        if (response?.data) {
-          setTeamMembers(response.data.members || []);
-          setDepartments(response.data.departments || []);
-        } else {
-          setTeamMembers([]);
-          setDepartments([]);
-        }
-      } else if (viewMode === 'department') {
-        const response = await apiService.get<DepartmentStats[]>('/leave/team-status/department-stats', {
-          year: selectedYear
-        });
-        // Check if response has data property (standard API response format)
-        if (response?.data) {
-          setDepartmentStats(response.data as DepartmentStats[] || []);
-        } else {
-          setDepartmentStats([]);
-        }
-      }
-    } catch (error: any) {
-      showError(`데이터를 불러오는 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
-    } finally {
-      setLoading(false);
+  // React Query hooks for data fetching
+  const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview } = useLeaveOverview(
+    selectedYear,
+    userRole === 'admin' && viewMode === 'overview'
+  );
+
+  const { data: teamResponse, isLoading: teamLoading, refetch: refetchTeam } = useTeamStatus(
+    user?.department || '',
+    selectedYear,
+    viewMode === 'team'
+  );
+
+  const { data: departmentStatsResponse, isLoading: departmentStatsLoading, refetch: refetchDepartmentStats } = useDepartmentStats(
+    selectedYear,
+    viewMode === 'department'
+  );
+
+  const { data: departmentsData } = useDepartments();
+
+  // Leave adjustment mutation
+  const adjustmentMutation = useLeaveAdjustment();
+
+  // Prefetch hooks for performance
+  const { prefetchOverview, prefetchTeamStatus } = usePrefetchLeaveData();
+
+  // Employee leave log query (only when needed)
+  const { data: employeeLeaveLog, isLoading: loadingDetail } = useEmployeeLeaveLog(
+    selectedEmployee?._id || selectedEmployee?.employeeId || '',
+    selectedYear,
+    !!selectedEmployee && employeeDetailOpen
+  );
+
+  // Transform data for backward compatibility
+  const overviewData = useMemo(() => {
+    if (!overviewResponse) return null;
+    const apiData = (overviewResponse as any)?.data;
+    if (!apiData) return null;
+    
+    return {
+      summary: {
+        totalEmployees: apiData.statistics?.totalEmployees || 0,
+        averageUsageRate: apiData.statistics?.averageUsageRate || 0,
+        highRiskCount: apiData.statistics?.highRiskCount || 0,
+        pendingRequests: apiData.statistics?.pendingRequests || 0,
+      },
+      employees: apiData.employees || [],
+      departments: apiData.departments || [],
+      lastUpdated: new Date().toISOString(),
+    } as LeaveOverviewData;
+  }, [overviewResponse]);
+
+  const teamMembers = useMemo(() => {
+    return (teamResponse as any)?.data?.members || [];
+  }, [teamResponse]);
+
+  const departmentStats = useMemo(() => {
+    return (departmentStatsResponse as any)?.data || [];
+  }, [departmentStatsResponse]);
+
+  const departments = useMemo(() => {
+    return departmentsData?.map((dept: any) => dept.name) || [];
+  }, [departmentsData]);
+
+  // Determine loading state based on current view
+  const loading = viewMode === 'overview' ? overviewLoading :
+                  viewMode === 'team' ? teamLoading :
+                  viewMode === 'department' ? departmentStatsLoading : false;
+
+  // Unified data refresh function using React Query
+  const refreshData = () => {
+    if (viewMode === 'overview') {
+      refetchOverview();
+    } else if (viewMode === 'team') {
+      refetchTeam();
+    } else if (viewMode === 'department') {
+      refetchDepartmentStats();
     }
   };
 
@@ -281,9 +304,23 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     }
   };
 
-  const handleExportExcel = () => {
-    console.log('Excel export will be implemented');
-    showSuccess('Excel 내보내기 기능이 곧 구현될 예정입니다.');
+  const handleExportExcel = async () => {
+    try {
+      // Show loading state (could add a loading spinner in the button)
+      showSuccess('Excel 파일을 생성중입니다...');
+      
+      await apiService.exportLeaveToExcel({
+        view: viewMode,
+        year: selectedYear,
+        department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
+        riskLevel: undefined // Can add risk level filter if needed
+      });
+      
+      showSuccess('Excel 파일이 다운로드되었습니다.');
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      showError('Excel 내보내기에 실패했습니다.');
+    }
   };
 
   const handleAdjustLeave = (employeeId: string, employeeName: string) => {
@@ -293,29 +330,18 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
 
   const handleAdjustmentComplete = () => {
     setAdjustmentDialogOpen(false);
-    loadLeaveData();
+    refreshData();
   };
 
-  const handleViewDetail = async (member: any) => {
-    try {
-      setLoadingDetail(true);
-      setSelectedEmployee(member);
-      
-      const response = await apiService.getEmployeeLeaveLog(member._id || member.employeeId, selectedYear);
-      setEmployeeLeaveLog(response.data);
-      setEmployeeDetailOpen(true);
-    } catch (error) {
-      console.error('Error loading employee leave log:', error);
-      showError('직원 휴가 내역을 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoadingDetail(false);
-    }
+  const handleViewDetail = (member: any) => {
+    setSelectedEmployee(member);
+    setEmployeeDetailOpen(true);
+    // Data will be fetched automatically by useEmployeeLeaveLog hook
   };
 
   const handleCloseDetail = () => {
     setEmployeeDetailOpen(false);
     setSelectedEmployee(null);
-    setEmployeeLeaveLog(null);
   };
 
   const handleMemberClick = (member: TeamMember) => {
@@ -323,10 +349,20 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     setDetailDialogOpen(true);
   };
 
-  // Update data when dependencies change
+  // Prefetch data when hovering over tabs for better UX
   useEffect(() => {
-    loadLeaveData();
-  }, [viewMode, selectedDepartment, selectedYear, userRole]);
+    if (userRole === 'admin') {
+      // Prefetch next likely views
+      if (viewMode === 'overview') {
+        prefetchTeamStatus(user?.department || '', selectedYear);
+      }
+    }
+  }, [viewMode, selectedYear, userRole, user?.department, prefetchTeamStatus]);
+
+  // Auto-refetch when year changes
+  useEffect(() => {
+    refreshData();
+  }, [selectedYear]);
 
   // Render view mode selector
   const renderViewModeSelector = () => {
@@ -453,61 +489,71 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
           </Button>
         </Box>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>직원명</TableCell>
-                <TableCell>부서</TableCell>
-                <TableCell>직급</TableCell>
-                <TableCell align="center">총 연차</TableCell>
-                <TableCell align="center">사용</TableCell>
-                <TableCell align="center">대기</TableCell>
-                <TableCell align="center">잔여</TableCell>
-                <TableCell align="center">사용률</TableCell>
-                <TableCell align="center">작업</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {getFilteredEmployees().map((employee) => (
-                <TableRow key={employee.employeeId}>
-                  <TableCell>{employee.name}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
-                  <TableCell>{employee.position}</TableCell>
-                  <TableCell align="center">{employee.totalAnnualLeave}</TableCell>
-                  <TableCell align="center">{employee.usedAnnualLeave}</TableCell>
-                  <TableCell align="center">{employee.pendingAnnualLeave}</TableCell>
-                  <TableCell align="center">{employee.remainingAnnualLeave}</TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={employee.usageRate}
-                        sx={{ flexGrow: 1 }}
-                        color={employee.usageRate > 80 ? 'error' : employee.usageRate > 50 ? 'warning' : 'success'}
-                      />
-                      <Typography variant="body2">{employee.usageRate.toFixed(1)}%</Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="상세보기">
-                        <IconButton size="small" onClick={() => handleViewDetail(employee)}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="휴가 조정">
-                        <IconButton size="small" onClick={() => handleAdjustLeave(employee.employeeId, employee.name)}>
-                          <SettingsIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
+        {/* Use virtual scrolling for large datasets (>100 employees) */}
+        {getFilteredEmployees().length > 100 ? (
+          <VirtualEmployeeList
+            employees={getFilteredEmployees()}
+            onAdjustClick={(employee) => handleAdjustLeave(employee.employeeId, employee.name)}
+            onViewDetail={handleViewDetail}
+            height={600}
+          />
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>직원명</TableCell>
+                  <TableCell>부서</TableCell>
+                  <TableCell>직급</TableCell>
+                  <TableCell align="center">총 연차</TableCell>
+                  <TableCell align="center">사용</TableCell>
+                  <TableCell align="center">대기</TableCell>
+                  <TableCell align="center">잔여</TableCell>
+                  <TableCell align="center">사용률</TableCell>
+                  <TableCell align="center">작업</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {getFilteredEmployees().map((employee, index) => (
+                  <TableRow key={employee.employeeId} data-testid={`employee-row-${index}`}>
+                    <TableCell>{employee.name}</TableCell>
+                    <TableCell>{employee.department}</TableCell>
+                    <TableCell>{employee.position}</TableCell>
+                    <TableCell align="center">{employee.totalAnnualLeave}</TableCell>
+                    <TableCell align="center">{employee.usedAnnualLeave}</TableCell>
+                    <TableCell align="center">{employee.pendingAnnualLeave}</TableCell>
+                    <TableCell align="center">{employee.remainingAnnualLeave}</TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={employee.usageRate}
+                          sx={{ flexGrow: 1 }}
+                          color={employee.usageRate > 80 ? 'error' : employee.usageRate > 50 ? 'warning' : 'success'}
+                        />
+                        <Typography variant="body2">{employee.usageRate.toFixed(1)}%</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={1} justifyContent="center">
+                        <Tooltip title="상세보기">
+                          <IconButton size="small" onClick={() => handleViewDetail(employee)}>
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="휴가 조정">
+                          <IconButton size="small" onClick={() => handleAdjustLeave(employee.employeeId, employee.name)}>
+                            <SettingsIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </>
     );
   };
@@ -738,13 +784,13 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
             <DialogContent>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle1">
-                  총 연차: {employeeLeaveLog.totalAnnualLeave}일
+                  총 연차: {(employeeLeaveLog as any)?.totalAnnualLeave}일
                 </Typography>
                 <Typography variant="subtitle1">
-                  사용: {employeeLeaveLog.usedLeave}일
+                  사용: {(employeeLeaveLog as any)?.usedLeave}일
                 </Typography>
                 <Typography variant="subtitle1">
-                  잔여: {employeeLeaveLog.remainingLeave}일
+                  잔여: {(employeeLeaveLog as any)?.remainingLeave}일
                 </Typography>
               </Box>
               <TableContainer>
@@ -759,7 +805,7 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {employeeLeaveLog.leaves?.map((leave: any, index: number) => (
+                    {(employeeLeaveLog as any)?.leaves?.map((leave: any, index: number) => (
                       <TableRow key={index}>
                         <TableCell>{getLeaveTypeLabel(leave.type)}</TableCell>
                         <TableCell>{format(new Date(leave.startDate), 'yyyy-MM-dd')}</TableCell>

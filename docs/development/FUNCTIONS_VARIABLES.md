@@ -2,6 +2,60 @@
 
 This document maintains a registry of all functions and variables in the HR system to prevent duplication and encourage reuse.
 
+## React Query Data Management
+
+### Query Client Configuration (`frontend/src/config/queryClient.ts`)
+
+#### Configuration
+- `queryClient` - Main QueryClient instance with default options
+  - staleTime: 5 minutes
+  - gcTime (garbage collection): 10 minutes  
+  - retry: 1 attempt
+  - refetchOnWindowFocus: false
+
+#### Query Keys Factory
+- `queryKeys` - Centralized query key management
+  - `queryKeys.leave.overview(year)` - Leave overview data key
+  - `queryKeys.leave.teamStatus(dept, year)` - Team status data key
+  - `queryKeys.leave.balance(userId, year)` - Employee balance key
+  - `queryKeys.leave.employeeLog(empId, year)` - Employee log key
+  - `queryKeys.departments.list()` - Departments list key
+
+### Leave Data Hooks (`frontend/src/hooks/useLeaveData.ts`)
+**Status**: ✅ Implemented and integrated with UnifiedLeaveOverview component
+
+#### Query Hooks
+- `useLeaveOverview(year, enabled?)` - Fetches admin leave overview
+  - Caches for 5 minutes, auto-refreshes when stale
+  - Returns: overviewData, isLoading, error, refetch
+  
+- `useTeamStatus(department, year, enabled?)` - Fetches team leave status
+  - Conditional fetching based on enabled flag
+  - Returns: teamData, isLoading, error, refetch
+  
+- `useDepartmentStats(year, enabled?)` - Fetches department statistics
+  - Used for department view mode
+  - Returns: departmentStats, isLoading, error, refetch
+  
+- `useDepartments()` - Fetches all departments
+  - Longer cache time (30 minutes) as rarely changes
+  - Returns: departments list
+  
+- `useEmployeeLeaveLog(employeeId, year, enabled?)` - Fetches individual employee leave history
+  - Only fetches when employee is selected
+  - Returns: leave log data
+  
+#### Mutation Hooks  
+- `useLeaveAdjustment()` - Handles leave balance adjustments
+  - Optimistic updates for instant UI feedback
+  - Automatic rollback on error
+  - Invalidates related queries on success
+  
+#### Utility Hooks
+- `usePrefetchLeaveData()` - Prefetches data for better UX
+  - `prefetchOverview(year)` - Prefetch overview data
+  - `prefetchTeamStatus(dept, year)` - Prefetch team data
+
 ## Document Type Management Functions
 
 ### Configuration (`frontend/src/config/documentTypes.ts`)
@@ -502,3 +556,68 @@ const inactiveUserData = createTestUserData(baseData, false, adminId, 'Test reas
 - `as const` - 리터럴 타입으로 고정
   - 주의: Object.freeze()와 함께 사용하지 말 것
 - Remove entries when functions are deprecated
+
+## Leave Excel Export Functions
+
+### Backend Service (`backend/services/LeaveExcelService.js`)
+
+#### Class: LeaveExcelService
+- `generateLeaveOverviewExcel(data, viewType, year)` - Main Excel generation method
+  - Generates Excel file for leave overview data
+  - Supports 3 view types: overview (admin), team, department
+  - Returns ExcelJS.Workbook instance
+  
+- `createOverviewSheet(data, year)` - Creates admin overview sheet
+  - Headers: 직원명, 부서, 직급, 총 연차, 사용, 대기, 잔여, 사용률(%), 위험도
+  - Includes summary row with totals and averages
+  - Applies conditional formatting for risk levels
+  
+- `createTeamSheet(data, year)` - Creates team view sheet
+  - Headers: 이름, 직급, 부서, 총 연차, 사용/잔여, 현재 상태
+  - Highlights employees on leave
+  
+- `createDepartmentSheet(data, year)` - Creates department statistics sheet
+  - Headers: 부서명, 전체 인원, 휴가중, 평균 사용률(%), 대기중 요청
+  
+- `getRiskLevelKorean(level)` - Converts risk level to Korean
+  - high→높음, medium→중간, low→낮음
+  
+- `autoFitColumns()` - Auto-adjusts column widths based on content
+- `addBorders(startRow)` - Adds borders to cells for better readability
+- `toBuffer()` - Converts workbook to buffer for download
+
+### Backend Route (`backend/routes/admin/leaveAdmin.js`)
+
+#### Export Endpoint
+- `GET /api/admin/leave/export/excel` - Excel export endpoint
+  - Query params: view (overview/team/department), year, department, riskLevel
+  - Requires Admin authentication
+  - Returns Excel file with proper headers
+  - Filename encoding: UTF-8 with encodeURIComponent
+  
+### Frontend Service (`frontend/src/services/api.ts`)
+
+#### Export Method
+- `exportLeaveToExcel(params)` - Downloads leave data as Excel
+  - Parameters: view, year, department (optional), riskLevel (optional)
+  - Handles blob response and triggers browser download
+  - Extracts filename from Content-Disposition header
+  - Error handling with Korean error messages
+
+### Frontend Component Integration (`frontend/src/components/UnifiedLeaveOverview.tsx`)
+
+#### Handler Function
+- `handleExportExcel()` - Handles Excel export button click
+  - Shows loading notification during generation
+  - Calls apiService.exportLeaveToExcel with current filters
+  - Shows success/error notifications
+  - Uses current viewMode, selectedYear, and selectedDepartment
+
+## Change Log
+
+### 2025-08-20 - Leave Excel Export Implementation
+- Added LeaveExcelService for Excel generation
+- Implemented export endpoint in leaveAdmin routes
+- Added frontend API service method
+- Integrated export functionality in UnifiedLeaveOverview component
+- Successfully tested Excel generation and download

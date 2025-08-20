@@ -719,6 +719,59 @@ class ApiService {
   async restoreDocument(documentId: string): Promise<ApiResponse<any>> {
     return this.put(`/documents/${documentId}/restore`, {});
   }
+
+  // Leave Excel Export
+  async exportLeaveToExcel(params: {
+    view: 'overview' | 'team' | 'department';
+    year: number;
+    department?: string;
+    riskLevel?: string;
+  }): Promise<void> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('view', params.view);
+      queryParams.append('year', params.year.toString());
+      if (params.department && params.department !== 'all') {
+        queryParams.append('department', params.department);
+      }
+      if (params.riskLevel) {
+        queryParams.append('riskLevel', params.riskLevel);
+      }
+
+      const response = await this.api.get(`/admin/leave/export/excel?${queryParams.toString()}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      });
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `leave-${params.view}-${params.year}.xlsx`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)|filename="?(.+?)"?(?:;|$)/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
+        }
+      }
+
+      // Create blob and download
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      throw new Error('Excel 내보내기에 실패했습니다.');
+    }
+  }
 }
 
 // Export class and singleton instance
