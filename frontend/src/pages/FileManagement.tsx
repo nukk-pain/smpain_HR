@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography, Container, Paper, Tabs, Tab } from '@mui/material';
 import { TableChart, PictureAsPdf } from '@mui/icons-material';
 import { PayrollExcelUploadWithPreview } from '../components/PayrollExcelUploadWithPreview';
-import { PayslipBulkUpload } from '../components/PayslipBulkUpload';
+import { PayslipBulkUploadRefactored as PayslipBulkUpload } from '../components/PayslipBulkUploadRefactored';
 
 interface TabPanelProps {
   children?: React.ReactNode;
