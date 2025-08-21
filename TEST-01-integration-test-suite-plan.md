@@ -17,6 +17,19 @@
 - **자동화 수준**: CI/CD 파이프라인 통합
 - **실행 시간**: 전체 테스트 5분 이내
 
+## 🎯 TDD 원칙 적용 (CLAUDE.md 준수)
+
+### Kent Beck의 TDD 사이클
+1. **Red**: 실패하는 테스트 먼저 작성
+2. **Green**: 테스트를 통과하는 최소한의 코드 구현
+3. **Refactor**: 테스트가 통과한 상태에서 코드 개선
+
+### 구현 전략
+- **테스트 우선 작성**: 새 기능 추가 시 반드시 테스트부터 작성
+- **작은 단위로 진행**: 한 번에 하나의 테스트만 작성하고 구현
+- **실제 MongoDB 사용**: Mock 없이 테스트 전용 실제 DB 인스턴스 사용
+- **구조적 변경과 행동 변경 분리**: Tidy First 원칙 적용
+
 ## 🏗️ 아키텍처
 
 ```
@@ -40,7 +53,7 @@ tests/
 
 #### Backend 설정
 ```bash
-npm install --save-dev jest supertest mongodb-memory-server
+npm install --save-dev jest supertest
 npm install --save-dev @types/jest @types/supertest
 ```
 
@@ -54,7 +67,33 @@ module.exports = {
     'services/**/*.js',
     'repositories/**/*.js'
   ],
-  testMatch: ['**/tests/**/*.test.js']
+  testMatch: ['**/tests/**/*.test.js'],
+  // 실제 MongoDB 사용을 위한 설정
+  globalSetup: './tests/setup/globalSetup.js',
+  globalTeardown: './tests/setup/globalTeardown.js',
+  setupFilesAfterEnv: ['./tests/setup/setupTests.js']
+};
+```
+
+**tests/setup/globalSetup.js**
+```javascript
+const { MongoClient } = require('mongodb');
+
+module.exports = async () => {
+  // 테스트 전용 실제 MongoDB 데이터베이스 준비
+  const client = new MongoClient('mongodb://localhost:27017');
+  await client.connect();
+  
+  const db = client.db('hr_test');
+  
+  // 테스트 초기 데이터 설정
+  await db.collection('users').insertMany([
+    { username: 'admin', password: '$2a$10$...', role: 'Admin' },
+    { username: 'supervisor', password: '$2a$10$...', role: 'Supervisor' },
+    { username: 'user', password: '$2a$10$...', role: 'User' }
+  ]);
+  
+  global.__MONGO_CLIENT__ = client;
 };
 ```
 
@@ -83,7 +122,58 @@ export default defineConfig({
 
 ### Phase 2: Backend API 테스트 (3일)
 
-#### 2.1 인증 API 테스트
+#### 테스트할 API 엔드포인트 목록 (35개)
+
+**인증 (4개)**
+- [ ] POST /api/auth/login
+- [ ] POST /api/auth/logout  
+- [ ] GET /api/auth/check
+- [ ] POST /api/auth/verify-password
+
+**사용자 관리 (6개)**
+- [ ] GET /api/users
+- [ ] GET /api/users/:id
+- [ ] POST /api/users
+- [ ] PUT /api/users/:id
+- [ ] DELETE /api/users/:id
+- [ ] PUT /api/users/:id/deactivate
+
+**휴가 관리 (8개)**
+- [ ] GET /api/leave/balance/:userId
+- [ ] GET /api/leave/requests
+- [ ] POST /api/leave/request
+- [ ] PUT /api/leave/approve/:requestId
+- [ ] PUT /api/leave/reject/:requestId
+- [ ] GET /api/leave/overview
+- [ ] GET /api/leave/admin/export/excel
+- [ ] PUT /api/leave/balance/adjust
+
+**급여 관리 (7개)**
+- [ ] GET /api/payroll/:year_month
+- [ ] POST /api/payroll/upload
+- [ ] POST /api/payroll/preview
+- [ ] POST /api/payroll/save
+- [ ] PUT /api/payroll/:id
+- [ ] GET /api/payroll/employee/:userId
+- [ ] GET /api/payroll/export/:year_month
+
+**부서 관리 (4개)**
+- [ ] GET /api/departments
+- [ ] POST /api/departments
+- [ ] PUT /api/departments/:id
+- [ ] DELETE /api/departments/:id
+
+**문서 관리 (4개)**
+- [ ] GET /api/documents
+- [ ] POST /api/documents/upload
+- [ ] PUT /api/documents/:id/replace
+- [ ] DELETE /api/documents/:id
+
+**보고서 (2개)**
+- [ ] GET /api/reports/payroll/:year_month
+- [ ] POST /api/reports/payslip/bulk-upload
+
+#### 2.1 인증 API 테스트 (TDD 적용)
 ```javascript
 // tests/backend/integration/auth.test.js
 describe('Authentication API', () => {
@@ -189,7 +279,48 @@ describe('Payroll API', () => {
 
 ### Phase 3: Frontend 컴포넌트 테스트 (3일)
 
-#### 3.1 핵심 컴포넌트 테스트
+#### 테스트할 컴포넌트 목록 (25개)
+
+**인증/권한 (3개)**
+- [ ] Login.tsx
+- [ ] AuthProvider.tsx
+- [ ] ProtectedRoute.tsx
+
+**휴가 관리 (5개)**
+- [ ] LeaveManagement.tsx
+- [ ] LeaveRequestDialog.tsx
+- [ ] LeaveBalanceCard.tsx
+- [ ] UnifiedLeaveOverview.tsx
+- [ ] LeaveAnalyticsCharts.tsx
+
+**급여 관리 (6개)**
+- [ ] PayrollGrid.tsx
+- [ ] PayrollExcelUploadWithPreview.tsx
+- [ ] PayrollEditDialog.tsx
+- [ ] PayrollPrintPreview.tsx
+- [ ] PayrollDashboard.tsx
+- [ ] PayrollFieldMappingStep.tsx
+
+**사용자 관리 (3개)**
+- [ ] UserManagement.tsx
+- [ ] UserEditDialog.tsx
+- [ ] UserProfile.tsx
+
+**부서 관리 (2개)**
+- [ ] DepartmentManagement.tsx
+- [ ] DepartmentEditDialog.tsx
+
+**문서 관리 (3개)**
+- [ ] MyDocuments.tsx
+- [ ] AdminDocuments.tsx
+- [ ] PayslipBulkUpload.tsx
+
+**공통 컴포넌트 (3개)**
+- [ ] Layout.tsx
+- [ ] UnifiedDashboard.tsx
+- [ ] Notifications.tsx
+
+#### 3.1 핵심 컴포넌트 테스트 (TDD 적용)
 ```typescript
 // tests/frontend/components/LeaveManagement.test.tsx
 describe('LeaveManagement Component', () => {
@@ -262,7 +393,27 @@ describe('useLeaveData Hook', () => {
 
 ### Phase 4: E2E 시나리오 테스트 (2일)
 
-#### 4.1 휴가 신청 전체 플로우
+#### 테스트할 E2E 시나리오 (12개)
+
+**사용자 시나리오 (4개)**
+- [ ] 로그인 → 프로필 확인 → 비밀번호 변경
+- [ ] 휴가 신청 → 승인 대기 → 잔여일수 확인
+- [ ] 급여명세서 조회 → PDF 다운로드
+- [ ] 내 문서함 → 문서 검색 → 다운로드
+
+**Supervisor 시나리오 (3개)**
+- [ ] 팀원 휴가 승인/거절 플로우
+- [ ] 팀 휴가 현황 조회 → Excel 내보내기
+- [ ] 부서 통계 확인 → 리포트 생성
+
+**Admin 시나리오 (5개)**
+- [ ] 사용자 생성 → 권한 설정 → 부서 배정
+- [ ] 급여 Excel 업로드 → 계산 → 검토 → 저장
+- [ ] 휴가 잔여일수 조정 → 이력 확인
+- [ ] 급여명세서 일괄 업로드 → 직원 매칭 → 배포
+- [ ] 부서 생성/수정/삭제 전체 플로우
+
+#### 4.1 휴가 신청 전체 플로우 (TDD 적용)
 ```javascript
 // tests/e2e/leave-request-flow.test.js
 describe('Leave Request Complete Flow', () => {
@@ -392,16 +543,18 @@ jobs:
 ## 📈 예상 커버리지
 
 ### Backend
-- **Routes**: 80% (30+ 엔드포인트)
+- **Routes**: 80% (35개 엔드포인트)
 - **Services**: 75% (비즈니스 로직)
 - **Repositories**: 70% (DB 연산)
 - **Middleware**: 90% (인증/권한)
+- **총 테스트 수**: 약 100개
 
 ### Frontend
-- **Components**: 70% (20+ 컴포넌트)
-- **Hooks**: 85% (커스텀 훅)
-- **Utils**: 95% (유틸리티 함수)
+- **Components**: 70% (25개 컴포넌트)
+- **Hooks**: 85% (useLeaveData, usePayrollData 등)
+- **Utils**: 95% (dateUtils, formatters, validators)
 - **Pages**: 60% (페이지 통합)
+- **총 테스트 수**: 약 75개
 
 ## 🎯 성공 기준
 
@@ -434,7 +587,8 @@ jobs:
 ### 기술적 리스크
 1. **MongoDB 테스트 환경**
    - 리스크: 실제 DB 사용 시 테스트 데이터 오염
-   - 대응: mongodb-memory-server 또는 테스트 전용 DB 사용
+   - 대응: 테스트 전용 DB 인스턴스 사용 (hr_test)
+   - 각 테스트 후 데이터 클린업 스크립트 실행
 
 2. **테스트 실행 시간**
    - 리스크: 테스트 증가로 실행 시간 증가
@@ -487,3 +641,4 @@ jobs:
 ## 🔄 업데이트 이력
 
 - **2025.08.21**: 최초 작성
+- **2025.08.21**: TDD 원칙 추가, 구체적인 테스트 목록 보완

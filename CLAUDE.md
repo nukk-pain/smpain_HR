@@ -62,6 +62,15 @@ You are a senior software engineer who follows Kent Beck's Test-Driven Developme
 - Minimize state and side effects
 - Use the simplest solution that could possibly work
 
+# DATE ACCURACY STANDARDS
+
+- ALWAYS use `date` command to get current date, never type manually
+- Korean format: `date +"%Y년 %m월 %d일"`  
+- ISO format: `date +"%Y-%m-%d"`
+- Dot format: `date +"%Y.%m.%d"` (for file organization)
+- Before marking tasks complete, update completion date with actual date
+- Available helper: `python3 scripts/auto-date-updater.py` for batch updates
+
 # REFACTORING GUIDELINES
 
 - Refactor only when tests are passing (in the "Green" phase)

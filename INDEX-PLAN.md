@@ -4,10 +4,12 @@
 - **FEAT-XX**: 기능 개발 계획 (Feature)
 - **REFACTOR-XX**: 리팩토링 계획
 - **FIX-XX**: 버그 수정 계획
+- **TEST-XX**: 테스트 계획 (Test Suite)
 - **DEPLOY-XX**: 배포 계획
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
+- **대기 중**: 2개 (TEST 1개, DEPLOY 1개)
 - **완료**: 11개 (FEAT 4개, REFACTOR 7개)
 - **보류**: 1개 (REFACTOR 1개)
 - **취소**: 1개 (REFACTOR 1개)
@@ -20,12 +22,34 @@
 
 ---
 
+## ⏳ 대기 중인 계획
+
+### TEST-01: **통합 테스트 스위트 구축** 📋 **계획 수립 완료**
+- **문서**: [`TEST-01-integration-test-suite-plan.md`](./TEST-01-integration-test-suite-plan.md)
+- P25년 08월 21일
+- **예상 소요**: 9일 (Phase 1-5)
+- **우선순위**: MEDIUM
+- **목표**:
+  - 테스트 커버리지 70% 이상
+  - Backend API 테스트 (30+ 엔드포인트)
+  - Frontend 컴포넌트 테스트 (20+ 컴포넌트)
+  - E2E 시나리오 테스트 (10+ 시나리오)
+  - CI/CD 파이프라인 통합
+- **구현 단계**:
+  - Phase 1: 테스트 환경 설정 (2일)
+  - Phase 2: Backend API 테스트 (3일)
+  - Phase 3: Frontend 컴포넌트 테스트 (3일)
+  - Phase 4: E2E 시나리오 테스트 (2일)
+  - Phase 5: CI/CD 통합 (1일)
+
+---
+
 ## ⏸️ 보류 중인 계획
 
 ### REFACTOR-02: **Reports.js 분할** ⏸️ **HOLD**
 - **문서**: [`REFACTOR-02-reports-plan.md`](./REFACTOR-02-reports-plan.md)
-- **작성 일자**: 2025년 1월 20일
-- **보류 일자**: 2025년 1월 20일
+- P25년 08월 21일
+- P25년 08월 21일
 - **보류 이유**: 12개 엔드포인트 중 8개 미사용
 - **선행 작업 필요**: 
   - 미사용 8개 엔드포인트 제거 (약 800줄)
@@ -44,8 +68,8 @@
 
 ### REFACTOR-05: **Payroll.js 분할** ❌ **CANCELLED**
 - **문서**: `completed/08-payroll-refactoring-plan-CANCELLED.md`
-- **작성 일자**: 2025년 1월 20일
-- **취소 일자**: 2025년 1월 20일
+- P25년 08월 21일
+- P25년 08월 21일
 - **취소 이유**: 
   - 미사용 코드 정리로 1,201줄 → 833줄 감소 (31% 감소)
   - Enhanced API 제거 (4개 엔드포인트)
@@ -62,7 +86,7 @@
 
 ### FEAT-01: **Excel 내보내기 API 구현** ✅ **완료**
 - **문서**: [`FEAT-01-excel-export-plan.md`](./FEAT-01-excel-export-plan.md)
-- **완료일**: 2025년 8월 21일
+- **완료일**: 2025년 08월 21일
 - **소요 시간**: 1일
 - **성과**:
   - ✅ Backend API 완전 구현 (`/api/leave/admin/export/excel`)
@@ -74,7 +98,7 @@
 
 ### FEAT-02: **차트 및 분석 기능** ✅ **완료**
 - **문서**: [`FEAT-02-charts-analytics-plan.md`](./FEAT-02-charts-analytics-plan.md)
-- **완료일**: 2025년 8월 21일
+- P25년 08월 21일
 - **소요 시간**: 2시간
 - **성과**:
   - ✅ LeaveAnalyticsCharts 컴포넌트 구현
@@ -85,7 +109,7 @@
   - ✅ 실시간 데이터 계산 및 필터 연동
 
 ### FEAT-03: **모바일 최적화 뷰** ✅ **완료**
-- **완료일**: 2025년 8월 21일
+- P25년 08월 21일
 - **소요 시간**: 1시간
 - **성과**:
   - ✅ MobileLeaveOverview 컴포넌트 구현
@@ -97,7 +121,7 @@
 
 ### FEAT-02 (이전): **React Query 최적화** ✅ **완료**
 - **문서**: [`completed/FEAT-02-react-query-optimization-plan.md`](./completed/FEAT-02-react-query-optimization-plan.md)
-- **완료일**: 2025년 1월 20일
+- P25년 08월 21일
 - **소요 시간**: 4.5시간
 - **성과**:
   - 네트워크 요청 60% 감소
@@ -108,7 +132,7 @@
 - **문서**: [`REFACTOR-03-frontend-large-files-plan.md`](./REFACTOR-03-frontend-large-files-plan.md)
 - **진행 보고서**: [`REFACTOR-03-progress.md`](./REFACTOR-03-progress.md)
 - **완료 보고서**: [`REFACTOR-03-completion-report.md`](./REFACTOR-03-completion-report.md)
-- **완료일**: 2025년 8월 21일
+- P25년 08월 21일
 - **작업 소요**: 2일 (계획 수립 및 테스트 포함)
 - **최종 성과**:
   - 6개 파일 완료 (PayrollExcelUpload, PayslipBulkUpload, LeaveManagement, DepartmentManagement, api.ts, LeaveCalendar)
@@ -121,7 +145,7 @@
 ### REFACTOR-01: **PayrollGrid 컴포넌트 리팩토링** ✅ **완료**
 - **문서**: [`completed/REFACTOR-01-payroll-grid-plan-COMPLETED.md`](./completed/REFACTOR-01-payroll-grid-plan-COMPLETED.md)
 - **진행 보고서**: [`completed/REFACTOR-01-progress-report-COMPLETED.md`](./completed/REFACTOR-01-progress-report-COMPLETED.md)
-- **완료일**: 2025년 1월 21일
+- P25년 08월 21일
 - **최종 결과**: 1,059줄 → 329줄 (69% 감소)
 - **작업 소요**: 1일 (예상 3일 → 실제 1일)
 - **주요 성과**:
@@ -131,7 +155,7 @@
   - 단일 책임 원칙 준수
 
 ### REFACTOR-06: **Excel Processor 리팩토링** ✅ **완료**
-- **완료일**: 2025년 8월 12일
+- P25년 08월 21일
 - **문서**: `completed/05-excel-processor-refactoring-COMPLETED.md`
 - **결과**: `services/excel/` 폴더로 성공적으로 분할
 - **성과**: 
@@ -139,7 +163,7 @@
   - 재사용성 및 유지보수성 향상
 
 ### REFACTOR-07: **Payroll-Enhanced 리팩토링** ✅ **완료**
-- **완료일**: 2025년 8월 13일
+- P25년 08월 21일
 - **문서**:
   - `completed/01-payroll-enhanced-refactoring-plan-original.md`
   - `completed/02-refactoring-order-strategy.md`
@@ -153,7 +177,7 @@
   - `payrollUtils.js` (400줄)
 
 ### REFACTOR-08: **Admin.js 분할** ✅ **완료**
-- **완료일**: 2025년 8월 13일
+- P25년 08월 21일
 - **문서**:
   - `completed/04-admin-split-decision-guide-COMPLETED.md`
   - `completed/admin-split-implementation-COMPLETED.md`
@@ -166,7 +190,7 @@
   - `admin/shared/adminMiddleware.js` (53줄)
 
 ### REFACTOR-04: **ErrorLoggingMonitoringService 분할** ✅ **완료**
-- **완료일**: 2025년 8월 14일
+- P25년 08월 21일
 - **문서**: `completed/06-error-logging-monitoring-refactoring-COMPLETED.md`
 - **소요 시간**: 약 30분 (자동화된 리팩토링)
 - **결과**: 1,068줄 단일 파일 → 10개 모듈로 분할
@@ -188,24 +212,6 @@
 ---
 
 ## 📅 향후 계획 (Backlog)
-
-### TEST-01: **통합 테스트 스위트 구축** 📋 **계획 수립 완료**
-- **문서**: [`TEST-01-integration-test-suite-plan.md`](./TEST-01-integration-test-suite-plan.md)
-- **작성 일자**: 2025년 8월 21일
-- **예상 소요**: 9일 (Phase 1-5)
-- **우선순위**: MEDIUM
-- **목표**:
-  - 테스트 커버리지 70% 이상
-  - Backend API 테스트 (30+ 엔드포인트)
-  - Frontend 컴포넌트 테스트 (20+ 컴포넌트)
-  - E2E 시나리오 테스트 (10+ 시나리오)
-  - CI/CD 파이프라인 통합
-- **구현 단계**:
-  - Phase 1: 테스트 환경 설정 (2일)
-  - Phase 2: Backend API 테스트 (3일)
-  - Phase 3: Frontend 컴포넌트 테스트 (3일)
-  - Phase 4: E2E 시나리오 테스트 (2일)
-  - Phase 5: CI/CD 통합 (1일)
 
 ### 계획 필요 작업들
 - **성능 모니터링 대시보드** (3일, LOW)
@@ -238,7 +244,7 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 
 ## 📈 진행률 통계
 
-### 오늘 (2025.08.21)
+P25.08.21)
 - **완료**: 3개 (Excel Export, Charts, Mobile View)
 - **진행률**: 100% (계획된 작업 모두 완료)
 
@@ -303,10 +309,10 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
   - 모바일 최적화 뷰 완료
   - 모든 계획 상태 업데이트
   
-- **2025.01.20 15:00**: 파일명 규칙 적용 및 재구성
+- **2025.08.20 15:00**: 파일명 규칙 적용 및 재구성
   - Option 3 (타입 약어) 방식 채택
   - 모든 계획 파일명 변경
   
-- **2025.01.20 14:00**: 최초 작성
+- **2025.08.20 14:00**: 최초 작성
   - React Query 최적화 완료
   - Excel 내보내기 진행 상태 업데이트

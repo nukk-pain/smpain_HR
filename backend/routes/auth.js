@@ -255,6 +255,96 @@ function createAuthRoutes(db) {
     }
   });
 
+  /**
+   * @swagger
+   * /api/auth/check:
+   *   get:
+   *     tags:
+   *       - Authentication
+   *     summary: Check authentication status
+   *     description: Check if the current user is authenticated and return user info
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: User is authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 authenticated:
+   *                   type: boolean
+   *                 user:
+   *                   $ref: '#/components/schemas/User'
+   *       401:
+   *         description: User is not authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 authenticated:
+   *                   type: boolean
+   *                 error:
+   *                   type: string
+   */
+  // Check authentication status endpoint
+  router.get('/check', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ 
+          authenticated: false, 
+          error: 'No token provided' 
+        });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      
+      try {
+        const decoded = verifyToken(token);
+        
+        // Get fresh user data from database
+        const user = await db.collection('users').findOne({ 
+          _id: new ObjectId(decoded.userId || decoded.id) 
+        });
+        
+        if (!user || !user.isActive) {
+          return res.status(401).json({ 
+            authenticated: false, 
+            error: 'User not found or inactive' 
+          });
+        }
+        
+        res.json({
+          authenticated: true,
+          user: {
+            _id: user._id.toString(),
+            id: user._id.toString(),
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            permissions: user.permissions || []
+          }
+        });
+      } catch (tokenError) {
+        return res.status(401).json({ 
+          authenticated: false, 
+          error: 'Invalid or expired token' 
+        });
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      res.status(500).json({ 
+        authenticated: false, 
+        error: 'Internal server error' 
+      });
+    }
+  });
+
   // Refresh token endpoint (Phase 4)
   router.post('/refresh', async (req, res) => {
     try {

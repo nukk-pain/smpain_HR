@@ -46,27 +46,6 @@
     "nodemon": "^3.0.2",
     "supertest": "^6.3.3"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFilesAfterEnv": [
-      "<rootDir>/tests/setup.js"
-    ],
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "backend/**/*.js",
-      "!backend/tests/**",
-      "!backend/node_modules/**",
-      "!backend/server.js"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ]
-  },
   "keywords": [
     "express",
     "mongodb",
