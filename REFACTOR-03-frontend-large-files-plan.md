@@ -40,24 +40,30 @@
 
 ## 리팩토링 우선순위 및 전략
 
-### Phase 1: 즉시 실행 (Immediate Actions)
-1. **백업 파일 삭제**
-   - [ ] `UnifiedLeaveOverview.backup.tsx` 삭제 (865 lines)
-   - 불필요한 백업 파일로 즉시 삭제 가능
+### Phase 1: 즉시 실행 (Immediate Actions) ✅ 완료
+1. **백업 파일 삭제** ✅
+   - [x] `UnifiedLeaveOverview.backup.tsx` 삭제 (865 lines)
+   - 완료일: 2025년 1월 21일
 
-2. **PayrollGrid.tsx 리팩토링** (1059 lines)
-   - [ ] 별도 계획서 참조: `payroll-grid-refactoring-plan.md`
-   - 1000줄 초과로 최우선 리팩토링 필요
+2. **PayrollGrid.tsx 리팩토링** ✅ 
+   - [x] 별도 계획서 참조: `payroll-grid-refactoring-plan.md`
+   - 완료일: 2025년 1월 21일
+   - 결과: 1059줄 → 329줄 (69% 감소)
 
-### Phase 2: Excel 기능 구현 후 실행
-3. **UnifiedLeaveOverview.tsx 리팩토링** (933 lines)
-   - [ ] Excel 내보내기 기능 구현 완료 후 진행
-   - [ ] 예상 분할 구조:
-     - `UnifiedLeaveOverviewTable.tsx` - 테이블 표시 (300 lines)
-     - `UnifiedLeaveOverviewFilters.tsx` - 필터링 UI (150 lines)
-     - `UnifiedLeaveOverviewExport.tsx` - Excel 내보내기 (200 lines)
-     - `useUnifiedLeaveData.ts` - 데이터 훅 (150 lines)
+### Phase 2: Excel 기능 구현 후 실행 ✅ 완료
+3. **UnifiedLeaveOverview.tsx 리팩토링** ✅
+   - [x] Excel 내보내기 기능 구현 완료 후 진행
+   - [x] 완료일: 2025년 1월 21일
+   - [x] 실제 분할 결과:
+     - `UnifiedLeaveOverviewRefactored.tsx` - 메인 컴포넌트 (396 lines)
+     - `UnifiedLeaveOverviewTable.tsx` - 테이블 표시 (172 lines)
+     - `UnifiedLeaveOverviewFilters.tsx` - 필터링 UI (135 lines)
+     - `UnifiedLeaveOverviewExport.tsx` - Excel 내보내기 (140 lines)
+     - `UnifiedLeaveOverviewStats.tsx` - 통계 카드 (90 lines)
+     - `useUnifiedLeaveData.ts` - 데이터 훅 (216 lines)
      - `UnifiedLeaveOverviewTypes.ts` - 타입 정의 (100 lines)
+     - `leaveOverviewUtils.ts` - 유틸리티 함수 (106 lines)
+   - **총 결과**: 1003줄 → 396줄 메인 + 959줄 분할 컴포넌트 (평균 120줄)
 
 ### Phase 3: 높은 우선순위 리팩토링
 4. **PayrollExcelUploadWithPreview.tsx** (906 lines)
