@@ -86,6 +86,40 @@ Follow this process precisely, always prioritizing clean, well-tested code over 
 
 Always write one test at a time, make it run, then improve structure. Always run all the tests (except long-running tests) each time.
 
+# PROGRESS SYNC RULES
+
+## 🤖 자동 감지 및 동기화 명령어
+
+### 핵심 명령어:
+- **"sync"** 또는 **"s"**: 모든 파일을 스캔하고 자동으로 완료된 작업을 감지해 업데이트
+- **"quick-sync"** 또는 **"qs"**: 빠른 동기화 (Glob/Grep만 사용, 3초 이내)
+- **"detect"** 또는 **"d"**: 완료 가능한 작업을 감지만 하고 리포트 (업데이트 없음)
+- **"update"** 또는 **"u"**: 감지된 작업들을 실제로 업데이트
+
+### 자동 감지 방법:
+1. **파일 존재 확인**: Plan에 명시된 파일이 실제로 생성되었는지
+2. **함수 구현 확인**: FUNCTIONS_VARIABLES.md에 새 함수가 추가되었는지
+3. **테스트 통과 확인**: 관련 테스트 파일이 있고 에러가 없는지
+4. **Import 확인**: 새 컴포넌트가 실제로 import되어 사용되는지
+
+### 동작 과정:
+사용자: "sync"
+Claude Code가 자동으로:
+1. 모든 plan 파일에서 미완료 작업 [ ] 추출
+2. 각 작업에 대해:
+   - 관련 파일/함수/컴포넌트 존재 확인
+   - 존재하면 → 완료로 추론
+3. 추론된 완료 작업을:
+   - Plan 파일에서 [x]로 체크
+   - todo-development.md 업데이트
+   - 완료 날짜 추가
+4. 결과 리포트 제공
+
+## 동기화 규칙
+- **작업 완료 감지 시**: 자동으로 모든 관련 파일 업데이트
+- **불일치 발견 시**: 사용자에게 확인 요청
+- **매일 작업 시작 시**: "sync" 명령으로 전체 동기화
+
 # IMPORTANT
 Never use a mock data. use the data from mongodb.
 

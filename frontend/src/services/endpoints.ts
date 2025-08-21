@@ -118,8 +118,6 @@ export const API_ENDPOINTS = {
   REPORTS: {
     PAYROLL: (yearMonth: string) => `/reports/payroll/${yearMonth}`,
     PAYROLL_EXCEL: (yearMonth: string) => `/reports/payroll/${yearMonth}/excel`,
-    PAYSLIP: (userId: string, yearMonth: string) => `/reports/payslip/${userId}/${yearMonth}/excel`,
-    LEAVE: (yearMonth: string) => `/reports/leave/${yearMonth}`,
     TEMPLATE_PAYROLL: '/reports/template/payroll',
   },
 
