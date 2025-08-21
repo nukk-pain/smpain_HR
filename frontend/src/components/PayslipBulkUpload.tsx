@@ -170,16 +170,7 @@ export const PayslipBulkUpload: React.FC = () => {
     [isUploading, matchedCount]
   );
 
-  const loadUploadHistory = async () => {
-    try {
-      const response = await api.get('/reports/payslip/upload-history');
-      if (response && (response as any).history) {
-        setUploadHistory((response as any).history);
-      }
-    } catch (error) {
-      console.error('Error loading upload history:', error);
-    }
-  };
+  // Removed: loadUploadHistory function (upload-history endpoint deprecated)
 
   const parseFileName = (fileName: string): PayslipFile['parsedData'] => {
     const patterns = [
@@ -554,14 +545,10 @@ export const PayslipBulkUpload: React.FC = () => {
           setError('❌ 업로드된 파일이 없습니다 (DB: 0개, 파일: 0개)');
         }
       } else {
-        // Fallback to old method
-        const response = await api.get('/reports/payslip/upload-history?limit=10');
-        
-        if (response && (response as any).history) {
-          const recentUploads = (response as any).history;
-          console.log('📊 Recent uploads found:', recentUploads.length);
-          
-          if (recentUploads.length > 0) {
+        // Fallback removed - upload-history endpoint deprecated
+        setError('❌ 업로드된 파일이 없습니다');
+        /*
+        if (false) { // Keep structure for potential future use
             const latestUpload = recentUploads[0];
             const uploadTime = new Date(latestUpload.uploadedAt);
             const now = new Date();

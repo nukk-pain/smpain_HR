@@ -7,17 +7,34 @@
 - **DEPLOY-XX**: 배포 계획
 
 ## 📊 현재 진행 상황 요약
-- **진행 중**: 0개
+- **진행 중**: 1개 (REFACTOR-03)
 - **대기 중**: 1개 (DEPLOY-01)
 - **완료**: 9개 (FEAT 4개, REFACTOR 5개)
-- **보류**: 3개 (REFACTOR 3개)
+- **보류**: 2개 (REFACTOR 2개)
 - **취소**: 1개 (REFACTOR 1개)
 
 ---
 
 ## 🔄 진행 중인 계획
 
-*현재 진행 중인 작업 없음*
+### REFACTOR-03: **Frontend 대용량 파일 분할** 🔄 **진행중**
+- **문서**: [`REFACTOR-03-frontend-large-files-plan.md`](./REFACTOR-03-frontend-large-files-plan.md)
+- **진행 보고서**: [`REFACTOR-03-progress.md`](./REFACTOR-03-progress.md)
+- **시작일**: 2025년 8월 21일
+- **진행률**: 50% (6개 중 3개 완료)
+- **완료된 파일**:
+  - ✅ PayrollExcelUploadWithPreview.tsx: 906 → 466줄 (48.6% 감소)
+  - ✅ PayslipBulkUpload.tsx: 886 → 405줄 (54.3% 감소)  
+  - ✅ LeaveManagement.tsx: 838 → 367줄 (56.2% 감소)
+- **남은 파일**:
+  - DepartmentManagement.tsx (797줄)
+  - api.ts (726줄)
+  - LeaveCalendar.tsx (724줄)
+  - UnifiedDashboard.tsx (702줄)
+- **성과**:
+  - 총 1,392줄 감소 (평균 52.9% 감소)
+  - 24개 컴포넌트 생성
+  - 7개 유틸리티 파일 생성
 
 ---
 
@@ -52,17 +69,6 @@
   - POST /api/reports/payslip/bulk-upload (일괄 업로드)
   - GET /api/reports/payslip/download/:documentId (다운로드)
 
-### REFACTOR-03: **Frontend 대용량 파일 분할** ⏸️ **HOLD**
-- **문서**: [`REFACTOR-03-frontend-large-files-plan.md`](./REFACTOR-03-frontend-large-files-plan.md)
-- **작성 일자**: 2025년 1월 20일
-- **우선순위**: MEDIUM
-- **현재 상태**: 10개 파일 700줄 이상, 1개 파일 1000줄 초과
-- **목표**: 모든 파일 600줄 이하로 분할
-- **예상 소요**: 3주 (단계적 진행)
-- **대상 파일**:
-  - **긴급**: PayrollGrid.tsx (1,059줄)
-  - **높음**: UnifiedLeaveOverview.tsx (933줄) 등 5개 파일
-  - **중간**: DepartmentManagement.tsx (797줄) 등 4개 파일
 
 ### REFACTOR-04: **ErrorLoggingMonitoringService 분할** ⏸️ **HOLD**
 - **문서**: `06-error-logging-monitoring-refactoring-plan.md`
