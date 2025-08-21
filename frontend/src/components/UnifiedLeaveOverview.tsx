@@ -3,6 +3,8 @@ import {
   Box,
   Typography,
   Card,
+  useTheme,
+  useMediaQuery,
   CardContent,
   Table,
   TableBody,
@@ -48,6 +50,7 @@ import {
   Warning as WarningIcon,
   People as PeopleIcon,
   CalendarToday as CalendarIcon,
+  Analytics as AnalyticsIcon,
   Person,
   BeachAccess,
   Group,
@@ -63,6 +66,8 @@ import { useNotification } from './NotificationProvider';
 import { apiService } from '../services/api';
 import LeaveAdjustmentDialog from './LeaveAdjustmentDialog';
 import VirtualEmployeeList from './VirtualEmployeeList';
+import { LeaveAnalyticsCharts } from './charts/LeaveAnalyticsCharts';
+import MobileLeaveOverview from './MobileLeaveOverview';
 import { 
   useLeaveOverview, 
   useTeamStatus, 
@@ -137,6 +142,8 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
 }) => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Unified state variables
   const [searchTerm, setSearchTerm] = useState('');
@@ -152,6 +159,7 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   const [sortBy, setSortBy] = useState('name');
   const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
   const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // React Query hooks for data fetching
   const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview } = useLeaveOverview(
@@ -252,6 +260,56 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     }
   };
 
+
+  // Calculate analytics data
+  const calculateRiskDistribution = () => {
+    const employees = getFilteredEmployees();
+    const distribution = { high: 0, medium: 0, low: 0 };
+    
+    employees.forEach(emp => {
+      if (emp.riskLevel === 'high') distribution.high++;
+      else if (emp.riskLevel === 'medium') distribution.medium++;
+      else distribution.low++;
+    });
+    
+    return distribution;
+  };
+
+  const calculateDepartmentStats = () => {
+    const employees = overviewData?.employees || [];
+    const deptMap = new Map<string, { totalUsage: number; count: number }>();
+    
+    employees.forEach(emp => {
+      if (!deptMap.has(emp.department)) {
+        deptMap.set(emp.department, { totalUsage: 0, count: 0 });
+      }
+      const dept = deptMap.get(emp.department)!;
+      dept.totalUsage += emp.usageRate;
+      dept.count++;
+    });
+    
+    return Array.from(deptMap.entries()).map(([department, stats]) => ({
+      department,
+      avgUsage: Math.round(stats.totalUsage / stats.count),
+      totalEmployees: stats.count
+    }));
+  };
+
+  const calculateStatistics = () => {
+    const employees = getFilteredEmployees();
+    const totalEmployees = employees.length;
+    const totalUsage = employees.reduce((sum, emp) => sum + emp.usageRate, 0);
+    const averageUsage = totalEmployees > 0 ? Math.round(totalUsage / totalEmployees) : 0;
+    const highRiskCount = employees.filter(emp => emp.riskLevel === 'high').length;
+    const pendingRequests = employees.reduce((sum, emp) => sum + (emp.pendingAnnualLeave > 0 ? 1 : 0), 0);
+    
+    return {
+      totalEmployees,
+      averageUsage,
+      highRiskCount,
+      pendingRequests
+    };
+  };
 
   const getFilteredEmployees = () => {
     if (!overviewData || !overviewData.employees) return [];
@@ -484,8 +542,17 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
             variant="outlined"
             startIcon={<DownloadIcon />}
             onClick={handleExportExcel}
+            sx={{ mr: 1 }}
           >
             Excel 내보내기
+          </Button>
+          <Button
+            variant={showAnalytics ? "contained" : "outlined"}
+            startIcon={<AnalyticsIcon />}
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            color={showAnalytics ? "primary" : "inherit"}
+          >
+            {showAnalytics ? '차트 숨기기' : '분석 차트'}
           </Button>
         </Box>
 
@@ -553,6 +620,18 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
               </TableBody>
             </Table>
           </TableContainer>
+        )}
+
+        {/* Analytics Charts Section */}
+        {showAnalytics && (
+          <Box sx={{ mt: 3 }}>
+            <LeaveAnalyticsCharts
+              riskDistribution={calculateRiskDistribution()}
+              departmentStats={calculateDepartmentStats()}
+              statistics={calculateStatistics()}
+              isLoading={overviewLoading}
+            />
+          </Box>
         )}
       </>
     );
@@ -733,6 +812,19 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     );
   };
 
+  // Mobile view - use dedicated mobile component
+  if (isMobile && viewMode === 'overview') {
+    return (
+      <Box>
+        <MobileLeaveOverview 
+          employees={getFilteredEmployees()}
+          isLoading={overviewLoading}
+        />
+      </Box>
+    );
+  }
+
+  // Desktop view - existing implementation
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>

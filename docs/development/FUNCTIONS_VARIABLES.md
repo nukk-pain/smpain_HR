@@ -87,6 +87,12 @@ This document maintains a registry of all functions and variables in the HR syst
 - `previewExcelWithRetry(file, year?, month?, options?)` - Preview with retry logic
 - `confirmExcelPreviewWithRetry(previewToken, idempotencyKey?, options?)` - Confirmation with retry
 
+#### Leave Excel Export Operations (`frontend/src/services/api.ts`)
+- `exportLeaveToExcel(params)` - Exports leave data to Excel file
+  - Parameters: view ('overview' | 'team' | 'department'), year, department?, riskLevel?
+  - Downloads Excel file with appropriate filename
+  - Handles Content-Disposition header for filename extraction
+
 #### Progress Tracking
 - `createProgressConnection(uploadId, onProgress)` - Creates SSE connection for real-time progress
 
@@ -670,9 +676,60 @@ const inactiveUserData = createTestUserData(baseData, false, adminId, 'Test reas
 - Maintains all existing functionality with better performance
 - Successfully tested with 1000+ employee datasets
 
-### 2025-08-20 - Leave Excel Export Implementation
+### 2025-08-21 - Mobile View Implementation
+- Added MobileLeaveOverview component for mobile-optimized UI
+  - Collapsible card-based employee list
+  - Swipeable filter drawer from bottom
+  - Floating action buttons for quick actions
+  - Sticky header with search and summary stats
+  - Optimized for touch interactions
+- Integrated with UnifiedLeaveOverview
+  - Automatic detection using useMediaQuery
+  - Switches to mobile view on screens < md breakpoint
+  - Maintains all functionality in mobile format
+- Features:
+  - Expandable employee cards with detailed info
+  - Quick filter by department and risk level
+  - Excel export via FAB button
+  - Visual risk indicators with color coding
+  - Progress bars for usage visualization
+
+### 2025-08-21 - Analytics Charts Implementation
+- Added LeaveAnalyticsCharts component for visual analytics
+  - `calculateRiskDistribution()`: Calculates risk level distribution
+  - `calculateDepartmentStats()`: Aggregates department usage statistics
+  - `calculateStatistics()`: Computes key metrics (total, average, high-risk)
+  - Risk distribution pie chart with color coding
+  - Department usage bar chart
+  - Statistics cards with icons
+- Integrated with UnifiedLeaveOverview
+  - Toggle button to show/hide analytics
+  - Real-time data calculation based on filters
+  - Responsive layout using MUI Grid2
+- Uses Recharts library for visualization
+  - PieChart for risk distribution
+  - BarChart for department comparison
+  - Responsive containers for auto-resizing
+
+### 2025-08-21 - Leave Excel Export Implementation
 - Added LeaveExcelService for Excel generation
+  - `generateLeaveOverviewExcel()`: Creates Excel workbook with leave data
+  - `createOverviewSheet()`: Generates admin overview sheet
+  - `createTeamSheet()`: Generates team status sheet
+  - `createDepartmentSheet()`: Generates department statistics sheet
 - Implemented export endpoint in leaveAdmin routes
+  - `GET /api/leave/admin/export/excel`: Export endpoint with filters
+  - Supports view types: overview, team, department
+  - Optional filters: year, department, riskLevel
 - Added frontend API service method
+  - `exportLeaveToExcel()`: Downloads Excel file with proper headers
+  - Handles blob conversion and file download
+  - Extracts filename from Content-Disposition header
 - Integrated export functionality in UnifiedLeaveOverview component
+  - `handleExportExcel()`: Button click handler for export
+  - Shows success/error messages via snackbar
+  - Passes current filters and view mode to API
 - Successfully tested Excel generation and download
+  - All backend tests passing (5/5)
+  - All frontend tests passing (4/4)
+  - End-to-end test successful with proper Excel file generation
