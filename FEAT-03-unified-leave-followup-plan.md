@@ -264,10 +264,10 @@ grep -r "AdminLeaveOverview\|TeamLeaveStatus" frontend/src/
   - [x] Optimistic updates for leave adjustments
   - [x] Query invalidation and prefetching implemented
   - [x] Tests written (though using mocks)
-- [ ] 가상 스크롤링 구현
+- [x] 가상 스크롤링 구현 ✅ (2025.08.20 자동 감지 - VirtualEmployeeList.tsx 구현 확인)
 
 ### 장기 작업
-- [ ] Excel 내보내기 API 구현
+- [x] Excel 내보내기 API 구현 ✅ (2025.08.20 자동 감지 - /export/excel 엔드포인트 구현 확인)
 - [ ] 차트 및 분석 기능 추가
 - [ ] 모바일 전용 뷰 개발
 
