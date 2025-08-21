@@ -110,5 +110,72 @@ describe('Leave Excel Export API', () => {
       
       expect(response.headers['content-disposition']).toMatch(/attachment; filename\*=UTF-8''.*\.xlsx/);
     });
+
+    it('should export correct data structure for overview view', async () => {
+      // Clean up any existing test data first
+      await db.collection('users').deleteOne({ _id: '507f1f77bcf86cd799439014' });
+      await db.collection('leave_requests').deleteMany({ userId: '507f1f77bcf86cd799439014' });
+      
+      // Create test leave data
+      const testEmployee = {
+        _id: '507f1f77bcf86cd799439014',
+        employeeId: 'EMP001',
+        name: 'John Doe',
+        department: '개발팀',
+        position: '대리',
+        role: 'User',
+        isActive: true,
+        hireDate: new Date('2023-01-01')
+      };
+      
+      // Insert test data
+      await db.collection('users').insertOne(testEmployee);
+      
+      // Create test leave request
+      const testLeaveRequest = {
+        userId: testEmployee._id,
+        startDate: new Date('2025-01-15'),
+        endDate: new Date('2025-01-17'),
+        status: 'approved',
+        leaveType: 'annual'
+      };
+      
+      await db.collection('leave_requests').insertOne(testLeaveRequest);
+      
+      const response = await request(app)
+        .get('/api/leave/admin/export/excel?view=overview&year=2025')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .buffer(true)  // Ensure response is a buffer
+        .parse((res, callback) => {
+          const chunks = [];
+          res.on('data', (chunk) => chunks.push(chunk));
+          res.on('end', () => callback(null, Buffer.concat(chunks)));
+        })
+        .expect(200);
+      
+      // Parse Excel file
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(response.body);
+      const worksheet = workbook.getWorksheet(1);
+      
+      // Check headers
+      const headerRow = worksheet.getRow(3);
+      const headers = [];
+      headerRow.eachCell({ includeEmpty: false }, (cell) => {
+        headers.push(cell.value);
+      });
+      
+      expect(headers).toContain('직원명');
+      expect(headers).toContain('부서');
+      expect(headers).toContain('총 연차');
+      expect(headers).toContain('사용');
+      expect(headers).toContain('잔여');
+      expect(headers).toContain('위험도');
+      
+      // Clean up test data
+      await db.collection('users').deleteOne({ _id: testEmployee._id });
+      await db.collection('leave_requests').deleteOne({ userId: testEmployee._id });
+    });
   });
 });

@@ -42,7 +42,7 @@ const requirePermission = (permission) => {
 
 // Admin role check
 const requireAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'Admin')) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
