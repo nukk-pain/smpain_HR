@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid'
 import { 
   Box, 
   Paper, 
@@ -58,7 +58,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   const [expandedDeductions, setExpandedDeductions] = useState<Set<string>>(new Set())
   const [columnSettingsAnchor, setColumnSettingsAnchor] = useState<null | HTMLElement>(null)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
-  const [selectedRows, setSelectedRows] = useState<any>([])
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([])
   
   // Column visibility with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -108,6 +108,11 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     setColumnSettingsAnchor(null)
   }
 
+  // Ensure rowData is always an array to prevent DataGrid footer errors
+  const safeRowData = useMemo(() => {
+    return Array.isArray(rowData) ? rowData : []
+  }, [rowData])
+
   // Component renderers with proper props
   const ExpandableAllowancesRenderer = useCallback((params: any) => (
     <PayrollExpandableAllowances
@@ -147,19 +152,25 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   ), [isEditing, startEditing, savePayroll, cancelEditing, onDataChange])
 
   // Get column definitions with renderers
-  const columns = useMemo(() => 
-    getColumnDefinitions(
+  const columns = useMemo(() => {
+    const cols = getColumnDefinitions(
       EditableCellRenderer,
       ExpandableAllowancesRenderer,
       ExpandableDeductionsRenderer,
       ActionCellRenderer
-    ).filter(col => visibleColumns[col.field] !== false),
-    [
+    ).filter(col => visibleColumns[col.field] !== false)
+    console.log('PayrollGrid columns:', cols.length, cols)
+    console.log('PayrollGrid rowData:', rowData.length, rowData)
+    console.log('PayrollGrid safeRowData:', safeRowData.length, safeRowData)
+    return cols
+  }, [
       EditableCellRenderer,
       ExpandableAllowancesRenderer,
       ExpandableDeductionsRenderer,
       ActionCellRenderer,
-      visibleColumns
+      visibleColumns,
+      rowData,
+      safeRowData
     ]
   )
 
@@ -191,7 +202,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   }
 
   // Selection handling
-  const handleSelectionChange = (selection: any) => {
+  const handleSelectionChange = (selection: GridRowSelectionModel) => {
     setSelectedRows(selection)
   }
 
@@ -230,7 +241,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
         </Box>
 
         {/* Summary */}
-        {rowData.length > 0 && (
+        {safeRowData.length > 0 && (
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             <Typography variant="body2">
               총 인원: <strong>{summary.totalEmployees}명</strong>
@@ -257,11 +268,19 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <CircularProgress />
           </Box>
+        ) : !columns || columns.length === 0 ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <Typography>No columns available</Typography>
+          </Box>
+        ) : !safeRowData ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <Typography>No data available</Typography>
+          </Box>
         ) : (
           <DataGrid
-            rows={rowData}
-            columns={columns}
             {...defaultGridOptions}
+            rows={safeRowData}
+            columns={columns}
             checkboxSelection
             onRowSelectionModelChange={handleSelectionChange}
             rowSelectionModel={selectedRows}
@@ -320,7 +339,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
         onPrint={handlePrintConfirm}
         totalEmployees={rowData.length}
         totalPayment={summary.totalPayment}
-        selectedCount={Array.isArray(selectedRows) ? selectedRows.length : 0}
+        selectedCount={selectedRows.length}
         yearMonth={yearMonth}
       />
     </Box>

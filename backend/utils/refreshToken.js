@@ -6,12 +6,14 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '15m';
 
-console.log('🔄 Refresh Token Configuration:', {
-  secret: REFRESH_TOKEN_SECRET ? 'Set' : 'Missing',
-  refreshExpiresIn: REFRESH_TOKEN_EXPIRES_IN,
-  accessExpiresIn: ACCESS_TOKEN_EXPIRES_IN,
-  environment: process.env.NODE_ENV
-});
+if (process.env.NODE_ENV !== 'test') {
+  console.log('🔄 Refresh Token Configuration:', {
+    secret: REFRESH_TOKEN_SECRET ? 'Set' : 'Missing',
+    refreshExpiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    accessExpiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    environment: process.env.NODE_ENV
+  });
+}
 
 /**
  * Refresh Token 생성

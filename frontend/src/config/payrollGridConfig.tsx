@@ -136,13 +136,16 @@ export const getColumnDefinitions = (
  * Default DataGrid options
  */
 export const defaultGridOptions = {
-  pageSize: 20,
-  rowsPerPageOptions: [10, 20, 50, 100],
-  disableSelectionOnClick: true,
-  checkboxSelection: true,
+  initialState: {
+    pagination: {
+      paginationModel: {
+        pageSize: 20,
+      },
+    },
+  },
+  pageSizeOptions: [10, 20, 50, 100],
+  disableRowSelectionOnClick: true,
   density: 'comfortable' as const,
-  showCellRightBorder: true,
-  showColumnRightBorder: true,
 }
 
 /**

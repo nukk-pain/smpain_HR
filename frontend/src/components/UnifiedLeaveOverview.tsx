@@ -167,6 +167,13 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     userRole === 'admin' && viewMode === 'overview'
   );
 
+  console.log('[UnifiedLeaveOverview] Hook params:', {
+    department: user?.department,
+    selectedYear,
+    viewMode,
+    enabled: viewMode === 'team'
+  });
+
   const { data: teamResponse, isLoading: teamLoading, refetch: refetchTeam } = useTeamStatus(
     user?.department || '',
     selectedYear,
@@ -196,7 +203,8 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   // Transform data for backward compatibility
   const overviewData = useMemo(() => {
     if (!overviewResponse) return null;
-    const apiData = (overviewResponse as any)?.data;
+    // React Query의 useQuery는 이미 response.data를 반환
+    const apiData = overviewResponse as any;
     if (!apiData) return null;
     
     return {
@@ -213,11 +221,15 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   }, [overviewResponse]);
 
   const teamMembers = useMemo(() => {
-    return (teamResponse as any)?.data?.members || [];
+    // React Query의 useQuery는 response.data를 반환하므로
+    // teamResponse는 이미 response.data 부분임
+    console.log('[UnifiedLeaveOverview] teamResponse:', teamResponse);
+    return (teamResponse as any)?.members || [];
   }, [teamResponse]);
 
   const departmentStats = useMemo(() => {
-    return (departmentStatsResponse as any)?.data || [];
+    // React Query의 useQuery는 이미 response.data를 반환
+    return (departmentStatsResponse as any) || [];
   }, [departmentStatsResponse]);
 
   const departments = useMemo(() => {

@@ -12,6 +12,9 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run src/test/e2e/**/*.test.tsx",
+    "test:integration": "vitest run src/**/*.integration.test.tsx",
+    "test:all": "vitest run",
     "test:bundle-size": "node test-bundle-size.cjs",
     "build-and-test": "npm run build && npm run test:bundle-size"
   },

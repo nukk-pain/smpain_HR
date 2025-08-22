@@ -376,5 +376,16 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 - frontend, backend 실행은 사용자에게 따로 요청할 것 
 - 코드는 최대 1000줄까지만 작성하도록. 넘어가면 refactoring 계획을 세워서 md 파일로 정리.
-- '/mnt/d/my_programs/HR/todo.md' 이 파일에서는 완성된 작업은 지우고 앞으로 할 작업만 남겨줘.
-- 계획을 세울 때에는 항상 todo.md파일에 기록을 남겨서 알아보기 쉽게 해줘.
+
+## Task Management Files
+
+- **INDEX-PLAN.md** - Claude Code가 모든 개발 계획과 진행 상황을 기록하는 메인 파일
+  - 진행 중, 대기 중, 보류, 완료된 모든 계획 관리
+  - FEAT, REFACTOR, TEST, DEPLOY 등 모든 개발 작업 추적
+  - Claude Code는 이 파일에만 작업 상태를 업데이트
+
+- **todo-personal.md** - 사용자가 개인적으로 관리하는 할 일 목록
+  - Claude Code는 이 파일을 수정하지 않음
+  - 사용자 전용 메모 및 계획
+
+- **todo-development.md** - (더 이상 사용하지 않음, INDEX-PLAN.md로 대체)

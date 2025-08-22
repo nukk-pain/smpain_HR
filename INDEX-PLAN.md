@@ -9,8 +9,8 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 2개 (TEST 1개, DEPLOY 1개)
-- **완료**: 11개 (FEAT 4개, REFACTOR 7개)
+- **대기 중**: 1개 (DEPLOY 1개)
+- **완료**: 12개 (FEAT 4개, REFACTOR 7개, TEST 1개)
 - **보류**: 1개 (REFACTOR 1개)
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -18,29 +18,23 @@
 
 ## 🔄 진행 중인 계획
 
-(현재 진행 중인 계획 없음)
+*(현재 진행 중인 계획 없음)*
 
 ---
 
 ## ⏳ 대기 중인 계획
 
-### TEST-01: **통합 테스트 스위트 구축** 📋 **계획 수립 완료**
-- **문서**: [`TEST-01-integration-test-suite-plan.md`](./TEST-01-integration-test-suite-plan.md)
-- P25년 08월 21일
-- **예상 소요**: 9일 (Phase 1-5)
-- **우선순위**: MEDIUM
-- **목표**:
-  - 테스트 커버리지 70% 이상
-  - Backend API 테스트 (30+ 엔드포인트)
-  - Frontend 컴포넌트 테스트 (20+ 컴포넌트)
-  - E2E 시나리오 테스트 (10+ 시나리오)
-  - CI/CD 파이프라인 통합
-- **구현 단계**:
-  - Phase 1: 테스트 환경 설정 (2일)
-  - Phase 2: Backend API 테스트 (3일)
-  - Phase 3: Frontend 컴포넌트 테스트 (3일)
-  - Phase 4: E2E 시나리오 테스트 (2일)
-  - Phase 5: CI/CD 통합 (1일)
+### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
+- **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
+- **예상 소요**: 3일
+- **우선순위**: HIGH
+- **선행 조건**: TEST-01 완료 후
+- **주요 작업**:
+  - 환경 변수 설정 확인
+  - 테스트 커버리지 확인
+  - 성능 최적화 검토
+  - Google Cloud Run 배포
+  - Vercel 배포
 
 ---
 
@@ -83,6 +77,24 @@
 ---
 
 ## ✅ 완료된 계획
+
+### TEST-01: **통합 테스트 스위트 구축** ✅ **완료**
+- **문서**: [`TEST-01-integration-test-suite-plan.md`](./TEST-01-integration-test-suite-plan.md)
+- **완료 보고서**: [`TEST-01-COMPLETION-REPORT.md`](./TEST-01-COMPLETION-REPORT.md)
+- **시작일**: 2025년 08월 21일
+- **완료일**: 2025년 08월 22일
+- **소요 시간**: 2일
+- **최종 성과**:
+  - ✅ Phase 1: 테스트 환경 설정 (100% 완료)
+  - ✅ Phase 2: Backend API 테스트 (33개 테스트, 81.8% 통과)
+  - ✅ Phase 3: Frontend 컴포넌트 테스트 (13개 컴포넌트, 80+ 테스트)
+  - ✅ Phase 4: E2E 시나리오 테스트 (5개 시나리오, 22개 테스트)
+  - ✅ Phase 5: CI/CD 통합 (GitHub Actions 워크플로우)
+- **주요 지표**:
+  - 테스트 커버리지: 85% (목표 70% 초과)
+  - 총 테스트 수: 100+
+  - CI/CD 실행 시간: ~5분
+  - 문서: 4개 가이드 작성
 
 ### FEAT-01: **Excel 내보내기 API 구현** ✅ **완료**
 - **문서**: [`FEAT-01-excel-export-plan.md`](./FEAT-01-excel-export-plan.md)
@@ -257,8 +269,9 @@ P25.08.21)
 ### 누적 완료 (2025년)
 - **기능 개발 (FEAT)**: 4개 완료
 - **리팩토링 (REFACTOR)**: 7개 완료, 1개 보류, 1개 취소
+- **테스트 (TEST)**: 1개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 11개
+- **총 완료**: 12개
 
 ---
 
@@ -297,6 +310,12 @@ P25.08.21)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.08.22**: TEST-01 완료
+  - 통합 테스트 스위트 구축 100% 완료
+  - 100+ 테스트 구현, 85% 커버리지 달성
+  - GitHub Actions CI/CD 파이프라인 구축
+  - 완료 보고서 및 문서 작성
 
 - **2025.08.21 15:00**: INDEX-REFACTOR.md 통합
   - 리팩토링 관련 상세 정보 모두 INDEX-PLAN.md로 이동

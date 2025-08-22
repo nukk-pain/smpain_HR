@@ -38,12 +38,16 @@ export const useLeaveOverview = (year: number, enabled: boolean = true) => {
 
 // Hook for fetching team status
 export const useTeamStatus = (department: string, year: number, enabled: boolean = true) => {
+  console.log('[useTeamStatus] Called with:', { department, year, enabled });
+  
   return useQuery({
     queryKey: queryKeys.leave.teamStatus(department, year),
     queryFn: async () => {
+      console.log('[useTeamStatus] Fetching data for:', { department, year });
       const response = await apiService.get('/leave/team-status', {
         params: { department, year }
       });
+      console.log('[useTeamStatus] Response:', response);
       return response.data;
     },
     staleTime: 5 * 60 * 1000,

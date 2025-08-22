@@ -14,7 +14,7 @@ import {
   Add as AddIcon,
   WorkOutline as PositionIcon,
 } from '@mui/icons-material';
-import { Department, DepartmentEmployees, User, OrganizationChart, Position } from '../types';
+import { Department, DepartmentEmployees, User, OrganizationChart as OrgChartType, Position } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { NewDepartmentData, NewPositionData } from '../types/DepartmentManagementTypes';
@@ -33,7 +33,7 @@ const DepartmentManagementRefactored: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentEmployees | null>(null);
-  const [organizationChart, setOrganizationChart] = useState<OrganizationChart | null>(null);
+  const [organizationChart, setOrganizationChart] = useState<OrgChartType | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
