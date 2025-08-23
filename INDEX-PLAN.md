@@ -9,9 +9,9 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 1개 (DEPLOY 1개)
-- **완료**: 13개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 1개)
-- **보류**: 1개 (REFACTOR 1개)
+- **대기 중**: 2개 (CHECK 1개, DEPLOY 1개)
+- **완료**: 16개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 4개)
+- **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
 ---
@@ -23,6 +23,20 @@
 ---
 
 ## ⏳ 대기 중인 계획
+
+### CHECK-01: **급여 엑셀 업로드 기능 중복 확인** 🔍 **대기**
+- **생성일**: 2025년 08월 23일
+- **예상 소요**: 30분
+- **우선순위**: MEDIUM
+- **확인 사항**:
+  - `/supervisor/payroll` 페이지의 엑셀 업로드 기능
+  - `/supervisor/files` 페이지의 엑셀 업로드 기능
+  - 두 기능의 차이점 비교
+  - 중복 기능인 경우 통합 방안 검토
+  - 서로 다른 기능인 경우 명확한 구분 필요
+- **예상 결과**:
+  - 기능 차이점 문서화
+  - 필요시 REFACTOR 또는 FIX 계획 수립
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
 - **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
@@ -66,20 +80,46 @@
 
 ## ✅ 완료된 계획
 
-### FIX-01: **PayrollGrid 컴포넌트 오류 수정** ✅ **완료**
-- **문서**: [`FIX-01-payroll-grid-error-plan.md`](./FIX-01-payroll-grid-error-plan.md)
+### FIX-04: **Bonus API 404 오류** ✅ **완료**
+- **문서**: [`FIX-04-bonus-api-404-error-plan.md`](./FIX-04-bonus-api-404-error-plan.md)
+- **완료일**: 2025년 08월 23일
+- **소요 시간**: 10분
+- **문제**: `/api/payroll/bonuses/2025-08` 404 에러
+- **해결**:
+  - ✅ API 엔드포인트 수정 (/payroll/bonuses → /bonus)
+  - ✅ 날짜 형식 변환 (yyyy-MM → YYYYMM)
+  - ✅ 필드명 매핑 (user_id→userId, type→bonusType)
+- **영향**: BonusManagement 컴포넌트의 CRUD 작업 정상화
+
+### FIX-03: **HTML 중첩 규칙 위반 오류** ✅ **완료**
+- **문서**: [`FIX-03-html-nesting-error-plan.md`](./FIX-03-html-nesting-error-plan.md)
+- **완료일**: 2025년 08월 23일
+- **소요 시간**: 10분
+- **문제**: `<p>` 태그 안에 `<div>` (Chip, Box) 컴포넌트 중첩
+- **해결**: ListItemText에 `secondaryTypographyProps={{ component: 'div' }}` 추가
+- **영향**: PositionList 컴포넌트의 hydration 오류 해결
+
+### FIX-02: **UnifiedLeaveOverview null 참조 오류** ✅ **완료**
+- **문서**: [`FIX-02-leave-overview-null-error-plan.md`](./FIX-02-leave-overview-null-error-plan.md)
+- **완료일**: 2025년 08월 23일
+- **소요 시간**: 20분
+- **문제**: `Cannot read properties of null (reading 'toFixed')` 오류
+- **해결**:
+  - ✅ usageRate null 체크 추가 (613번 줄)
+  - ✅ averageUsageRate null 체크 추가 (494번 줄)
+  - Nullish coalescing operator (`??`) 사용
+
+### FIX-01: **PayrollGrid 컴포넌트 오류 수정** ⚠️ **부분 완료**
+- **문서**: [`FIX-01-payroll-grid-error-complete.md`](./FIX-01-payroll-grid-error-complete.md)
 - **시작일**: 2025년 01월 22일
-- **완료일**: 2025년 01월 23일
-- **소요 시간**: 2일
-- **문제 해결**:
-  - ✅ React 컴포넌트 잘못된 호출 방식 수정 (함수 호출 → JSX 렌더링)
-  - ✅ params.row undefined 처리를 위한 3중 방어 코드 추가
-  - ✅ DataGrid 선택 기능(checkboxSelection) 재구현
-  - ✅ 모든 렌더러 함수에 안전성 체크 추가
-- **핵심 수정**:
-  - payrollGridConfig.tsx: 컴포넌트 함수 참조 방식으로 변경
-  - PayrollGrid.tsx: 모든 렌더러에 params?.row 체크 추가
-  - 각 Expandable 컴포넌트: 방어 코드 추가
+- **최종 수정**: 2025년 08월 23일
+- **상태**: 
+  - ✅ PayrollDashboard API 400 에러 해결 (날짜 형식)
+  - ❌ GridHeaderCheckbox 'has' 오류 미해결 (10+ 시도)
+- **해결된 문제**:
+  - React 컴포넌트 호출 방식 수정
+  - params.row undefined 처리
+  - 날짜 형식 변환 (yyyy-MM → YYYYMM)
 
 ### TEST-01: **통합 테스트 스위트 구축** ✅ **완료**
 - **시작일**: 2025년 08월 21일
@@ -291,11 +331,11 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 
 ### 누적 완료 (2025년)
 - **기능 개발 (FEAT)**: 4개 완료
-- **리팩토링 (REFACTOR)**: 7개 완료, 1개 보류, 1개 취소
+- **리팩토링 (REFACTOR)**: 7개 완료, 1개 취소
 - **테스트 (TEST)**: 1개 완료
-- **버그 수정 (FIX)**: 1개 완료
+- **버그 수정 (FIX)**: 4개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 13개
+- **총 완료**: 16개
 
 ---
 

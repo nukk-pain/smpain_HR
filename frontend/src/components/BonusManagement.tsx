@@ -97,7 +97,9 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
   const loadBonuses = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await apiService.get(`/payroll/bonuses/${yearMonth}`);
+      // Convert date format from yyyy-MM to YYYYMM for API
+      const apiYearMonth = yearMonth.replace('-', '');  // '2025-08' → '202508'
+      const response = await apiService.get(`/bonus/${apiYearMonth}`);
       if (response.success) {
         setBonuses(Array.isArray(response.data) ? response.data : []);
       }
@@ -141,11 +143,20 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
     }
 
     try {
+      // Convert field names and formats for backend API
+      const submitData = {
+        userId: formData.user_id,  // Backend expects 'userId' not 'user_id'
+        yearMonth: formData.year_month.replace('-', ''),  // Convert yyyy-MM to YYYYMM
+        bonusType: formData.type,  // Backend expects 'bonusType' not 'type'
+        amount: formData.amount,
+        reason: formData.reason,
+      };
+      
       if (editingBonus) {
-        await apiService.put(`/payroll/bonus/${editingBonus._id}`, formData);
+        await apiService.put(`/bonus/${editingBonus._id}`, submitData);
         showNotification('success', 'Success', 'Bonus updated successfully');
       } else {
-        await apiService.addBonus(formData);
+        await apiService.addBonus(submitData);
         showNotification('success', 'Success', 'Bonus added successfully');
       }
       
@@ -177,7 +188,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
     if (!confirm('Are you sure you want to delete this bonus?')) return;
 
     try {
-      await apiService.delete(`/payroll/bonus/${bonusId}`);
+      await apiService.delete(`/bonus/${bonusId}`);
       showNotification('success', 'Success', 'Bonus deleted successfully');
       loadBonuses();
     } catch (error) {
@@ -188,7 +199,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ yearMonth }) => {
   // Handle approve
   const handleApprove = async (bonusId: string) => {
     try {
-      await apiService.put(`/payroll/bonus/${bonusId}/approve`);
+      await apiService.put(`/bonus/${bonusId}/approve`);
       showNotification('success', 'Success', 'Bonus approved successfully');
       loadBonuses();
     } catch (error) {

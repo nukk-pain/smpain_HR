@@ -491,7 +491,7 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
                     평균 사용률
                   </Typography>
                 </Box>
-                <Typography variant="h4">{overviewData.summary.averageUsageRate.toFixed(1)}%</Typography>
+                <Typography variant="h4">{(overviewData.summary.averageUsageRate ?? 0).toFixed(1)}%</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -606,11 +606,11 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <LinearProgress
                           variant="determinate"
-                          value={employee.usageRate}
+                          value={Math.min(100, Math.max(0, employee.usageRate ?? 0))}
                           sx={{ flexGrow: 1 }}
-                          color={employee.usageRate > 80 ? 'error' : employee.usageRate > 50 ? 'warning' : 'success'}
+                          color={(employee.usageRate ?? 0) > 80 ? 'error' : (employee.usageRate ?? 0) > 50 ? 'warning' : 'success'}
                         />
-                        <Typography variant="body2">{employee.usageRate.toFixed(1)}%</Typography>
+                        <Typography variant="body2">{(employee.usageRate ?? 0).toFixed(1)}%</Typography>
                       </Box>
                     </TableCell>
                     <TableCell align="center">

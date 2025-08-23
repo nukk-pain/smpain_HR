@@ -87,6 +87,9 @@ const PositionList: React.FC<PositionListProps> = ({
                         )}
                       </Box>
                     }
+                    secondaryTypographyProps={{
+                      component: 'div'
+                    }}
                   />
                 </ListItem>
                 {index < positions.length - 1 && <Divider />}
