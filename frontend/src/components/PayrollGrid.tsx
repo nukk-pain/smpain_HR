@@ -159,18 +159,13 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
       ExpandableDeductionsRenderer,
       ActionCellRenderer
     ).filter(col => visibleColumns[col.field] !== false)
-    console.log('PayrollGrid columns:', cols.length, cols)
-    console.log('PayrollGrid rowData:', rowData.length, rowData)
-    console.log('PayrollGrid safeRowData:', safeRowData.length, safeRowData)
     return cols
   }, [
       EditableCellRenderer,
       ExpandableAllowancesRenderer,
       ExpandableDeductionsRenderer,
       ActionCellRenderer,
-      visibleColumns,
-      rowData,
-      safeRowData
+      visibleColumns
     ]
   )
 
@@ -278,12 +273,18 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
           </Box>
         ) : (
           <DataGrid
-            {...defaultGridOptions}
             rows={safeRowData}
             columns={columns}
-            checkboxSelection
-            onRowSelectionModelChange={handleSelectionChange}
-            rowSelectionModel={selectedRows}
+            initialState={{
+              pagination: {
+                paginationModel: {
+                  pageSize: 20,
+                  page: 0,
+                },
+              },
+            }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            disableRowSelectionOnClick
             sx={{
               '& .MuiDataGrid-cell': {
                 borderRight: '1px solid rgba(224, 224, 224, 1)',

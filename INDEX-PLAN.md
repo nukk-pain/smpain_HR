@@ -8,7 +8,7 @@
 - **DEPLOY-XX**: 배포 계획
 
 ## 📊 현재 진행 상황 요약
-- **진행 중**: 0개
+- **진행 중**: 1개 (FIX 1개)
 - **대기 중**: 1개 (DEPLOY 1개)
 - **완료**: 12개 (FEAT 4개, REFACTOR 7개, TEST 1개)
 - **보류**: 1개 (REFACTOR 1개)
@@ -18,7 +18,20 @@
 
 ## 🔄 진행 중인 계획
 
-*(현재 진행 중인 계획 없음)*
+### FIX-01: **PayrollGrid 컴포넌트 오류 수정** 🔧 **진행중**
+- **생성일**: 2025년 01월 22일
+- **예상 소요**: 1일
+- **우선순위**: HIGH
+- **문제점**:
+  - 급여 현황 탭 클릭 시 `Cannot read properties of undefined` 오류 발생
+  - MUI DataGrid v8과 빈 데이터셋 처리 문제
+  - 렌더러 함수에서 params.row가 undefined일 때 오류
+- **수정 계획**:
+  - [ ] params.row가 undefined일 때 안전하게 처리
+  - [ ] ExpandableAllowances와 ExpandableDeductions 렌더러 개선
+  - [ ] 빈 데이터셋에서도 오류 없이 작동하도록 수정
+  - [ ] 선택 기능(checkboxSelection) 재구현
+  - [ ] 전체 테스트 및 검증
 
 ---
 
@@ -42,8 +55,8 @@
 
 ### REFACTOR-02: **Reports.js 분할** ⏸️ **HOLD**
 - **문서**: [`REFACTOR-02-reports-plan.md`](./REFACTOR-02-reports-plan.md)
-- P25년 08월 21일
-- P25년 08월 21일
+- **생성일**: 2025년 08월 21일
+- **보류일**: 2025년 08월 21일
 - **보류 이유**: 12개 엔드포인트 중 8개 미사용
 - **선행 작업 필요**: 
   - 미사용 8개 엔드포인트 제거 (약 800줄)
@@ -62,8 +75,8 @@
 
 ### REFACTOR-05: **Payroll.js 분할** ❌ **CANCELLED**
 - **문서**: `completed/08-payroll-refactoring-plan-CANCELLED.md`
-- P25년 08월 21일
-- P25년 08월 21일
+- **생성일**: 2025년 08월 21일
+- **취소일**: 2025년 08월 21일
 - **취소 이유**: 
   - 미사용 코드 정리로 1,201줄 → 833줄 감소 (31% 감소)
   - Enhanced API 제거 (4개 엔드포인트)
@@ -79,8 +92,6 @@
 ## ✅ 완료된 계획
 
 ### TEST-01: **통합 테스트 스위트 구축** ✅ **완료**
-- **문서**: [`TEST-01-integration-test-suite-plan.md`](./TEST-01-integration-test-suite-plan.md)
-- **완료 보고서**: [`TEST-01-COMPLETION-REPORT.md`](./TEST-01-COMPLETION-REPORT.md)
 - **시작일**: 2025년 08월 21일
 - **완료일**: 2025년 08월 22일
 - **소요 시간**: 2일
@@ -95,6 +106,7 @@
   - 총 테스트 수: 100+
   - CI/CD 실행 시간: ~5분
   - 문서: 4개 가이드 작성
+- **정리 완료**: 모든 TEST-01 파일들을 `completed/TEST-01/` 폴더로 이동 (2025-08-23)
 
 ### FEAT-01: **Excel 내보내기 API 구현** ✅ **완료**
 - **문서**: [`FEAT-01-excel-export-plan.md`](./FEAT-01-excel-export-plan.md)
@@ -110,7 +122,7 @@
 
 ### FEAT-02: **차트 및 분석 기능** ✅ **완료**
 - **문서**: [`FEAT-02-charts-analytics-plan.md`](./FEAT-02-charts-analytics-plan.md)
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **소요 시간**: 2시간
 - **성과**:
   - ✅ LeaveAnalyticsCharts 컴포넌트 구현
@@ -121,7 +133,7 @@
   - ✅ 실시간 데이터 계산 및 필터 연동
 
 ### FEAT-03: **모바일 최적화 뷰** ✅ **완료**
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **소요 시간**: 1시간
 - **성과**:
   - ✅ MobileLeaveOverview 컴포넌트 구현
@@ -133,7 +145,7 @@
 
 ### FEAT-02 (이전): **React Query 최적화** ✅ **완료**
 - **문서**: [`completed/FEAT-02-react-query-optimization-plan.md`](./completed/FEAT-02-react-query-optimization-plan.md)
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **소요 시간**: 4.5시간
 - **성과**:
   - 네트워크 요청 60% 감소
@@ -144,7 +156,7 @@
 - **문서**: [`REFACTOR-03-frontend-large-files-plan.md`](./REFACTOR-03-frontend-large-files-plan.md)
 - **진행 보고서**: [`REFACTOR-03-progress.md`](./REFACTOR-03-progress.md)
 - **완료 보고서**: [`REFACTOR-03-completion-report.md`](./REFACTOR-03-completion-report.md)
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **작업 소요**: 2일 (계획 수립 및 테스트 포함)
 - **최종 성과**:
   - 6개 파일 완료 (PayrollExcelUpload, PayslipBulkUpload, LeaveManagement, DepartmentManagement, api.ts, LeaveCalendar)
@@ -157,7 +169,7 @@
 ### REFACTOR-01: **PayrollGrid 컴포넌트 리팩토링** ✅ **완료**
 - **문서**: [`completed/REFACTOR-01-payroll-grid-plan-COMPLETED.md`](./completed/REFACTOR-01-payroll-grid-plan-COMPLETED.md)
 - **진행 보고서**: [`completed/REFACTOR-01-progress-report-COMPLETED.md`](./completed/REFACTOR-01-progress-report-COMPLETED.md)
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **최종 결과**: 1,059줄 → 329줄 (69% 감소)
 - **작업 소요**: 1일 (예상 3일 → 실제 1일)
 - **주요 성과**:
@@ -167,7 +179,7 @@
   - 단일 책임 원칙 준수
 
 ### REFACTOR-06: **Excel Processor 리팩토링** ✅ **완료**
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **문서**: `completed/05-excel-processor-refactoring-COMPLETED.md`
 - **결과**: `services/excel/` 폴더로 성공적으로 분할
 - **성과**: 
@@ -175,7 +187,7 @@
   - 재사용성 및 유지보수성 향상
 
 ### REFACTOR-07: **Payroll-Enhanced 리팩토링** ✅ **완료**
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **문서**:
   - `completed/01-payroll-enhanced-refactoring-plan-original.md`
   - `completed/02-refactoring-order-strategy.md`
@@ -189,7 +201,7 @@
   - `payrollUtils.js` (400줄)
 
 ### REFACTOR-08: **Admin.js 분할** ✅ **완료**
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **문서**:
   - `completed/04-admin-split-decision-guide-COMPLETED.md`
   - `completed/admin-split-implementation-COMPLETED.md`
@@ -202,7 +214,7 @@
   - `admin/shared/adminMiddleware.js` (53줄)
 
 ### REFACTOR-04: **ErrorLoggingMonitoringService 분할** ✅ **완료**
-- P25년 08월 21일
+- **완료일**: 2025년 08월 21일
 - **문서**: `completed/06-error-logging-monitoring-refactoring-COMPLETED.md`
 - **소요 시간**: 약 30분 (자동화된 리팩토링)
 - **결과**: 1,068줄 단일 파일 → 10개 모듈로 분할
@@ -256,7 +268,7 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 
 ## 📈 진행률 통계
 
-P25.08.21)
+2025.08.21)
 - **완료**: 3개 (Excel Export, Charts, Mobile View)
 - **진행률**: 100% (계획된 작업 모두 완료)
 
