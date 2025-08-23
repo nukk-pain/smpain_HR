@@ -279,7 +279,7 @@ export const PayslipBulkUpload: React.FC = () => {
         employeeName: f.parsedData.employeeName,
       }));
 
-      const response = await api.post('/reports/payslip/match-employees', {
+      const response = await api.post('/documents/payslip/match-employees', {
         fileNames,
       });
 
@@ -408,11 +408,11 @@ export const PayslipBulkUpload: React.FC = () => {
         console.log(`   Original file name:`, f.file.name);
       });
 
-      console.log('🚀 Sending request to:', '/reports/payslip/bulk-upload');
+      console.log('🚀 Sending request to:', '/documents/payslip/bulk-upload');
       
       // Use the raw axios instance for file upload with progress tracking
       const response = await api.uploadWithProgress(
-        '/reports/payslip/bulk-upload',
+        '/documents/payslip/bulk-upload',
         formData,
         (percentCompleted) => {
           setUploadProgress(percentCompleted);

@@ -22,6 +22,11 @@ const PayrollActionButtons: React.FC<PayrollActionButtonsProps> = ({
   onSave, 
   onCancel 
 }) => {
+  // Safety check for params.row
+  if (!params?.row) {
+    return <div>-</div>;
+  }
+  
   const handleEdit = () => {
     onEdit(params.row.id)
   }

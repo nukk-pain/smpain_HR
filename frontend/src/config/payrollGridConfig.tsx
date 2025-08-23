@@ -57,7 +57,7 @@ export const getColumnDefinitions = (
     headerName: '수당',
     width: 130,
     type: 'number',
-    renderCell: (params) => ExpandableAllowances({ params })
+    renderCell: ExpandableAllowances
   },
   {
     field: 'bonus_total',
@@ -86,7 +86,7 @@ export const getColumnDefinitions = (
     headerName: '공제',
     width: 120,
     type: 'number',
-    renderCell: (params) => ExpandableDeductions({ params })
+    renderCell: ExpandableDeductions
   },
   {
     field: 'input_total',

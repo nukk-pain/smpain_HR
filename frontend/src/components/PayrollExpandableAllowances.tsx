@@ -19,6 +19,11 @@ const PayrollExpandableAllowances: React.FC<PayrollExpandableAllowancesProps> = 
   isExpanded, 
   onToggle 
 }) => {
+  // Safety check for params.row
+  if (!params?.row) {
+    return <div>-</div>;
+  }
+  
   const rowId = params.row.id
   const totalAllowances = params.row.total_allowances || 0
   const allowances = params.row.allowances || {}

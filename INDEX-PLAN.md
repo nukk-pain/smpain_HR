@@ -8,9 +8,9 @@
 - **DEPLOY-XX**: 배포 계획
 
 ## 📊 현재 진행 상황 요약
-- **진행 중**: 1개 (FIX 1개)
+- **진행 중**: 0개
 - **대기 중**: 1개 (DEPLOY 1개)
-- **완료**: 12개 (FEAT 4개, REFACTOR 7개, TEST 1개)
+- **완료**: 13개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 1개)
 - **보류**: 1개 (REFACTOR 1개)
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -18,20 +18,7 @@
 
 ## 🔄 진행 중인 계획
 
-### FIX-01: **PayrollGrid 컴포넌트 오류 수정** 🔧 **진행중**
-- **생성일**: 2025년 01월 22일
-- **예상 소요**: 1일
-- **우선순위**: HIGH
-- **문제점**:
-  - 급여 현황 탭 클릭 시 `Cannot read properties of undefined` 오류 발생
-  - MUI DataGrid v8과 빈 데이터셋 처리 문제
-  - 렌더러 함수에서 params.row가 undefined일 때 오류
-- **수정 계획**:
-  - [ ] params.row가 undefined일 때 안전하게 처리
-  - [ ] ExpandableAllowances와 ExpandableDeductions 렌더러 개선
-  - [ ] 빈 데이터셋에서도 오류 없이 작동하도록 수정
-  - [ ] 선택 기능(checkboxSelection) 재구현
-  - [ ] 전체 테스트 및 검증
+(현재 진행 중인 계획 없음)
 
 ---
 
@@ -53,19 +40,7 @@
 
 ## ⏸️ 보류 중인 계획
 
-### REFACTOR-02: **Reports.js 분할** ⏸️ **HOLD**
-- **문서**: [`REFACTOR-02-reports-plan.md`](./REFACTOR-02-reports-plan.md)
-- **생성일**: 2025년 08월 21일
-- **보류일**: 2025년 08월 21일
-- **보류 이유**: 12개 엔드포인트 중 8개 미사용
-- **선행 작업 필요**: 
-  - 미사용 8개 엔드포인트 제거 (약 800줄)
-  - 제거 후 약 480줄 예상 (리팩토링 불필요 수준)
-- **사용 중인 기능**:
-  - GET /api/reports/payroll/:year_month (PayrollDashboard)
-  - POST /api/reports/payslip/match-employees (PDF 매칭)
-  - POST /api/reports/payslip/bulk-upload (일괄 업로드)
-  - GET /api/reports/payslip/download/:documentId (다운로드)
+(현재 보류 중인 계획 없음)
 
 
 
@@ -90,6 +65,21 @@
 ---
 
 ## ✅ 완료된 계획
+
+### FIX-01: **PayrollGrid 컴포넌트 오류 수정** ✅ **완료**
+- **문서**: [`FIX-01-payroll-grid-error-plan.md`](./FIX-01-payroll-grid-error-plan.md)
+- **시작일**: 2025년 01월 22일
+- **완료일**: 2025년 01월 23일
+- **소요 시간**: 2일
+- **문제 해결**:
+  - ✅ React 컴포넌트 잘못된 호출 방식 수정 (함수 호출 → JSX 렌더링)
+  - ✅ params.row undefined 처리를 위한 3중 방어 코드 추가
+  - ✅ DataGrid 선택 기능(checkboxSelection) 재구현
+  - ✅ 모든 렌더러 함수에 안전성 체크 추가
+- **핵심 수정**:
+  - payrollGridConfig.tsx: 컴포넌트 함수 참조 방식으로 변경
+  - PayrollGrid.tsx: 모든 렌더러에 params?.row 체크 추가
+  - 각 Expandable 컴포넌트: 방어 코드 추가
 
 ### TEST-01: **통합 테스트 스위트 구축** ✅ **완료**
 - **시작일**: 2025년 08월 21일
@@ -233,6 +223,27 @@
   - 단일 책임 원칙 적용
   - 모듈별 독립적 테스트 가능
 
+### REFACTOR-02: **Reports.js → Documents.js 리팩토링** ✅ **완료**
+- **완료일**: 2025년 08월 23일
+- **문서**: 
+  - [`REFACTOR-02-reports-plan.md`](./REFACTOR-02-reports-plan.md)
+  - [`REFACTOR-02-completion-report.md`](./REFACTOR-02-completion-report.md)
+- **소요 시간**: 3시간
+- **결과**: 
+  - reports.js: 725줄 → 208줄 (-71%)
+  - documents.js: 398줄 → 773줄 (+94%)
+  - 총 코드량: 1,123줄 → 981줄 (-13%)
+- **주요 성과**:
+  - ✅ 급여명세서 관리 기능을 documents.js로 이동
+  - ✅ 보고서 생성과 문서 관리 책임 명확히 분리
+  - ✅ API 일관성 향상 (모든 문서 작업 `/api/documents/*`로 통합)
+  - ✅ 하위 호환성 유지 (307 리다이렉트 추가)
+  - ✅ 공통 multer 설정 추출 (`backend/config/multerConfig.js`)
+- **이동된 엔드포인트**:
+  - POST /api/reports/payslip/match-employees → /api/documents/payslip/match-employees
+  - POST /api/reports/payslip/bulk-upload → /api/documents/payslip/bulk-upload
+  - GET /api/reports/payslip/download/:id → /api/documents/:id/download
+
 ---
 
 ## 📅 향후 계획 (Backlog)
@@ -282,8 +293,9 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 - **기능 개발 (FEAT)**: 4개 완료
 - **리팩토링 (REFACTOR)**: 7개 완료, 1개 보류, 1개 취소
 - **테스트 (TEST)**: 1개 완료
+- **버그 수정 (FIX)**: 1개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 12개
+- **총 완료**: 13개
 
 ---
 
@@ -322,6 +334,12 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.08.23**: FIX-01 완료
+  - PayrollGrid 컴포넌트 오류 수정 완료
+  - React 컴포넌트 호출 방식 수정 (핵심 문제 해결)
+  - 3중 방어 코드로 안정성 확보
+  - DataGrid 선택 기능 재구현
 
 - **2025.08.22**: TEST-01 완료
   - 통합 테스트 스위트 구축 100% 완료

@@ -10,9 +10,11 @@ import {
   FormControlLabel, 
   Checkbox, 
   Divider,
-  CircularProgress 
+  CircularProgress,
+  TablePagination 
 } from '@mui/material'
 import { Settings, Print, Download } from '@mui/icons-material'
+import DataGridErrorBoundary from './DataGridErrorBoundary'
 
 // Types
 import { PayrollGridProps, PayrollRowData, DEFAULT_VISIBLE_COLUMNS, PAYROLL_STORAGE_KEYS } from '@/types/PayrollTypes'
@@ -59,6 +61,8 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   const [columnSettingsAnchor, setColumnSettingsAnchor] = useState<null | HTMLElement>(null)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([])
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(20)
   
   // Column visibility with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -108,48 +112,80 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     setColumnSettingsAnchor(null)
   }
 
-  // Ensure rowData is always an array to prevent DataGrid footer errors
+  // Ensure rowData is always an array with valid structure to prevent DataGrid footer errors
   const safeRowData = useMemo(() => {
-    return Array.isArray(rowData) ? rowData : []
+    if (!Array.isArray(rowData) || rowData.length === 0) return []
+    // Filter out any invalid rows and ensure each row has an id
+    const validRows = rowData.filter(row => row && typeof row === 'object' && Object.keys(row).length > 0)
+    if (validRows.length === 0) return []
+    
+    return validRows.map((row, index) => ({
+      ...row,
+      id: row.id || row._id || `row-${index}` // Ensure every row has an id
+    }))
   }, [rowData])
 
   // Component renderers with proper props
-  const ExpandableAllowancesRenderer = useCallback((params: any) => (
-    <PayrollExpandableAllowances
-      params={params}
-      isExpanded={expandedAllowances.has(params.row.id)}
-      onToggle={toggleAllowances}
-    />
-  ), [expandedAllowances, toggleAllowances])
+  const ExpandableAllowancesRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollExpandableAllowances
+        params={params}
+        isExpanded={expandedAllowances.has(params.row.id)}
+        onToggle={toggleAllowances}
+      />
+    );
+  }, [expandedAllowances, toggleAllowances])
 
-  const ExpandableDeductionsRenderer = useCallback((params: any) => (
-    <PayrollExpandableDeductions
-      params={params}
-      isExpanded={expandedDeductions.has(params.row.id)}
-      onToggle={toggleDeductions}
-    />
-  ), [expandedDeductions, toggleDeductions])
+  const ExpandableDeductionsRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollExpandableDeductions
+        params={params}
+        isExpanded={expandedDeductions.has(params.row.id)}
+        onToggle={toggleDeductions}
+      />
+    );
+  }, [expandedDeductions, toggleDeductions])
 
-  const EditableCellRenderer = useCallback((params: any) => (
-    <PayrollEditableCell
-      params={params}
-      isEditing={isEditing(params.row.id)}
-      onUpdate={updateCellValue}
-    />
-  ), [isEditing, updateCellValue])
+  const EditableCellRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollEditableCell
+        params={params}
+        isEditing={isEditing(params.row.id)}
+        onUpdate={updateCellValue}
+      />
+    );
+  }, [isEditing, updateCellValue])
 
-  const ActionCellRenderer = useCallback((params: any) => (
-    <PayrollActionButtons
-      params={params}
-      isEditing={isEditing(params.row.id)}
-      onEdit={startEditing}
-      onSave={async (rowId, rowData) => {
-        await savePayroll(rowId, rowData)
-        onDataChange?.()
-      }}
-      onCancel={cancelEditing}
-    />
-  ), [isEditing, startEditing, savePayroll, cancelEditing, onDataChange])
+  const ActionCellRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollActionButtons
+        params={params}
+        isEditing={isEditing(params.row.id)}
+        onEdit={startEditing}
+        onSave={async (rowId, rowData) => {
+          await savePayroll(rowId, rowData)
+          onDataChange?.()
+        }}
+        onCancel={cancelEditing}
+      />
+    );
+  }, [isEditing, startEditing, savePayroll, cancelEditing, onDataChange])
 
   // Get column definitions with renderers
   const columns = useMemo(() => {
@@ -169,8 +205,8 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     ]
   )
 
-  // Calculate summary
-  const summary = useMemo(() => calculatePayrollSummary(rowData), [rowData])
+  // Calculate summary using safeRowData to ensure consistency
+  const summary = useMemo(() => calculatePayrollSummary(safeRowData), [safeRowData])
 
   // Print handling
   const handlePrint = () => {
@@ -199,6 +235,16 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
   // Selection handling
   const handleSelectionChange = (selection: GridRowSelectionModel) => {
     setSelectedRows(selection)
+  }
+
+  // Pagination handlers
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setPage(0)
   }
 
   return (
@@ -259,41 +305,78 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
 
       {/* Data Grid */}
       <Paper sx={{ height: 'calc(100% - 150px)' }}>
-        {loading ? (
+        {loading || !columns || columns.length === 0 || !safeRowData || safeRowData.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <CircularProgress />
-          </Box>
-        ) : !columns || columns.length === 0 ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <Typography>No columns available</Typography>
-          </Box>
-        ) : !safeRowData ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <Typography>No data available</Typography>
+            {loading ? (
+              <CircularProgress />
+            ) : !columns || columns.length === 0 ? (
+              <Typography>No columns available</Typography>
+            ) : (
+              <Typography>No data available</Typography>
+            )}
           </Box>
         ) : (
-          <DataGrid
-            rows={safeRowData}
-            columns={columns}
-            initialState={{
-              pagination: {
-                paginationModel: {
-                  pageSize: 20,
-                  page: 0,
+          <DataGridErrorBoundary fallbackMessage="급여 데이터를 표시하는 중 오류가 발생했습니다. 새로고침을 시도해주세요.">
+            <DataGrid
+              key={`datagrid-${yearMonth}-${safeRowData.length}`}
+              rows={safeRowData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)}
+              columns={columns}
+              getRowId={(row) => row.id || `row-${safeRowData.indexOf(row)}`}
+              checkboxSelection={false}
+              disableRowSelectionOnClick
+              disableColumnSelector
+              disableMultipleRowSelection
+              autoPageSize={false}
+              density="comfortable"
+              hideFooter
+              hideFooterPagination
+              columnHeaderHeight={56}
+              rowHeight={52}
+              slots={{
+                columnHeaderCheckbox: () => null,
+                baseCheckbox: () => null,
+                cellCheckbox: () => null,
+                headerCheckbox: () => null,
+              }}
+              slotProps={{
+                columnsPanel: {
+                  disableHideAllButton: true,
+                  disableShowAllButton: true,
                 },
-              },
-            }}
-            pageSizeOptions={[10, 20, 50, 100]}
-            disableRowSelectionOnClick
-            sx={{
-              '& .MuiDataGrid-cell': {
-                borderRight: '1px solid rgba(224, 224, 224, 1)',
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                backgroundColor: '#f5f5f5',
-                fontWeight: 'bold',
-              },
-            }}
+                row: {
+                  'aria-selected': false,
+                },
+              }}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  borderRight: '1px solid rgba(224, 224, 224, 1)',
+                },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: '#f5f5f5',
+                  fontWeight: 'bold',
+                },
+                '& .MuiDataGrid-columnHeaderCheckbox': {
+                  display: 'none',
+                },
+                '& .MuiDataGrid-cellCheckbox': {
+                  display: 'none',
+                },
+              }}
+            />
+          </DataGridErrorBoundary>
+        )}
+        {/* Custom Pagination */}
+        {safeRowData.length > 0 && (
+          <TablePagination
+            component="div"
+            count={safeRowData.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[10, 20, 50, 100]}
+            labelRowsPerPage="페이지당 행:"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} / 전체 ${count}`}
           />
         )}
       </Paper>
@@ -338,7 +421,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
         open={printDialogOpen}
         onClose={handlePrintClose}
         onPrint={handlePrintConfirm}
-        totalEmployees={rowData.length}
+        totalEmployees={safeRowData.length}
         totalPayment={summary.totalPayment}
         selectedCount={selectedRows.length}
         yearMonth={yearMonth}

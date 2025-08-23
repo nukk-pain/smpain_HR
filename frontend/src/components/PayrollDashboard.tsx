@@ -86,7 +86,9 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
   const loadStats = async () => {
     setLoading(true);
     try {
-      const response = await apiService.getPayrollReport(yearMonth);
+      // Convert yyyy-MM format to YYYYMM for API
+      const apiYearMonth = yearMonth.replace('-', '');
+      const response = await apiService.getPayrollReport(apiYearMonth);
       if (response.success && (response as any).data?.summary) {
         // Map summary data to stats structure
         setStats({

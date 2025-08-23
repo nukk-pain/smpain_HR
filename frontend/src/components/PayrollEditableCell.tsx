@@ -18,6 +18,11 @@ const PayrollEditableCell: React.FC<PayrollEditableCellProps> = ({
   isEditing, 
   onUpdate 
 }) => {
+  // Safety check for params
+  if (!params) {
+    return <div>-</div>;
+  }
+  
   const [value, setValue] = useState(params.value || 0)
 
   useEffect(() => {
