@@ -163,14 +163,15 @@ async function connectDB() {
     if (featureFlags.isEnabled('MODULAR_ERROR_SERVICE')) {
       console.log('🔧 Using new modular error logging service');
       MonitoringService = require('./services/ErrorLoggingMonitoringServiceModular');
+      global.errorLoggingService = new MonitoringService(db);
+      await global.errorLoggingService.initialize();
     } else {
       console.log('📝 Using existing monitoring service');
       MonitoringService = require('./services/monitoring');
+      global.errorLoggingService = new MonitoringService(db);
+      // Unified monitoring service doesn't need initialize()
     }
-    
-    global.errorLoggingService = new MonitoringService(db);
-    await global.errorLoggingService.initialize();
-    console.log('✅ Error logging and monitoring service initialized');
+    console.log('✅ MonitoringService initialized with all sub-services');
 
     // Initialize sample data
     await initializeData();

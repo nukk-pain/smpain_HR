@@ -9,8 +9,8 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 3개 (DEPLOY 1개, REFACTOR 2개)
-- **완료**: 17개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 4개, CHECK 1개)
+- **대기 중**: 1개 (DEPLOY 1개)
+- **완료**: 19개 (FEAT 4개, REFACTOR 9개, TEST 1개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -18,47 +18,26 @@
 
 ## 🔄 진행 중인 계획
 
-### REFACTOR-08: **ErrorLoggingMonitoringService.js 분할** 🔧 **진행 중**
-- **문서**: [`REFACTOR-08-error-logging-service-plan.md`](./REFACTOR-08-error-logging-service-plan.md)
-- **생성일**: 2025년 08월 25일
-- **시작일**: 2025년 08월 26일
-- **예상 소요**: 3.5시간
-- **우선순위**: CRITICAL (1,068줄)
-- **진행 상황**:
-  - ✅ Phase 0: Feature flag 설정 완료
-  - ✅ Step 1: 핵심 인프라 구축 완료
-  - ✅ Step 2: 인터페이스 정의 완료
-  - ✅ Step 3-7: 개별 모듈 생성 완료 (ErrorLogger, MetricsCollector)
-  - ✅ Step 8-9: 통합 및 참조 업데이트 완료
-  - 🔄 Step 10-13: 테스트 진행 중
-
 ---
 
 ## ⏳ 대기 중인 계획
 
-### REFACTOR-08: **ErrorLoggingMonitoringService.js 분할** 🔧 **대기**
-- **문서**: [`REFACTOR-08-error-logging-service-plan.md`](./REFACTOR-08-error-logging-service-plan.md)
-- **생성일**: 2025년 08월 25일
-- **예상 소요**: 3.5시간
-- **우선순위**: CRITICAL (1,068줄)
-- **목표**: 1,068줄 → ~200줄 메인 + 100-300줄 모듈들
-- **주요 작업**:
-  - ErrorLogger, AuditLogger 모듈 분리
-  - MetricsCollector, SystemHealthMonitor 분리
-  - AlertManager, ErrorAnalytics 분리
-  - 설정 파일 분리 (config/monitoringConfig.js)
-
-### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** 🔧 **대기**
+### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** ✅ **완료**
 - **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./REFACTOR-09-unified-leave-overview-plan.md)
 - **생성일**: 2025년 08월 25일
-- **예상 소요**: 3.5시간
+- **완료일**: 2025년 08월 26일
+- **소요 시간**: 3시간
 - **우선순위**: CRITICAL (1,015줄)
-- **목표**: 1,015줄 → ~250줄 메인 + 50-200줄 컴포넌트들
-- **주요 작업**:
-  - LeaveOverviewView, TeamStatusView, DepartmentStatsView 분리
-  - EmployeeLeaveDetailDialog, LeaveAnalyticsDialog 분리
-  - 카드 컴포넌트들 분리 (LeaveStatCard 등)
-  - useLeaveOverviewState 훅 생성
+- **최종 결과**: 1,015줄 → 538줄 (47% 감소)
+- **주요 성과**:
+  - ✅ LeaveOverviewView 컴포넌트 분리 (193줄)
+  - ✅ TeamStatusView 컴포넌트 분리 (151줄)
+  - ✅ ViewModeSelector 컴포넌트 분리 (36줄)
+  - ✅ useLeaveOverviewState 훅 생성 (176줄)
+  - ✅ 타입 정의 통합 (types/leave.ts)
+  - ✅ 유틸리티 함수 추출 (leaveFilters.ts, 196줄)
+  - ✅ 모든 기능 테스트 통과
+- **테스트 결과**: [`TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md`](./frontend/TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md)
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
 - **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
@@ -296,6 +275,41 @@
   - 단일 책임 원칙 적용
   - 모듈별 독립적 테스트 가능
 
+### REFACTOR-08: **ErrorLoggingMonitoringService.js 모듈화** ✅ **완료**  
+- **문서**: 
+  - [`REFACTOR-08-error-logging-service-plan.md`](./REFACTOR-08-error-logging-service-plan.md)
+  - [`REFACTOR-08-RESULTS.md`](./REFACTOR-08-RESULTS.md)
+- **생성일**: 2025년 08월 25일
+- **완료일**: 2025년 08월 26일
+- **소요 시간**: 4시간
+- **최종 결과**: 1,389줄 → 396줄 (71% 감소)
+- **주요 성과**:
+  - ✅ 22개 모듈로 분할 (Core, Monitoring, Utils, DTO, Interfaces)
+  - ✅ Feature flag 시스템 구현 (MODULAR_ERROR_SERVICE)
+  - ✅ 48% 성능 향상 (Log Error, Audit Trail)
+  - ✅ 100% 하위 호환성 유지
+  - ✅ 의존성 주입 패턴 구현 (ServiceContainer)
+  - ✅ 깔끔한 종료(graceful shutdown) 구현
+- **성능 테스트 결과**:
+  - Log Error: 0.864ms → 0.449ms (48% 개선)
+  - Log Audit: 0.475ms → 0.350ms (26% 개선)
+  - Production ready - safe to deploy
+
+### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** ✅ **완료**
+- **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./REFACTOR-09-unified-leave-overview-plan.md)
+- **완료일**: 2025년 08월 26일
+- **소요 시간**: 3시간
+- **최종 결과**: 1,015줄 → 538줄 (47% 감소)
+- **주요 성과**:
+  - ✅ LeaveOverviewView 컴포넌트 분리 (193줄)
+  - ✅ TeamStatusView 컴포넌트 분리 (151줄)
+  - ✅ ViewModeSelector 컴포넌트 분리 (36줄)
+  - ✅ useLeaveOverviewState 훅 생성 (176줄)
+  - ✅ 타입 정의 통합 (types/leave.ts)
+  - ✅ 유틸리티 함수 추출 (leaveFilters.ts, 196줄)
+  - ✅ 모든 기능 테스트 통과
+- **테스트 결과**: [`TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md`](./frontend/TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md)
+
 ### REFACTOR-02: **Reports.js → Documents.js 리팩토링** ✅ **완료**
 - **완료일**: 2025년 08월 23일
 - **문서**: 
@@ -407,6 +421,14 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.08.26**: REFACTOR-08, REFACTOR-09 완료
+  - REFACTOR-08: ErrorLoggingMonitoringService.js 모듈화 완료
+    - 1,389줄 → 396줄 (71% 감소), 22개 모듈로 분할
+    - Feature flag 시스템 구현, 48% 성능 향상
+  - REFACTOR-09: UnifiedLeaveOverview.tsx 리팩토링 완료
+    - 1,015줄 → 538줄 (47% 감소), 6개 컴포넌트로 분리
+    - 모든 기능 테스트 통과
 
 - **2025.08.25**: REFACTOR-08, 09 추가 및 백업 파일 정리
   - PayrollGrid.original.tsx 백업 디렉토리로 이동

@@ -184,3 +184,13 @@ export const getStatusLabel = (status: string): string => {
   };
   return labels[status] || status;
 };
+
+// Get status color
+export const getStatusColor = (status: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+  switch (status) {
+    case 'approved': return 'success';
+    case 'pending': return 'warning';
+    case 'rejected': return 'error';
+    default: return 'default';
+  }
+};

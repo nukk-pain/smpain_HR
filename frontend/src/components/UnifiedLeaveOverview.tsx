@@ -6,69 +6,46 @@ import {
   useTheme,
   useMediaQuery,
   CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   TextField,
   MenuItem,
   Button,
   Chip,
-  LinearProgress,
   Alert,
   CircularProgress,
-  InputAdornment,
-  IconButton,
-  Tooltip,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  Avatar,
-  Divider,
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  ToggleButton,
-  ToggleButtonGroup,
-  Grid,
-  Skeleton
+  Grid
 } from '@mui/material';
 import {
-  Search as SearchIcon,
   Download as DownloadIcon,
-  Settings as SettingsIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  People as PeopleIcon,
-  CalendarToday as CalendarIcon,
-  Analytics as AnalyticsIcon,
-  Person,
-  BeachAccess,
   Group,
-  CheckCircle,
-  Schedule,
-  Info,
-  Assessment,
-  Visibility as VisibilityIcon
+  Info
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useAuth } from './AuthProvider';
 import { useNotification } from './NotificationProvider';
 import { apiService } from '../services/api';
 import LeaveAdjustmentDialog from './LeaveAdjustmentDialog';
-import VirtualEmployeeList from './VirtualEmployeeList';
-import { LeaveAnalyticsCharts } from './charts/LeaveAnalyticsCharts';
 import MobileLeaveOverview from './MobileLeaveOverview';
 import LeaveOverviewView from './leave/views/LeaveOverviewView';
+import TeamStatusView from './leave/views/TeamStatusView';
+import ViewModeSelector from './leave/ViewModeSelector';
+import { 
+  getStatusColor, 
+  getStatusLabel, 
+  getLeaveTypeLabel 
+} from '../utils/leaveFilters';
+import {
+  calculateRiskDistribution,
+  calculateDepartmentStats,
+  calculateStatistics,
+  getLeaveUsageColor
+} from '../utils/leaveCalculations';
 import { 
   useLeaveOverview, 
   useTeamStatus, 
@@ -240,75 +217,6 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   };
 
   // Unified color function
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'warning';
-      case 'approved': return 'success';
-      case 'rejected': return 'error';
-      default: return 'default';
-    }
-  };
-
-  // Unified label function
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return '대기중';
-      case 'approved': return '승인됨';
-      case 'rejected': return '거부됨';
-      default: return status;
-    }
-  };
-
-  // Calculate analytics data
-  const calculateRiskDistribution = () => {
-    const employees = getFilteredEmployees();
-    const distribution = { high: 0, medium: 0, low: 0 };
-    
-    employees.forEach(emp => {
-      if (emp.riskLevel === 'high') distribution.high++;
-      else if (emp.riskLevel === 'medium') distribution.medium++;
-      else distribution.low++;
-    });
-    
-    return distribution;
-  };
-
-  const calculateDepartmentStats = () => {
-    const employees = overviewData?.employees || [];
-    const deptMap = new Map<string, { totalUsage: number; count: number }>();
-    
-    employees.forEach(emp => {
-      if (!deptMap.has(emp.department)) {
-        deptMap.set(emp.department, { totalUsage: 0, count: 0 });
-      }
-      const dept = deptMap.get(emp.department)!;
-      dept.totalUsage += emp.usageRate;
-      dept.count++;
-    });
-    
-    return Array.from(deptMap.entries()).map(([department, stats]) => ({
-      department,
-      avgUsage: Math.round(stats.totalUsage / stats.count),
-      totalEmployees: stats.count
-    }));
-  };
-
-  const calculateStatistics = () => {
-    const employees = getFilteredEmployees();
-    const totalEmployees = employees.length;
-    const totalUsage = employees.reduce((sum, emp) => sum + emp.usageRate, 0);
-    const averageUsage = totalEmployees > 0 ? Math.round(totalUsage / totalEmployees) : 0;
-    const highRiskCount = employees.filter(emp => emp.riskLevel === 'high').length;
-    const pendingRequests = employees.reduce((sum, emp) => sum + (emp.pendingAnnualLeave > 0 ? 1 : 0), 0);
-    
-    return {
-      totalEmployees,
-      averageUsage,
-      highRiskCount,
-      pendingRequests
-    };
-  };
-
   const getFilteredEmployees = () => {
     if (!overviewData || !overviewData.employees) return [];
     
@@ -334,25 +242,6 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
       }
     });
   };
-
-  // Keep unique functions from TeamLeaveStatus
-  const getLeaveTypeLabel = (type: string) => {
-    switch (type) {
-      case 'annual': return '연차';
-      case 'half': return '반차';
-      case 'sick': return '병가';
-      case 'special': return '특별휴가';
-      case 'unpaid': return '무급휴가';
-      default: return type;
-    }
-  };
-
-  const getLeaveUsageColor = (percentage: number) => {
-    if (percentage >= 80) return 'error';
-    if (percentage >= 50) return 'warning';
-    return 'success';
-  };
-
   // Handler functions
   const handleViewModeChange = (event: React.MouseEvent<HTMLElement>, newMode: string | null) => {
     if (newMode !== null) {
@@ -419,138 +308,8 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   useEffect(() => {
     refreshData();
   }, [selectedYear]);
-
-  // Render view mode selector
-  const renderViewModeSelector = () => {
-    const availableModes = userRole === 'admin' 
-      ? ['overview', 'team', 'department']
-      : ['team', 'department'];
-
-    return (
-      <ToggleButtonGroup 
-        value={viewMode} 
-        exclusive 
-        onChange={handleViewModeChange}
-        size="small"
-      >
-        {availableModes.includes('overview') && (
-          <ToggleButton value="overview">전체 현황</ToggleButton>
-        )}
-        <ToggleButton value="team">팀 현황</ToggleButton>
-        <ToggleButton value="department">부서 통계</ToggleButton>
-      </ToggleButtonGroup>
-    );
-  };
-
-
-  const renderTeamView = () => {
-    return (
-      <>
-        <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>부서 선택</InputLabel>
-            <Select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              label="부서 선택"
-            >
-              <MenuItem value="all">전체</MenuItem>
-              {departments.map(dept => (
-                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            select
-            label="연도"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            size="small"
-            sx={{ minWidth: 100 }}
-          >
-            {[2023, 2024, 2025].map(year => (
-              <MenuItem key={year} value={year}>{year}년</MenuItem>
-            ))}
-          </TextField>
-        </Box>
-
-        {teamMembers.length === 0 ? (
-          <Alert severity="info">선택한 조건에 해당하는 팀원이 없습니다.</Alert>
-        ) : (
-          <Grid container spacing={3}>
-            {teamMembers.map((member) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={member._id}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar sx={{ mr: 2 }}>
-                        <Person />
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h6">{member.name}</Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {member.position} · {member.department}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={member.currentStatus === 'on_leave' ? '휴가중' : '근무중'}
-                        color={member.currentStatus === 'on_leave' ? 'warning' : 'success'}
-                        size="small"
-                      />
-                    </Box>
-
-                    <Divider sx={{ my: 1 }} />
-
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        연차 사용 현황
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(member.leaveBalance.used / member.leaveBalance.annual) * 100}
-                        color={getLeaveUsageColor((member.leaveBalance.used / member.leaveBalance.annual) * 100) as any}
-                        sx={{ mb: 1 }}
-                      />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2">
-                          사용: {member.leaveBalance.used}일
-                        </Typography>
-                        <Typography variant="body2">
-                          잔여: {member.leaveBalance.remaining}일
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                      <Button
-                        size="small"
-                        onClick={() => handleMemberClick(member)}
-                      >
-                        상세보기
-                      </Button>
-                      {userRole === 'admin' && (
-                        <Button
-                          size="small"
-                          onClick={() => handleViewDetail(member)}
-                        >
-                          휴가 내역
-                        </Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </>
-    );
-  };
-
   // Render department view
   const renderDepartmentView = () => (<Alert severity="info">부서별 통계 뷰 - 추후 별도 컴포넌트로 분리 예정</Alert>);
-
-
   // Mobile view - use dedicated mobile component
   if (isMobile && viewMode === 'overview') {
     return (
@@ -570,7 +329,11 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
         <Typography variant="h4" component="h1">
           휴가 현황 관리
         </Typography>
-        {renderViewModeSelector()}
+        <ViewModeSelector 
+          viewMode={viewMode}
+          userRole={userRole}
+          onChange={handleViewModeChange}
+        />
       </Box>
 
       {loading ? (
@@ -594,13 +357,26 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
               handleExportExcel={handleExportExcel}
               handleAdjustLeave={handleAdjustLeave}
               handleViewDetail={handleViewDetail}
-              calculateRiskDistribution={calculateRiskDistribution}
-              calculateDepartmentStats={calculateDepartmentStats}
-              calculateStatistics={calculateStatistics}
+              calculateRiskDistribution={() => calculateRiskDistribution(getFilteredEmployees())}
+              calculateDepartmentStats={() => calculateDepartmentStats(overviewData?.employees || [])}
+              calculateStatistics={() => calculateStatistics(getFilteredEmployees())}
               overviewLoading={overviewLoading}
             />
           )}
-          {viewMode === 'team' && renderTeamView()}
+          {viewMode === 'team' && (
+            <TeamStatusView
+              selectedDepartment={selectedDepartment}
+              setSelectedDepartment={setSelectedDepartment}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+              departments={departments}
+              teamMembers={teamMembers}
+              userRole={userRole}
+              handleMemberClick={handleMemberClick}
+              handleViewDetail={handleViewDetail}
+              getLeaveUsageColor={getLeaveUsageColor}
+            />
+          )}
           {viewMode === 'department' && renderDepartmentView()}
         </>
       )}

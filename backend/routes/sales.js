@@ -2,10 +2,10 @@ const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
 
-const router = express.Router();
-
 // Sales routes
 function createSalesRoutes(db) {
+  const router = express.Router();
+  console.log('🔥 Creating sales routes...');
   // Permission middleware with role-based fallback
   const requirePermission = (permission) => {
     return (req, res, next) => {
@@ -45,22 +45,42 @@ function createSalesRoutes(db) {
     };
   };
 
-  // Get sales data by year_month
-  router.get('/:year_month', requireAuth, asyncHandler(async (req, res) => {
+  // Get company sales by yearMonth
+  console.log('🔥 Adding GET /company/:yearMonth route');
+  router.get('/company/:yearMonth', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
     try {
-      const { year_month } = req.params;
-      const userRole = req.user.role;
-      const userId = req.user.id;
-
-      let matchCondition = { yearMonth: year_month };
-
-      // If not admin/supervisor, only show own data
-      if (userRole === 'user') {
-        matchCondition.userId = new ObjectId(userId);
+      const { yearMonth } = req.params;
+      
+      const companySales = await db.collection('companySales').findOne({ yearMonth });
+      
+      if (!companySales) {
+        return res.json({ success: true, data: null });
       }
 
-      const salesData = await db.collection('salesData').aggregate([
-        { $match: matchCondition },
+      res.json({ 
+        success: true, 
+        data: {
+          totalAmount: companySales.totalAmount,
+          notes: companySales.notes,
+          yearMonth: companySales.yearMonth,
+          createdAt: companySales.createdAt,
+          updatedAt: companySales.updatedAt
+        }
+      });
+
+    } catch (error) {
+      console.error('Get company sales error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
+  // Get individual sales by yearMonth
+  router.get('/individual/:yearMonth', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
+    try {
+      const { yearMonth } = req.params;
+      
+      const individualSales = await db.collection('salesData').aggregate([
+        { $match: { yearMonth } },
         {
           $lookup: {
             from: 'users',
@@ -71,202 +91,125 @@ function createSalesRoutes(db) {
         },
         {
           $project: {
-            id: '$_id',
-            user_id: '$userId',
-            user_name: { $arrayElemAt: ['$user.name', 0] },
-            year_month: '$yearMonth',
-            sales_amount: '$salesAmount',
-            target_amount: '$targetAmount',
-            achievement_rate: {
-              $cond: {
-                if: { $gt: ['$targetAmount', 0] },
-                then: { $multiply: [{ $divide: ['$salesAmount', '$targetAmount'] }, 100] },
-                else: 0
-              }
-            },
-            category: '$category',
-            notes: '$notes',
-            created_at: '$createdAt',
-            updated_at: '$updatedAt'
+            userId: 1,
+            userName: { $arrayElemAt: ['$user.name', 0] },
+            individualSales: 1,
+            contributionRate: 1,
+            notes: 1,
+            yearMonth: 1,
+            createdAt: 1,
+            updatedAt: 1
           }
         },
-        { $sort: { user_name: 1 } }
+        { $sort: { userName: 1 } }
       ]).toArray();
 
-      res.json({ success: true, data: salesData });
+      res.json({ success: true, data: individualSales });
 
     } catch (error) {
-      console.error('Get sales data error:', error);
+      console.error('Get individual sales error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }));
 
-  // Create sales record
-  router.post('/', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
+  // Bulk save sales data (company + individual)
+  router.post('/bulk', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
+    // MongoDB session for transaction - get client from db.s.client
+    const client = db.s ? db.s.client : db.client;
+    const session = client.startSession();
+    
     try {
-      const { userId, yearMonth, salesAmount, targetAmount, category, notes } = req.body;
+      const { yearMonth, companySales, individualSales } = req.body;
 
-      if (!userId || !yearMonth || salesAmount === undefined) {
+      // Validation
+      if (!yearMonth || !companySales || !companySales.total_amount) {
         return res.status(400).json({ 
-          error: 'User ID, year month, and sales amount are required' 
+          error: 'Year month and company total sales are required' 
         });
       }
 
-      if (salesAmount < 0) {
-        return res.status(400).json({ error: 'Sales amount cannot be negative' });
-      }
-
-      // Verify user exists
-      const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      // Check if sales record already exists for this user and month
-      const existingSales = await db.collection('salesData').findOne({
-        userId: new ObjectId(userId),
-        yearMonth
-      });
-
-      if (existingSales) {
+      if (!individualSales || individualSales.length === 0) {
         return res.status(400).json({ 
-          error: 'Sales record for this user and month already exists. Use PUT to update.' 
+          error: 'At least one individual sales record is required' 
         });
       }
 
-      const salesRecord = {
-        userId: new ObjectId(userId),
-        yearMonth,
-        salesAmount: Number(salesAmount),
-        targetAmount: Number(targetAmount) || 0,
-        category: category || 'general',
-        notes: notes || '',
-        createdAt: new Date(),
-        createdBy: req.user.id,
-        updatedAt: new Date()
-      };
+      let savedCount = 0;
+      let individualTotal = 0;
 
-      const result = await db.collection('salesData').insertOne(salesRecord);
+      await session.withTransaction(async () => {
+        // Save or update company sales
+        await db.collection('companySales').replaceOne(
+          { yearMonth },
+          {
+            yearMonth,
+            totalAmount: Number(companySales.total_amount),
+            notes: companySales.notes || '',
+            createdAt: new Date(),
+            createdBy: req.user.id,
+            updatedAt: new Date(),
+            updatedBy: req.user.id
+          },
+          { upsert: true, session }
+        );
 
-      res.json({
-        success: true,
-        message: 'Sales record created successfully',
-        data: { id: result.insertedId, ...salesRecord }
-      });
+        // Delete existing individual sales for this month
+        await db.collection('salesData').deleteMany(
+          { yearMonth },
+          { session }
+        );
 
-    } catch (error) {
-      console.error('Create sales record error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }));
+        // Insert new individual sales
+        const salesDataToInsert = [];
+        for (const sale of individualSales) {
+          if (!sale.user_id || !sale.individual_sales) continue;
 
-  // Update sales record
-  router.put('/:id', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { salesAmount, targetAmount, category, notes } = req.body;
+          const contributionRate = companySales.total_amount > 0
+            ? (Number(sale.individual_sales) / Number(companySales.total_amount)) * 100
+            : 0;
 
-      const updateData = {
-        updatedAt: new Date(),
-        updatedBy: req.user.id
-      };
+          salesDataToInsert.push({
+            userId: new ObjectId(sale.user_id),
+            yearMonth,
+            individualSales: Number(sale.individual_sales),
+            contributionRate: contributionRate,
+            notes: sale.notes || '',
+            category: 'general',
+            createdAt: new Date(),
+            createdBy: req.user.id,
+            updatedAt: new Date(),
+            updatedBy: req.user.id
+          });
 
-      if (salesAmount !== undefined) {
-        if (salesAmount < 0) {
-          return res.status(400).json({ error: 'Sales amount cannot be negative' });
+          individualTotal += Number(sale.individual_sales);
+          savedCount++;
         }
-        updateData.salesAmount = Number(salesAmount);
-      }
-      if (targetAmount !== undefined) updateData.targetAmount = Number(targetAmount);
-      if (category !== undefined) updateData.category = category;
-      if (notes !== undefined) updateData.notes = notes;
 
-      const result = await db.collection('salesData').updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updateData }
-      );
+        if (salesDataToInsert.length > 0) {
+          await db.collection('salesData').insertMany(salesDataToInsert, { session });
+        }
+      });
 
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: 'Sales record not found' });
-      }
+      const coverageRate = companySales.total_amount > 0
+        ? (individualTotal / Number(companySales.total_amount)) * 100
+        : 0;
 
       res.json({
         success: true,
-        message: 'Sales record updated successfully'
+        message: `전체 매출 및 ${savedCount}명의 개인 매출 데이터가 저장되었습니다`,
+        summary: {
+          company_total: Number(companySales.total_amount),
+          individual_total: individualTotal,
+          contribution_coverage: coverageRate,
+          total_saved: savedCount
+        }
       });
 
     } catch (error) {
-      console.error('Update sales record error:', error);
+      console.error('Bulk save sales error:', error);
       res.status(500).json({ error: 'Internal server error' });
-    }
-  }));
-
-  // Delete sales record
-  router.delete('/:id', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      const result = await db.collection('salesData').deleteOne({ _id: new ObjectId(id) });
-
-      if (result.deletedCount === 0) {
-        return res.status(404).json({ error: 'Sales record not found' });
-      }
-
-      res.json({
-        success: true,
-        message: 'Sales record deleted successfully'
-      });
-
-    } catch (error) {
-      console.error('Delete sales record error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }));
-
-  // Get sales summary for user
-  router.get('/user/:userId', requireAuth, asyncHandler(async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const currentUser = req.user;
-
-      // Check permissions - users can only see their own data
-      if (currentUser.role === 'user' && currentUser.id !== userId) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-
-      const salesSummary = await db.collection('salesData').aggregate([
-        { $match: { userId: new ObjectId(userId) } },
-        {
-          $group: {
-            _id: '$yearMonth',
-            salesAmount: { $sum: '$salesAmount' },
-            targetAmount: { $sum: '$targetAmount' },
-            recordCount: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            yearMonth: '$_id',
-            salesAmount: 1,
-            targetAmount: 1,
-            recordCount: 1,
-            achievementRate: {
-              $cond: {
-                if: { $gt: ['$targetAmount', 0] },
-                then: { $multiply: [{ $divide: ['$salesAmount', '$targetAmount'] }, 100] },
-                else: 0
-              }
-            }
-          }
-        },
-        { $sort: { yearMonth: -1 } }
-      ]).toArray();
-
-      res.json({ success: true, data: salesSummary });
-
-    } catch (error) {
-      console.error('Get sales summary error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      await session.endSession();
     }
   }));
 
@@ -275,46 +218,42 @@ function createSalesRoutes(db) {
     try {
       const { yearMonth } = req.params;
 
-      const stats = await db.collection('salesData').aggregate([
+      // Get company sales
+      const companySales = await db.collection('companySales').findOne({ yearMonth });
+      
+      // Get individual sales stats
+      const individualStats = await db.collection('salesData').aggregate([
         { $match: { yearMonth } },
         {
           $group: {
             _id: null,
-            totalSales: { $sum: '$salesAmount' },
-            totalTarget: { $sum: '$targetAmount' },
+            totalIndividualSales: { $sum: '$individualSales' },
             employeeCount: { $sum: 1 },
-            avgSales: { $avg: '$salesAmount' },
-            maxSales: { $max: '$salesAmount' },
-            minSales: { $min: '$salesAmount' }
-          }
-        },
-        {
-          $project: {
-            totalSales: 1,
-            totalTarget: 1,
-            employeeCount: 1,
-            avgSales: { $round: ['$avgSales', 0] },
-            maxSales: 1,
-            minSales: 1,
-            overallAchievementRate: {
-              $cond: {
-                if: { $gt: ['$totalTarget', 0] },
-                then: { $round: [{ $multiply: [{ $divide: ['$totalSales', '$totalTarget'] }, 100] }, 2] },
-                else: 0
-              }
-            }
+            avgIndividualSales: { $avg: '$individualSales' },
+            maxIndividualSales: { $max: '$individualSales' },
+            minIndividualSales: { $min: '$individualSales' }
           }
         }
       ]).toArray();
 
-      const result = stats[0] || {
-        totalSales: 0,
-        totalTarget: 0,
+      const stats = individualStats[0] || {
+        totalIndividualSales: 0,
         employeeCount: 0,
-        avgSales: 0,
-        maxSales: 0,
-        minSales: 0,
-        overallAchievementRate: 0
+        avgIndividualSales: 0,
+        maxIndividualSales: 0,
+        minIndividualSales: 0
+      };
+
+      const result = {
+        companyTotal: companySales ? companySales.totalAmount : 0,
+        individualTotal: stats.totalIndividualSales,
+        employeeCount: stats.employeeCount,
+        avgIndividualSales: Math.round(stats.avgIndividualSales),
+        maxIndividualSales: stats.maxIndividualSales,
+        minIndividualSales: stats.minIndividualSales,
+        contributionCoverage: companySales && companySales.totalAmount > 0
+          ? ((stats.totalIndividualSales / companySales.totalAmount) * 100).toFixed(1)
+          : 0
       };
 
       res.json({ success: true, data: result });
@@ -322,6 +261,42 @@ function createSalesRoutes(db) {
     } catch (error) {
       console.error('Get sales stats error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
+  // Delete sales data for a month (both company and individual)
+  router.delete('/month/:yearMonth', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
+    // MongoDB session for transaction - get client from db.s.client
+    const client = db.s ? db.s.client : db.client;
+    const session = client.startSession();
+    
+    try {
+      const { yearMonth } = req.params;
+
+      await session.withTransaction(async () => {
+        // Delete company sales
+        await db.collection('companySales').deleteOne(
+          { yearMonth },
+          { session }
+        );
+
+        // Delete individual sales
+        const result = await db.collection('salesData').deleteMany(
+          { yearMonth },
+          { session }
+        );
+
+        res.json({
+          success: true,
+          message: `${yearMonth} 매출 데이터가 삭제되었습니다 (${result.deletedCount}개 개인 매출 기록)`
+        });
+      });
+
+    } catch (error) {
+      console.error('Delete month sales error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      await session.endSession();
     }
   }));
 
