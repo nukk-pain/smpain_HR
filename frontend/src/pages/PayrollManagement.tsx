@@ -286,9 +286,9 @@ const PayrollManagement: React.FC = () => {
                 variant="contained"
                 startIcon={<FileUpload />}
                 sx={{ mt: 2 }}
-                onClick={() => window.location.href = user?.role === 'admin' ? '/admin/files' : '/supervisor/files'}
+                onClick={() => window.location.href = '/supervisor/files'}
               >
-                파일 관리로 이동
+                Excel 업로드하기 (파일 관리로 이동)
               </Button>
             </Box>
           </TabPanel>

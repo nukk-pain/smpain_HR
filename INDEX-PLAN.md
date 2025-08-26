@@ -9,8 +9,8 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 2개 (CHECK 1개, DEPLOY 1개)
-- **완료**: 16개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 4개)
+- **대기 중**: 3개 (DEPLOY 1개, REFACTOR 2개)
+- **완료**: 17개 (FEAT 4개, REFACTOR 7개, TEST 1개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -18,25 +18,47 @@
 
 ## 🔄 진행 중인 계획
 
-(현재 진행 중인 계획 없음)
+### REFACTOR-08: **ErrorLoggingMonitoringService.js 분할** 🔧 **진행 중**
+- **문서**: [`REFACTOR-08-error-logging-service-plan.md`](./REFACTOR-08-error-logging-service-plan.md)
+- **생성일**: 2025년 08월 25일
+- **시작일**: 2025년 08월 26일
+- **예상 소요**: 3.5시간
+- **우선순위**: CRITICAL (1,068줄)
+- **진행 상황**:
+  - ✅ Phase 0: Feature flag 설정 완료
+  - ✅ Step 1: 핵심 인프라 구축 완료
+  - ✅ Step 2: 인터페이스 정의 완료
+  - ✅ Step 3-7: 개별 모듈 생성 완료 (ErrorLogger, MetricsCollector)
+  - ✅ Step 8-9: 통합 및 참조 업데이트 완료
+  - 🔄 Step 10-13: 테스트 진행 중
 
 ---
 
 ## ⏳ 대기 중인 계획
 
-### CHECK-01: **급여 엑셀 업로드 기능 중복 확인** 🔍 **대기**
-- **생성일**: 2025년 08월 23일
-- **예상 소요**: 30분
-- **우선순위**: MEDIUM
-- **확인 사항**:
-  - `/supervisor/payroll` 페이지의 엑셀 업로드 기능
-  - `/supervisor/files` 페이지의 엑셀 업로드 기능
-  - 두 기능의 차이점 비교
-  - 중복 기능인 경우 통합 방안 검토
-  - 서로 다른 기능인 경우 명확한 구분 필요
-- **예상 결과**:
-  - 기능 차이점 문서화
-  - 필요시 REFACTOR 또는 FIX 계획 수립
+### REFACTOR-08: **ErrorLoggingMonitoringService.js 분할** 🔧 **대기**
+- **문서**: [`REFACTOR-08-error-logging-service-plan.md`](./REFACTOR-08-error-logging-service-plan.md)
+- **생성일**: 2025년 08월 25일
+- **예상 소요**: 3.5시간
+- **우선순위**: CRITICAL (1,068줄)
+- **목표**: 1,068줄 → ~200줄 메인 + 100-300줄 모듈들
+- **주요 작업**:
+  - ErrorLogger, AuditLogger 모듈 분리
+  - MetricsCollector, SystemHealthMonitor 분리
+  - AlertManager, ErrorAnalytics 분리
+  - 설정 파일 분리 (config/monitoringConfig.js)
+
+### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** 🔧 **대기**
+- **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./REFACTOR-09-unified-leave-overview-plan.md)
+- **생성일**: 2025년 08월 25일
+- **예상 소요**: 3.5시간
+- **우선순위**: CRITICAL (1,015줄)
+- **목표**: 1,015줄 → ~250줄 메인 + 50-200줄 컴포넌트들
+- **주요 작업**:
+  - LeaveOverviewView, TeamStatusView, DepartmentStatsView 분리
+  - EmployeeLeaveDetailDialog, LeaveAnalyticsDialog 분리
+  - 카드 컴포넌트들 분리 (LeaveStatCard 등)
+  - useLeaveOverviewState 훅 생성
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
 - **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
@@ -79,6 +101,17 @@
 ---
 
 ## ✅ 완료된 계획
+
+### CHECK-01: **급여 엑셀 업로드 기능 중복 확인** ✅ **완료**
+- **문서**: [`CHECK-01-duplicate-excel-upload-report.md`](./CHECK-01-duplicate-excel-upload-report.md)
+- **완료일**: 2025년 08월 25일
+- **소요 시간**: 15분
+- **검토 결과**:
+  - ✅ 중복 기능 아님 - 각 페이지가 명확한 역할 분담
+  - `/supervisor/payroll`: 리다이렉트 버튼만 제공
+  - `/supervisor/files`: 통합 파일 관리 (Excel + PDF)
+  - `/payroll/excel-upload`: Excel 업로드 전용 직접 접근
+- **결론**: 현재 구조 유지 권장, 리팩토링 불필요
 
 ### FIX-04: **Bonus API 404 오류** ✅ **완료**
 - **문서**: [`FIX-04-bonus-api-404-error-plan.md`](./FIX-04-bonus-api-404-error-plan.md)
@@ -374,6 +407,17 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.08.25**: REFACTOR-08, 09 추가 및 백업 파일 정리
+  - PayrollGrid.original.tsx 백업 디렉토리로 이동
+  - REFACTOR-08: ErrorLoggingMonitoringService.js (1,068줄) 분할 계획 작성
+  - REFACTOR-09: UnifiedLeaveOverview.tsx (1,015줄) 분할 계획 작성
+  - 1,000줄 초과 파일 전수 조사 완료
+
+- **2025.08.25**: CHECK-01 완료
+  - 급여 엑셀 업로드 기능 중복 확인 완료
+  - 중복이 아닌 역할 분담 확인
+  - 현재 구조 유지 권장
 
 - **2025.08.23**: FIX-01 완료
   - PayrollGrid 컴포넌트 오류 수정 완료

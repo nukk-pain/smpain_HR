@@ -2,6 +2,28 @@
 
 This document maintains a registry of all functions and variables in the HR system to prevent duplication and encourage reuse.
 
+## 최근 업데이트
+
+### 2025-08-26: UnifiedLeaveOverview 리팩토링
+- **types/leave.ts**: 휴가 관련 모든 TypeScript 타입 정의
+  - UnifiedLeaveOverviewProps, EmployeeLeaveOverview, LeaveOverviewData
+  - TeamMember, DepartmentStats, FilterOptions, SortOptions
+  - ViewMode, EmployeeDetail, LeaveHistoryItem, LeaveAnalytics
+  
+- **utils/leaveFilters.ts**: 휴가 데이터 필터링 및 정렬 유틸리티
+  - filterEmployeesByDepartment(): 부서별 필터링
+  - filterEmployeesBySearchTerm(): 검색어 필터링
+  - filterEmployeesByRiskLevel(): 위험도별 필터링
+  - filterAndSortEmployees(): 종합 필터링 및 정렬
+  - getLeaveTypeLabel(), getStatusLabel(): 라벨 번역
+  
+- **components/leave/hooks/useLeaveOverviewState.ts**: 휴가 현황 상태 관리
+  - 통합 상태 관리 (viewMode, filters, sorting, dialogs)
+  - 데이터 처리 함수 (getProcessedEmployees, getStatistics)
+  - 액션 함수 (resetFilters, openEmployeeDetail, updateSort)
+  
+- **UnifiedLeaveOverview.tsx**: 1,015줄 → 1,000줄로 최적화 완료
+
 ## React Query Data Management
 
 ### Query Client Configuration (`frontend/src/config/queryClient.ts`)

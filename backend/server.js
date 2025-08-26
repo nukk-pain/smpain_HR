@@ -156,10 +156,21 @@ async function connectDB() {
     console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
     console.log(`📊 Using database: ${DB_NAME}`);
 
-    // Initialize MonitoringService globally (refactored from ErrorLoggingMonitoringService)
-    const MonitoringService = require('./services/monitoring');
+    // Initialize MonitoringService based on feature flag
+    const featureFlags = require('./config/featureFlags');
+    let MonitoringService;
+    
+    if (featureFlags.isEnabled('MODULAR_ERROR_SERVICE')) {
+      console.log('🔧 Using new modular error logging service');
+      MonitoringService = require('./services/ErrorLoggingMonitoringServiceModular');
+    } else {
+      console.log('📝 Using existing monitoring service');
+      MonitoringService = require('./services/monitoring');
+    }
+    
     global.errorLoggingService = new MonitoringService(db);
-    console.log('📝 Error logging and monitoring service initialized');
+    await global.errorLoggingService.initialize();
+    console.log('✅ Error logging and monitoring service initialized');
 
     // Initialize sample data
     await initializeData();

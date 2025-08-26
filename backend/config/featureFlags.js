@@ -48,6 +48,14 @@ class FeatureFlags {
         envVar: 'FEATURE_BULK_OPERATIONS',
         groupsEnvVar: 'FEATURE_BULK_OPERATIONS_GROUPS',
         percentageEnvVar: 'FEATURE_BULK_OPERATIONS_PERCENTAGE'
+      },
+      MODULAR_ERROR_SERVICE: {
+        name: 'Modular Error Logging Service',
+        description: 'Use refactored modular error logging service instead of monolithic one',
+        default: false,
+        envVar: 'USE_MODULAR_ERROR_SERVICE',
+        groupsEnvVar: 'MODULAR_ERROR_SERVICE_GROUPS',
+        percentageEnvVar: 'MODULAR_ROLLOUT_PCT'
       }
     };
 

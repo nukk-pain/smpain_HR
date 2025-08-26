@@ -68,6 +68,7 @@ import LeaveAdjustmentDialog from './LeaveAdjustmentDialog';
 import VirtualEmployeeList from './VirtualEmployeeList';
 import { LeaveAnalyticsCharts } from './charts/LeaveAnalyticsCharts';
 import MobileLeaveOverview from './MobileLeaveOverview';
+import LeaveOverviewView from './leave/views/LeaveOverviewView';
 import { 
   useLeaveOverview, 
   useTeamStatus, 
@@ -145,8 +146,7 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Unified state variables
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');  // Unified state
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -155,24 +155,15 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     userRole === 'supervisor' && initialViewMode === 'overview' ? 'team' : initialViewMode
   );
 
-  // Admin-specific state (conditionally initialized)
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('name');  // Admin-specific state
   const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
   const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
 
-  // React Query hooks for data fetching
-  const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview } = useLeaveOverview(
+  const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview } = useLeaveOverview(  // React Query hooks
     selectedYear,
     userRole === 'admin' && viewMode === 'overview'
   );
-
-  console.log('[UnifiedLeaveOverview] Hook params:', {
-    department: user?.department,
-    selectedYear,
-    viewMode,
-    enabled: viewMode === 'team'
-  });
 
   const { data: teamResponse, isLoading: teamLoading, refetch: refetchTeam } = useTeamStatus(
     user?.department || '',
@@ -187,14 +178,11 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
 
   const { data: departmentsData } = useDepartments();
 
-  // Leave adjustment mutation
-  const adjustmentMutation = useLeaveAdjustment();
+  const adjustmentMutation = useLeaveAdjustment();  // Leave adjustment mutation
 
-  // Prefetch hooks for performance
-  const { prefetchOverview, prefetchTeamStatus } = usePrefetchLeaveData();
+  const { prefetchOverview, prefetchTeamStatus } = usePrefetchLeaveData();  // Prefetch hooks
 
-  // Employee leave log query (only when needed)
-  const { data: employeeLeaveLog, isLoading: loadingDetail } = useEmployeeLeaveLog(
+  const { data: employeeLeaveLog, isLoading: loadingDetail } = useEmployeeLeaveLog(  // Employee leave log query
     selectedEmployee?._id || selectedEmployee?.employeeId || '',
     selectedYear,
     !!selectedEmployee && employeeDetailOpen
@@ -223,7 +211,6 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   const teamMembers = useMemo(() => {
     // React Query의 useQuery는 response.data를 반환하므로
     // teamResponse는 이미 response.data 부분임
-    console.log('[UnifiedLeaveOverview] teamResponse:', teamResponse);
     return (teamResponse as any)?.members || [];
   }, [teamResponse]);
 
@@ -271,7 +258,6 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
       default: return status;
     }
   };
-
 
   // Calculate analytics data
   const calculateRiskDistribution = () => {
@@ -456,200 +442,7 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
     );
   };
 
-  // Render overview view (Admin only)
-  const renderOverviewView = () => {
-    if (!overviewData || !overviewData.summary) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-    
-    return (
-      <>
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <PeopleIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography color="textSecondary" variant="subtitle2">
-                    전체 직원
-                  </Typography>
-                </Box>
-                <Typography variant="h4">{overviewData.summary.totalEmployees}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <TrendingUpIcon color="success" sx={{ mr: 1 }} />
-                  <Typography color="textSecondary" variant="subtitle2">
-                    평균 사용률
-                  </Typography>
-                </Box>
-                <Typography variant="h4">{(overviewData.summary.averageUsageRate ?? 0).toFixed(1)}%</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <CalendarIcon color="warning" sx={{ mr: 1 }} />
-                  <Typography color="textSecondary" variant="subtitle2">
-                    대기 중인 요청
-                  </Typography>
-                </Box>
-                <Typography variant="h4">{overviewData.summary.pendingRequests}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
 
-        <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField
-            placeholder="직원 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            size="small"
-            sx={{ minWidth: 200 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            select
-            label="부서"
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="all">전체</MenuItem>
-            {overviewData.departments.map(dept => (
-              <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="정렬"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="name">이름순</MenuItem>
-            <MenuItem value="usage">사용률순</MenuItem>
-            <MenuItem value="remaining">잔여일순</MenuItem>
-          </TextField>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleExportExcel}
-            sx={{ mr: 1 }}
-          >
-            Excel 내보내기
-          </Button>
-          <Button
-            variant={showAnalytics ? "contained" : "outlined"}
-            startIcon={<AnalyticsIcon />}
-            onClick={() => setShowAnalytics(!showAnalytics)}
-            color={showAnalytics ? "primary" : "inherit"}
-          >
-            {showAnalytics ? '차트 숨기기' : '분석 차트'}
-          </Button>
-        </Box>
-
-        {/* Use virtual scrolling for large datasets (>100 employees) */}
-        {getFilteredEmployees().length > 100 ? (
-          <VirtualEmployeeList
-            employees={getFilteredEmployees()}
-            onAdjustClick={(employee) => handleAdjustLeave(employee.employeeId, employee.name)}
-            onViewDetail={handleViewDetail}
-            height={600}
-          />
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>직원명</TableCell>
-                  <TableCell>부서</TableCell>
-                  <TableCell>직급</TableCell>
-                  <TableCell align="center">총 연차</TableCell>
-                  <TableCell align="center">사용</TableCell>
-                  <TableCell align="center">대기</TableCell>
-                  <TableCell align="center">잔여</TableCell>
-                  <TableCell align="center">사용률</TableCell>
-                  <TableCell align="center">작업</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {getFilteredEmployees().map((employee, index) => (
-                  <TableRow key={employee.employeeId} data-testid={`employee-row-${index}`}>
-                    <TableCell>{employee.name}</TableCell>
-                    <TableCell>{employee.department}</TableCell>
-                    <TableCell>{employee.position}</TableCell>
-                    <TableCell align="center">{employee.totalAnnualLeave}</TableCell>
-                    <TableCell align="center">{employee.usedAnnualLeave}</TableCell>
-                    <TableCell align="center">{employee.pendingAnnualLeave}</TableCell>
-                    <TableCell align="center">{employee.remainingAnnualLeave}</TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LinearProgress
-                          variant="determinate"
-                          value={Math.min(100, Math.max(0, employee.usageRate ?? 0))}
-                          sx={{ flexGrow: 1 }}
-                          color={(employee.usageRate ?? 0) > 80 ? 'error' : (employee.usageRate ?? 0) > 50 ? 'warning' : 'success'}
-                        />
-                        <Typography variant="body2">{(employee.usageRate ?? 0).toFixed(1)}%</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <Tooltip title="상세보기">
-                          <IconButton size="small" onClick={() => handleViewDetail(employee)}>
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="휴가 조정">
-                          <IconButton size="small" onClick={() => handleAdjustLeave(employee.employeeId, employee.name)}>
-                            <SettingsIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-
-        {/* Analytics Charts Section */}
-        {showAnalytics && (
-          <Box sx={{ mt: 3 }}>
-            <LeaveAnalyticsCharts
-              riskDistribution={calculateRiskDistribution()}
-              departmentStats={calculateDepartmentStats()}
-              statistics={calculateStatistics()}
-              isLoading={overviewLoading}
-            />
-          </Box>
-        )}
-      </>
-    );
-  };
-
-  // Render team view
   const renderTeamView = () => {
     return (
       <>
@@ -755,74 +548,8 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
   };
 
   // Render department view
-  const renderDepartmentView = () => {
-    return (
-      <>
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            select
-            label="연도"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            size="small"
-            sx={{ minWidth: 100 }}
-          >
-            {[2023, 2024, 2025].map(year => (
-              <MenuItem key={year} value={year}>{year}년</MenuItem>
-            ))}
-          </TextField>
-        </Box>
+  const renderDepartmentView = () => (<Alert severity="info">부서별 통계 뷰 - 추후 별도 컴포넌트로 분리 예정</Alert>);
 
-        <Grid container spacing={3}>
-          {departmentStats.map((dept) => (
-            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={dept.department}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Group color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">{dept.department}</Typography>
-                  </Box>
-                  
-                  <List dense>
-                    <ListItem>
-                      <ListItemText
-                        primary="전체 인원"
-                        secondary={`${dept.totalMembers}명`}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="현재 휴가중"
-                        secondary={`${dept.onLeave}명`}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="평균 사용률"
-                        secondary={
-                          <LinearProgress
-                            variant="determinate"
-                            value={dept.avgLeaveUsage}
-                            color={getLeaveUsageColor(dept.avgLeaveUsage) as any}
-                          />
-                        }
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="대기중 요청"
-                        secondary={`${dept.pendingRequests}건`}
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </>
-    );
-  };
 
   // Mobile view - use dedicated mobile component
   if (isMobile && viewMode === 'overview') {
@@ -852,7 +579,27 @@ const UnifiedLeaveOverview: React.FC<UnifiedLeaveOverviewProps> = ({
         </Box>
       ) : (
         <>
-          {viewMode === 'overview' && userRole === 'admin' && renderOverviewView()}
+          {viewMode === 'overview' && userRole === 'admin' && (
+            <LeaveOverviewView
+              overviewData={overviewData}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedDepartment={selectedDepartment}
+              setSelectedDepartment={setSelectedDepartment}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              showAnalytics={showAnalytics}
+              setShowAnalytics={setShowAnalytics}
+              getFilteredEmployees={getFilteredEmployees}
+              handleExportExcel={handleExportExcel}
+              handleAdjustLeave={handleAdjustLeave}
+              handleViewDetail={handleViewDetail}
+              calculateRiskDistribution={calculateRiskDistribution}
+              calculateDepartmentStats={calculateDepartmentStats}
+              calculateStatistics={calculateStatistics}
+              overviewLoading={overviewLoading}
+            />
+          )}
           {viewMode === 'team' && renderTeamView()}
           {viewMode === 'department' && renderDepartmentView()}
         </>
