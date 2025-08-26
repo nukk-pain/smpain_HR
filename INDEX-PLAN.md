@@ -23,7 +23,7 @@
 ## ⏳ 대기 중인 계획
 
 ### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** ✅ **완료**
-- **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./REFACTOR-09-unified-leave-overview-plan.md)
+- **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./plans/archived/REFACTOR-09-unified-leave-overview-plan.md)
 - **생성일**: 2025년 08월 25일
 - **완료일**: 2025년 08월 26일
 - **소요 시간**: 3시간
@@ -347,15 +347,13 @@
 ### 주요 관리 문서
 | 문서 | 설명 | 링크 |
 |------|------|------|
-| **작업 목록** | 개발 작업 현황 | [`todo-development.md`](./todo-development.md) |
+| **작업 목록** | 개발 작업 현황 | INDEX-PLAN.md에서 통합 관리 |
 | **계획 인덱스** | 모든 계획 관리 (현재 문서) | [`INDEX-PLAN.md`](./INDEX-PLAN.md) |
 | **함수/변수 문서** | 구현된 기능 문서화 | [`docs/development/FUNCTIONS_VARIABLES.md`](./docs/development/FUNCTIONS_VARIABLES.md) |
 
 ### 문서 간 연결 구조
 ```
-todo-development.md (작업 목록)
-    ↓ 참조
-INDEX-PLAN.md (계획 인덱스)
+INDEX-PLAN.md (작업 목록 및 계획 인덱스)
     ↓ 상세
 FEAT-XX, REFACTOR-XX, DEPLOY-XX (개별 계획)
     ↓ 구현
@@ -415,7 +413,7 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 
 ### 5. 문서 업데이트
 - 상태 변경 시 즉시 업데이트
-- todo-development.md와 동기화
+- 모든 작업 상태 한 곳에서 관리
 - FUNCTIONS_VARIABLES.md에 구현 문서화
 
 ---

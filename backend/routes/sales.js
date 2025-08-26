@@ -1,6 +1,7 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const IncentiveService = require('../services/IncentiveService');
 
 // Sales routes
 function createSalesRoutes(db) {
@@ -113,11 +114,7 @@ function createSalesRoutes(db) {
   }));
 
   // Bulk save sales data (company + individual)
-  router.post('/bulk', requireAuth, requirePermission('payroll:manage'), asyncHandler(async (req, res) => {
-    // MongoDB session for transaction - get client from db.s.client
-    const client = db.s ? db.s.client : db.client;
-    const session = client.startSession();
-    
+  router.post('/bulk', requireAuth, requirePermission('payroll:manage'), async (req, res) => {
     try {
       const { yearMonth, companySales, individualSales } = req.body;
 
@@ -137,58 +134,118 @@ function createSalesRoutes(db) {
       let savedCount = 0;
       let individualTotal = 0;
 
-      await session.withTransaction(async () => {
-        // Save or update company sales
-        await db.collection('companySales').replaceOne(
-          { yearMonth },
-          {
-            yearMonth,
-            totalAmount: Number(companySales.total_amount),
-            notes: companySales.notes || '',
-            createdAt: new Date(),
-            createdBy: req.user.id,
-            updatedAt: new Date(),
-            updatedBy: req.user.id
-          },
-          { upsert: true, session }
-        );
+      // Save or update company sales (without transaction for now)
+      await db.collection('companySales').replaceOne(
+        { yearMonth },
+        {
+          yearMonth,
+          totalAmount: Number(companySales.total_amount),
+          notes: companySales.notes || '',
+          createdAt: new Date(),
+          createdBy: req.user.id,
+          updatedAt: new Date(),
+          updatedBy: req.user.id
+        },
+        { upsert: true }
+      );
 
-        // Delete existing individual sales for this month
-        await db.collection('salesData').deleteMany(
-          { yearMonth },
-          { session }
-        );
+      // Delete existing individual sales for this month
+      await db.collection('salesData').deleteMany({ yearMonth });
 
-        // Insert new individual sales
-        const salesDataToInsert = [];
-        for (const sale of individualSales) {
-          if (!sale.user_id || !sale.individual_sales) continue;
+      // Insert new individual sales
+      const salesDataToInsert = [];
+      for (const sale of individualSales) {
+        if (!sale.user_id || !sale.individual_sales) continue;
 
-          const contributionRate = companySales.total_amount > 0
-            ? (Number(sale.individual_sales) / Number(companySales.total_amount)) * 100
-            : 0;
+        const contributionRate = companySales.total_amount > 0
+          ? (Number(sale.individual_sales) / Number(companySales.total_amount)) * 100
+          : 0;
 
-          salesDataToInsert.push({
-            userId: new ObjectId(sale.user_id),
-            yearMonth,
-            individualSales: Number(sale.individual_sales),
-            contributionRate: contributionRate,
-            notes: sale.notes || '',
-            category: 'general',
-            createdAt: new Date(),
-            createdBy: req.user.id,
-            updatedAt: new Date(),
-            updatedBy: req.user.id
+        salesDataToInsert.push({
+          userId: new ObjectId(sale.user_id),
+          yearMonth,
+          individualSales: Number(sale.individual_sales),
+          contributionRate: contributionRate,
+          notes: sale.notes || '',
+          category: 'general',
+          createdAt: new Date(),
+          createdBy: req.user.id,
+          updatedAt: new Date(),
+          updatedBy: req.user.id
+        });
+
+        individualTotal += Number(sale.individual_sales);
+        savedCount++;
+      }
+
+      if (salesDataToInsert.length > 0) {
+        await db.collection('salesData').insertMany(salesDataToInsert);
+      }
+
+      // Automatically calculate incentives for all employees with sales data
+      const incentiveService = new IncentiveService();
+      const incentiveResults = [];
+      const incentiveErrors = [];
+
+      for (const sale of individualSales) {
+        if (!sale.user_id) continue;
+
+        try {
+          // Check if user has active incentive configuration
+          const user = await db.collection('users').findOne({
+            _id: new ObjectId(sale.user_id),
+            'incentiveConfig.isActive': true
           });
 
-          individualTotal += Number(sale.individual_sales);
-          savedCount++;
-        }
+          if (user && user.incentiveConfig) {
+            // Calculate incentive
+            const incentiveResult = await incentiveService.calculateIncentive(
+              new ObjectId(sale.user_id),
+              yearMonth,
+              db
+            );
 
-        if (salesDataToInsert.length > 0) {
-          await db.collection('salesData').insertMany(salesDataToInsert, { session });
+            // Save or update incentive in payroll collection
+            await db.collection('payroll').updateOne(
+              {
+                userId: new ObjectId(sale.user_id),
+                yearMonth: yearMonth
+              },
+              {
+                $set: {
+                  incentive: incentiveResult.amount,
+                  incentiveDetails: incentiveResult.details,
+                  incentiveCalculatedAt: incentiveResult.calculatedAt,
+                  'allowances.incentive': incentiveResult.amount,
+                  updatedAt: new Date(),
+                  updatedBy: req.user.id
+                },
+                $setOnInsert: {
+                  userId: new ObjectId(sale.user_id),
+                  yearMonth: yearMonth,
+                  createdAt: new Date(),
+                  createdBy: req.user.id
+                }
+              },
+              { upsert: true }
+            );
+
+            incentiveResults.push({
+              userId: sale.user_id,
+              userName: sale.employee_name,
+              amount: incentiveResult.amount,
+              type: incentiveResult.type
+            });
+          }
+        } catch (error) {
+          console.error(`Incentive calculation error for user ${sale.user_id}:`, error);
+          incentiveErrors.push({
+            userId: sale.user_id,
+            userName: sale.employee_name,
+            error: error.message
+          });
         }
-      });
+      }
 
       const coverageRate = companySales.total_amount > 0
         ? (individualTotal / Number(companySales.total_amount)) * 100
@@ -201,17 +258,26 @@ function createSalesRoutes(db) {
           company_total: Number(companySales.total_amount),
           individual_total: individualTotal,
           contribution_coverage: coverageRate,
-          total_saved: savedCount
+          total_saved: savedCount,
+          incentives_calculated: incentiveResults.length,
+          incentive_errors: incentiveErrors.length
+        },
+        incentives: {
+          calculated: incentiveResults,
+          errors: incentiveErrors
         }
       });
 
     } catch (error) {
       console.error('Bulk save sales error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    } finally {
-      await session.endSession();
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        error: error.message || 'Internal server error',
+        stack: error.stack
+      });
     }
-  }));
+  });
 
   // Get sales statistics for a month
   router.get('/stats/:yearMonth', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {

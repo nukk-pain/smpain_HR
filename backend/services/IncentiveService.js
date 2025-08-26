@@ -234,7 +234,7 @@ class IncentiveService {
   /**
    * Get sales data for calculation
    * @DomainMeaning: Retrieve sales performance data for incentive calculation
-   * @SideEffects: Database read from salesData collection
+   * @SideEffects: Database read from salesData and companySales collections
    */
   async getSalesData(userId, yearMonth, db) {
     // Try to get from salesData collection
@@ -243,10 +243,15 @@ class IncentiveService {
       yearMonth: yearMonth
     });
 
+    // Get company total sales for TOTAL_PERCENT and TOTAL_EXCESS calculations
+    const companySales = await db.collection('companySales').findOne({
+      yearMonth: yearMonth
+    });
+
     if (salesRecord) {
       return {
-        personal: salesRecord.personalSales || salesRecord.salesAmount || 0,
-        total: salesRecord.totalSales || 0,
+        personal: salesRecord.individualSales || salesRecord.personalSales || salesRecord.salesAmount || 0,
+        total: companySales ? companySales.totalAmount : 0,
         team: salesRecord.teamSales || 0
       };
     }
@@ -254,7 +259,7 @@ class IncentiveService {
     // Return zero sales if no data found
     return {
       personal: 0,
-      total: 0,
+      total: companySales ? companySales.totalAmount : 0,
       team: 0
     };
   }

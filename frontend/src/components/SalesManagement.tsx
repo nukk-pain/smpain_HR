@@ -559,7 +559,34 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
       console.log('Save response:', response);
       
       if (response.success) {
-        showSuccess('성공', response.message || '매출 데이터가 저장되었습니다');
+        // Show main success message
+        let message = response.message || '매출 데이터가 저장되었습니다';
+        
+        // Add incentive calculation results if available
+        if (response.incentives) {
+          const { calculated, errors } = response.incentives;
+          
+          if (calculated && calculated.length > 0) {
+            message += `\n\n인센티브 자동 계산 완료: ${calculated.length}명`;
+            
+            // Show first few calculated amounts
+            const preview = calculated.slice(0, 3).map(inc => 
+              `${inc.userName}: ${inc.amount.toLocaleString()}원`
+            ).join('\n');
+            if (preview) {
+              message += '\n' + preview;
+            }
+            if (calculated.length > 3) {
+              message += `\n... 외 ${calculated.length - 3}명`;
+            }
+          }
+          
+          if (errors && errors.length > 0) {
+            message += `\n\n⚠️ 인센티브 계산 실패: ${errors.length}명`;
+          }
+        }
+        
+        showSuccess('성공', message);
         // Clear localStorage after successful save
         localStorage.removeItem(`salesData_${yearMonth}`);
         loadSalesData(); // Reload to get updated data
