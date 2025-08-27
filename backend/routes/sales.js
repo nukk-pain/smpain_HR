@@ -182,66 +182,87 @@ function createSalesRoutes(db) {
         await db.collection('salesData').insertMany(salesDataToInsert);
       }
 
-      // Automatically calculate incentives for all employees with sales data
+      // Automatically calculate incentives for ALL employees with active incentive config
       const incentiveService = new IncentiveService();
       const incentiveResults = [];
       const incentiveErrors = [];
 
-      for (const sale of individualSales) {
-        if (!sale.user_id) continue;
+      // Get all users with active incentive configuration (not just those with sales)
+      const usersWithIncentive = await db.collection('users').find({
+        'incentiveConfig.isActive': true
+      }).toArray();
 
+      console.log('Starting incentive calculations for', usersWithIncentive.length, 'users with active incentive config');
+
+      // Create a map of sales data for quick lookup
+      const salesMap = {};
+      for (const sale of individualSales) {
+        if (sale.user_id) {
+          salesMap[sale.user_id] = sale;
+        }
+      }
+
+      // Calculate incentives for all users with active config
+      for (const user of usersWithIncentive) {
         try {
-          // Check if user has active incentive configuration
-          const user = await db.collection('users').findOne({
-            _id: new ObjectId(sale.user_id),
-            'incentiveConfig.isActive': true
+          const sale = salesMap[user._id.toString()];
+
+          console.log('User', user._id.toString(), user.name, '- Config:', {
+            hasSalesData: !!sale,
+            type: user?.incentiveConfig?.type,
+            isActive: user?.incentiveConfig?.isActive,
+            parameters: user?.incentiveConfig?.parameters
           });
 
-          if (user && user.incentiveConfig) {
-            // Calculate incentive
-            const incentiveResult = await incentiveService.calculateIncentive(
-              new ObjectId(sale.user_id),
-              yearMonth,
-              db
-            );
+          // Calculate incentive (will work for both sales-based and total-based incentives)
+          const incentiveResult = await incentiveService.calculateIncentive(
+            user._id,
+            yearMonth,
+            db
+          );
+          
+          console.log('Incentive calculated for', user.name, ':', {
+            type: incentiveResult.type,
+            amount: incentiveResult.amount,
+            details: incentiveResult.details
+          });
 
-            // Save or update incentive in payroll collection
-            await db.collection('payroll').updateOne(
-              {
-                userId: new ObjectId(sale.user_id),
-                yearMonth: yearMonth
+          // Save or update incentive in payroll collection
+          await db.collection('payroll').updateOne(
+            {
+              userId: user._id,
+              yearMonth: yearMonth
+            },
+            {
+              $set: {
+                incentive: incentiveResult.amount,
+                incentiveDetails: incentiveResult.details,
+                incentiveCalculatedAt: incentiveResult.calculatedAt,
+                'allowances.incentive': incentiveResult.amount,
+                updatedAt: new Date(),
+                updatedBy: req.user.id
               },
-              {
-                $set: {
-                  incentive: incentiveResult.amount,
-                  incentiveDetails: incentiveResult.details,
-                  incentiveCalculatedAt: incentiveResult.calculatedAt,
-                  'allowances.incentive': incentiveResult.amount,
-                  updatedAt: new Date(),
-                  updatedBy: req.user.id
-                },
-                $setOnInsert: {
-                  userId: new ObjectId(sale.user_id),
-                  yearMonth: yearMonth,
-                  createdAt: new Date(),
-                  createdBy: req.user.id
-                }
-              },
-              { upsert: true }
-            );
+              $setOnInsert: {
+                userId: user._id,
+                yearMonth: yearMonth,
+                createdAt: new Date(),
+                createdBy: req.user.id
+              }
+            },
+            { upsert: true }
+          );
 
-            incentiveResults.push({
-              userId: sale.user_id,
-              userName: sale.employee_name,
-              amount: incentiveResult.amount,
-              type: incentiveResult.type
-            });
-          }
+          incentiveResults.push({
+            userId: user._id.toString(),
+            userName: user.name,
+            amount: incentiveResult.amount,
+            type: incentiveResult.type
+          });
         } catch (error) {
-          console.error(`Incentive calculation error for user ${sale.user_id}:`, error);
+          console.error(`Incentive calculation error for user ${user.name}:`, error);
           incentiveErrors.push({
-            userId: sale.user_id,
-            userName: sale.employee_name,
+            userId: user._id.toString(),
+            userName: user.name,
             error: error.message
           });
         }
@@ -326,6 +347,56 @@ function createSalesRoutes(db) {
 
     } catch (error) {
       console.error('Get sales stats error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }));
+
+  // Get incentive calculation results for a month
+  router.get('/incentives/:yearMonth', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
+    try {
+      const { yearMonth } = req.params;
+      
+      // Get all users with incentive data from payroll collection
+      const incentiveData = await db.collection('payroll').aggregate([
+        {
+          $match: {
+            yearMonth: yearMonth,
+            incentive: { $exists: true, $gt: 0 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $unwind: '$user'
+        },
+        {
+          $project: {
+            userId: '$userId',
+            userName: '$user.name',
+            amount: '$incentive',
+            type: '$incentiveDetails.type',
+            calculatedAt: '$incentiveCalculatedAt',
+            details: '$incentiveDetails'
+          }
+        },
+        {
+          $sort: { userName: 1 }
+        }
+      ]).toArray();
+
+      res.json({ 
+        success: true, 
+        data: incentiveData 
+      });
+
+    } catch (error) {
+      console.error('Get incentives error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }));

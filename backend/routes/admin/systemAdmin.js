@@ -74,6 +74,24 @@ function createSystemAdminRoutes(db) {
         }
       ]).toArray();
       
+      // Get daily worker stats for current month
+      const currentYearMonth = `${year}-${String(month).padStart(2, '0')}`;
+      const dailyWorkerStats = await db.collection('daily_workers').aggregate([
+        { $match: { yearMonth: currentYearMonth } },
+        {
+          $group: {
+            _id: null,
+            totalWorkers: { $sum: 1 },
+            totalSalary: { $sum: '$salary' }
+          }
+        }
+      ]).toArray();
+      
+      const dailyWorkerResult = dailyWorkerStats[0] || {
+        totalWorkers: 0,
+        totalSalary: 0
+      };
+
       // Combine payroll summaries from both collections
       const monthlyResult = monthlyPayrollSummary[0] || {
         totalEmployees: 0,
@@ -92,13 +110,15 @@ function createSystemAdminRoutes(db) {
       };
       
       const payrollSummary = {
-        totalEmployees: monthlyResult.totalEmployees + newResult.totalEmployees,
-        totalPayroll: monthlyResult.totalPayroll + newResult.totalPayroll,
+        totalEmployees: monthlyResult.totalEmployees + newResult.totalEmployees + dailyWorkerResult.totalWorkers,
+        totalPayroll: monthlyResult.totalPayroll + newResult.totalPayroll + dailyWorkerResult.totalSalary,
         totalIncentive: monthlyResult.totalIncentive + newResult.totalIncentive,
         totalBonus: monthlyResult.totalBonus + newResult.totalBonus,
         avgSalary: (monthlyResult.totalEmployees + newResult.totalEmployees) > 0 
           ? (monthlyResult.totalPayroll + newResult.totalPayroll) / (monthlyResult.totalEmployees + newResult.totalEmployees)
-          : 0
+          : 0,
+        dailyWorkerCount: dailyWorkerResult.totalWorkers,
+        dailyWorkerSalary: dailyWorkerResult.totalSalary
       };
       
       // Get pending uploads count

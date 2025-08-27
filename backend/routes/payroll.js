@@ -709,6 +709,20 @@ function createPayrollRoutes(db) {
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
 
+      // Get daily worker salaries for this month
+      const dailyWorkerStats = await db.collection('daily_workers').aggregate([
+        { $match: { yearMonth } },
+        {
+          $group: {
+            _id: null,
+            totalDailyWorkers: { $sum: 1 },
+            totalDailyWorkerSalary: { $sum: '$salary' }
+          }
+        }
+      ]).toArray();
+
+      const dailyWorkerData = dailyWorkerStats[0] || { totalDailyWorkers: 0, totalDailyWorkerSalary: 0 };
+
       // Query monthlyPayments collection (old system)
       const monthlyStats = await db.collection('monthlyPayments').aggregate([
         { $match: { yearMonth } },
@@ -792,15 +806,15 @@ function createPayrollRoutes(db) {
         minSalary: 0
       };
       
-      // Combine stats from both collections
+      // Combine stats from both collections and include daily workers
       const combinedResult = {
-        totalEmployees: monthlyResult.totalEmployees + payrollResult.totalEmployees,
+        totalEmployees: monthlyResult.totalEmployees + payrollResult.totalEmployees + dailyWorkerData.totalDailyWorkers,
         totalBaseSalary: monthlyResult.totalBaseSalary + payrollResult.totalBaseSalary,
         totalIncentive: monthlyResult.totalIncentive + payrollResult.totalIncentive,
         totalBonus: monthlyResult.totalBonus + payrollResult.totalBonus,
         totalAward: monthlyResult.totalAward + payrollResult.totalAward,
         totalInput: monthlyResult.totalInput + payrollResult.totalInput,
-        totalActualPayment: monthlyResult.totalActualPayment + payrollResult.totalActualPayment,
+        totalActualPayment: monthlyResult.totalActualPayment + payrollResult.totalActualPayment + dailyWorkerData.totalDailyWorkerSalary,
         // For averages, calculate weighted average if both collections have data
         avgSalary: monthlyResult.totalEmployees + payrollResult.totalEmployees > 0
           ? (monthlyResult.totalActualPayment + payrollResult.totalActualPayment) / 
@@ -812,7 +826,12 @@ function createPayrollRoutes(db) {
               monthlyResult.minSalary || Number.MAX_VALUE,
               payrollResult.minSalary || Number.MAX_VALUE
             )
-          : 0
+          : 0,
+        // Add daily worker specific stats
+        dailyWorkerCount: dailyWorkerData.totalDailyWorkers,
+        dailyWorkerSalary: dailyWorkerData.totalDailyWorkerSalary,
+        regularEmployeeCount: monthlyResult.totalEmployees + payrollResult.totalEmployees,
+        regularSalary: monthlyResult.totalActualPayment + payrollResult.totalActualPayment
       };
 
       res.json({ success: true, data: combinedResult });

@@ -370,7 +370,16 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 ## Project Structure Guidelines
 
-- 수정 계획은 root 폴더에 만들고 docs에는 영구적으로 남길 파일만 남겨줘.
+- **계획 파일 관리** (ROOT-ORGANIZATION-RULES.md 준수):
+  - `/plans/active/` - 현재 작업 중인 계획 (FEAT-XX, FIX-XX, REFACTOR-XX)
+  - `/plans/pending/` - 대기 중인 계획
+  - `/plans/archived/` - 완료된 계획
+  - 루트 폴더에는 계획 파일을 생성하지 않음
+- **완료된 작업**: `/completed/YYYY/MM/` 형식으로 저장
+- **문서화**: 
+  - 사용자 문서는 `/docs/`
+  - 개발 문서는 `/documentation/`
+- 자세한 규칙은 `/documentation/organization/ROOT-ORGANIZATION-RULES.md` 참조
 
 ## Development Notes
 

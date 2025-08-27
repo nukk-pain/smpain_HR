@@ -551,6 +551,7 @@ async function initializeRoutes() {
   app.use('/api/feature-flags', featureFlagManagementRoutes);
   app.use('/api/documents', createDocumentsRoutes(db));
   app.use('/api/incentive', require('./routes/incentive'));
+  app.use('/api/payroll', require('./routes/dailyWorkers'));
 
   // Add feature flag middleware
   app.use(featureFlags.middleware());

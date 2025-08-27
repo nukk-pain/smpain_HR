@@ -83,6 +83,12 @@ class IncentiveService {
       }
     }
 
+    // Log for debugging
+    console.log(`Calculating incentive for type: ${type}`, {
+      parameters,
+      salesData
+    });
+
     let amount = 0;
 
     switch(type) {
@@ -219,8 +225,11 @@ class IncentiveService {
         throw new Error('Invalid incentive configuration');
       }
 
+      // Round up to nearest thousand won
+      const roundedAmount = Math.ceil(amount / 1000) * 1000;
+
       return {
-        amount,
+        amount: roundedAmount,
         type: config.type,
         details,
         calculatedAt: new Date()
@@ -275,11 +284,14 @@ class IncentiveService {
     }
 
     try {
+      let amount;
       if (config.type === 'CUSTOM' && config.customFormula) {
-        return this.calculateCustom(config.customFormula, testSalesData);
+        amount = this.calculateCustom(config.customFormula, testSalesData);
       } else {
-        return this.calculateByTemplate(config.type, config.parameters || {}, testSalesData);
+        amount = this.calculateByTemplate(config.type, config.parameters || {}, testSalesData);
       }
+      // Round up to nearest thousand won
+      return Math.ceil(amount / 1000) * 1000;
     } catch (error) {
       console.error('Simulation error:', error);
       throw error;

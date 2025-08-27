@@ -25,6 +25,7 @@ import {
   InputAdornment,
   Tooltip,
   Snackbar,
+  Chip,
 } from '@mui/material';
 import { Grid } from '@mui/material';
 import {
@@ -39,6 +40,7 @@ import {
   ContentPaste,
   ClearAll,
   FileCopy,
+  ContentCopy,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -82,6 +84,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [pasteAlert, setPasteAlert] = useState(false);
+  const [incentiveResults, setIncentiveResults] = useState<any[]>([]);
   
   // History for undo/redo
   const [history, setHistory] = useState<HistoryState[]>([]);
@@ -222,6 +225,21 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
 
+  // Load incentive results
+  const loadIncentiveResults = useCallback(async () => {
+    try {
+      const response = await apiService.get(`/sales/incentives/${yearMonth}`);
+      if (response.success && response.data) {
+        setIncentiveResults(response.data);
+      } else {
+        setIncentiveResults([]);
+      }
+    } catch (error) {
+      console.error('Failed to load incentive results:', error);
+      setIncentiveResults([]);
+    }
+  }, [yearMonth]);
+
   // Load existing sales data
   const loadSalesData = useCallback(async () => {
     setLoading(true);
@@ -247,6 +265,9 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
           notes: sale.notes || '',
         })));
       }
+      
+      // Load incentive results
+      await loadIncentiveResults();
     } catch (error) {
       console.error('Failed to load sales data:', error);
       
@@ -260,7 +281,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
     } finally {
       setLoading(false);
     }
-  }, [yearMonth, loadFromLocalStorage, showInfo]);
+  }, [yearMonth, loadFromLocalStorage, showInfo, loadIncentiveResults]);
 
   // Load employees
   const loadEmployees = useCallback(async () => {
@@ -447,10 +468,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
         };
       } else if (field === 'individual_sales_in_10k') {
         const amount = Number(value) || 0;
+        const salesInWon = amount * 10000;
         updated[index] = {
           ...updated[index],
           individual_sales_in_10k: amount,
-          individual_sales: amount * 10000, // 만원 → 원
+          individual_sales: salesInWon, // 만원 → 원
+          contribution_rate: companySales.total_amount > 0 
+            ? (salesInWon / companySales.total_amount) * 100 
+            : 0,
         };
       } else {
         updated[index] = {
@@ -549,6 +574,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
         },
         individualSales: validIndividualSales.map(sale => ({
           user_id: sale.user_id,
+          employee_name: sale.employee_name, // Include employee name for incentive display
           individual_sales: sale.individual_sales, // Send in won (already converted from 만원)
           notes: sale.notes,
         })),
@@ -562,12 +588,15 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
         // Show main success message
         let message = response.message || '매출 데이터가 저장되었습니다';
         
-        // Add incentive calculation results if available
+        // Process incentive calculation results if available
         if (response.incentives) {
           const { calculated, errors } = response.incentives;
           
           if (calculated && calculated.length > 0) {
-            message += `\n\n인센티브 자동 계산 완료: ${calculated.length}명`;
+            // Store incentive results for display
+            setIncentiveResults(calculated);
+            
+            message += `\n\n✅ 인센티브 자동 계산 완료: ${calculated.length}명`;
             
             // Show first few calculated amounts
             const preview = calculated.slice(0, 3).map(inc => 
@@ -579,6 +608,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
             if (calculated.length > 3) {
               message += `\n... 외 ${calculated.length - 3}명`;
             }
+          } else {
+            setIncentiveResults([]);
           }
           
           if (errors && errors.length > 0) {
@@ -736,17 +767,6 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
               【개인별 매출】
             </Typography>
             <Stack direction="row" spacing={2} alignItems="center">
-              <Typography variant="caption" color="text.secondary">
-                ※ 개인 매출은 만원 단위로 입력
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<FileCopy />}
-                onClick={handleCopyFromPreviousMonth}
-                size="small"
-              >
-                전월 명단 복사
-              </Button>
               <Button
                 variant="outlined"
                 startIcon={<Add />}
@@ -755,6 +775,17 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
               >
                 행 추가
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={<FileCopy />}
+                onClick={handleCopyFromPreviousMonth}
+                size="small"
+              >
+                전월 명단 복사
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                ※ 개인 매출은 만원 단위로 입력
+              </Typography>
             </Stack>
           </Box>
 
@@ -889,6 +920,94 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ yearMonth }) => {
               </Box>
             </Stack>
           </Box>
+        </CardContent>
+      </Card>
+
+      {/* Incentive Calculation Results - Always show */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              📊 인센티브 계산 결과
+            </Typography>
+            {incentiveResults.length > 0 && (
+              <Button
+                variant="outlined"
+                startIcon={<ContentCopy />}
+                onClick={() => {
+                  const month = format(new Date(yearMonth + '-01'), 'yyyy년 MM월', { locale: ko });
+                  let copyText = `${month} 인센티브\n`;
+                  
+                  incentiveResults.forEach(inc => {
+                    copyText += `${inc.userName}: ${inc.amount.toLocaleString()}원\n`;
+                  });
+                  
+                  const totalIncentive = incentiveResults.reduce((sum, inc) => sum + inc.amount, 0);
+                  copyText += `\n총 인센티브: ${totalIncentive.toLocaleString()}원`;
+                  
+                  navigator.clipboard.writeText(copyText)
+                    .then(() => showSuccess('복사 완료', '인센티브 정보가 클립보드에 복사되었습니다'))
+                    .catch(() => showError('오류', '복사에 실패했습니다'));
+                }}
+              >
+                복사하기
+              </Button>
+            )}
+          </Box>
+          
+          {incentiveResults.length === 0 ? (
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary" sx={{ mb: 1 }}>
+                아직 계산된 인센티브가 없습니다.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                매출 데이터를 저장하면 자동으로 인센티브가 계산됩니다.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <TableContainer component={Paper} sx={{ mb: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>직원명</TableCell>
+                      <TableCell>계산 방식</TableCell>
+                      <TableCell align="right">인센티브 금액</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {incentiveResults.map((inc, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{inc.userName}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={inc.type} 
+                            size="small" 
+                          color="primary" 
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <strong>{inc.amount.toLocaleString()}</strong>원
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {incentiveResults[0]?.calculatedAt && (
+                <Typography variant="caption" color="text.secondary">
+                  마지막 계산: {format(new Date(incentiveResults[0].calculatedAt), 'yyyy-MM-dd HH:mm')}
+                </Typography>
+              )}
+              <Typography variant="h6">
+                총 인센티브: {incentiveResults.reduce((sum, inc) => sum + inc.amount, 0).toLocaleString()}원
+              </Typography>
+            </Box>
+          </>
+        )}
         </CardContent>
       </Card>
 

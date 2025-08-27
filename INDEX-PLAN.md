@@ -10,13 +10,15 @@
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
 - **대기 중**: 1개 (DEPLOY 1개)
-- **완료**: 19개 (FEAT 4개, REFACTOR 9개, TEST 1개, FIX 4개, CHECK 1개)
+- **완료**: 20개 (FEAT 5개, REFACTOR 9개, TEST 1개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
 ---
 
 ## 🔄 진행 중인 계획
+
+(현재 진행 중인 계획 없음)
 
 ---
 
@@ -80,6 +82,27 @@
 ---
 
 ## ✅ 완료된 계획
+
+### FEAT-05: **급여 관리 개선 - 인센티브 자동 계산 및 일용직 관리** ✅ **완료**
+- **문서**: [`FEAT-05-payroll-incentive-daily-worker-plan.md`](./plans/archived/FEAT-05-payroll-incentive-daily-worker-plan.md)
+- **시작일**: 2025년 08월 26일
+- **완료일**: 2025년 08월 26일
+- **소요 시간**: 5시간
+- **우선순위**: HIGH
+- **주요 성과**:
+  - ✅ Phase 1: 매출-인센티브 통합 완료
+    - `/api/sales/bulk` 엔드포인트에서 자동 인센티브 계산
+    - 인센티브 결과 천원 단위 올림 처리
+    - SalesManagement에서 계산 결과 표시
+  - ✅ Phase 2: 인센티브 복사 기능 구현
+    - 클립보드 API 활용한 복사 기능
+    - 노무사 전달용 형식 지원
+  - ✅ Phase 3: 일용직 급여 관리 완료
+    - dailyWorkers.js 라우터 구현 (CRUD API)
+    - DailyWorkerManagement.tsx 컴포넌트 구현
+    - PayrollManagement에 일용직 관리 탭 추가
+  - ✅ 인센티브 계산기 탭 제거
+  - ✅ 총 급여 통계에 일용직 급여 포함
 
 ### CHECK-01: **급여 엑셀 업로드 기능 중복 확인** ✅ **완료**
 - **문서**: [`CHECK-01-duplicate-excel-upload-report.md`](./CHECK-01-duplicate-excel-upload-report.md)
@@ -375,12 +398,13 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 - **코드 품질**: 테스트 커버리지 향상
 
 ### 누적 완료 (2025년)
-- **기능 개발 (FEAT)**: 4개 완료
-- **리팩토링 (REFACTOR)**: 7개 완료, 1개 취소
+- **기능 개발 (FEAT)**: 5개 완료
+- **리팩토링 (REFACTOR)**: 9개 완료, 1개 취소
 - **테스트 (TEST)**: 1개 완료
 - **버그 수정 (FIX)**: 4개 완료
+- **검토 (CHECK)**: 1개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 16개
+- **총 완료**: 20개
 
 ---
 
@@ -420,7 +444,11 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 
 ## 🔄 업데이트 이력
 
-- **2025.08.26**: REFACTOR-08, REFACTOR-09 완료
+- **2025.08.26**: FEAT-05, REFACTOR-08, REFACTOR-09 완료
+  - FEAT-05: 급여 관리 개선 완료
+    - 매출-인센티브 자동 계산 통합
+    - 인센티브 복사 기능 구현
+    - 일용직 급여 관리 시스템 구현
   - REFACTOR-08: ErrorLoggingMonitoringService.js 모듈화 완료
     - 1,389줄 → 396줄 (71% 감소), 22개 모듈로 분할
     - Feature flag 시스템 구현, 48% 성능 향상

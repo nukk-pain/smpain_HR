@@ -27,7 +27,7 @@ import PayrollGrid from '@/components/PayrollGrid'
 import PayrollDashboard from '@/components/PayrollDashboard'
 import BonusManagement from '@/components/BonusManagement'
 import SalesManagement from '@/components/SalesManagement'
-import IncentiveCalculator from '@/components/IncentiveCalculator'
+import DailyWorkerManagement from '@/components/DailyWorkerManagement'
 import { useAuth } from '@/components/AuthProvider'
 import { useNotification } from '@/components/NotificationProvider'
 import apiService from '@/services/api'
@@ -242,7 +242,7 @@ const PayrollManagement: React.FC = () => {
           <Tab label="급여 현황" />
           <Tab label="매출 관리" />
           <Tab label="상여금/포상금" />
-          <Tab label="인센티브 계산" />
+          <Tab label="일용직 관리" />
           {user?.role === 'admin' && <Tab label="파일 업로드" />}
         </Tabs>
 
@@ -269,7 +269,7 @@ const PayrollManagement: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={currentTab} index={4}>
-          <IncentiveCalculator />
+          <DailyWorkerManagement yearMonth={selectedMonth} />
         </TabPanel>
 
         {user?.role === 'admin' && (

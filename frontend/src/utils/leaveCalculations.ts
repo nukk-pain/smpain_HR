@@ -233,3 +233,71 @@ export const calculateAnnualLeaveEntitlement = (
     return Math.min(25, 15 + (yearsOfService - 1));
   }
 };
+
+/**
+ * Calculate risk distribution for employees
+ * Original implementation from UnifiedLeaveOverview
+ */
+export const calculateRiskDistribution = (employees: any[]) => {
+  const distribution = { high: 0, medium: 0, low: 0 };
+  
+  employees.forEach(emp => {
+    if (emp.riskLevel === 'high') distribution.high++;
+    else if (emp.riskLevel === 'medium') distribution.medium++;
+    else distribution.low++;
+  });
+  
+  return distribution;
+};
+
+/**
+ * Calculate department statistics
+ * Original implementation from UnifiedLeaveOverview
+ */
+export const calculateDepartmentStats = (employees: any[]) => {
+  const deptMap = new Map<string, { totalUsage: number; count: number }>();
+  
+  employees.forEach(emp => {
+    if (!deptMap.has(emp.department)) {
+      deptMap.set(emp.department, { totalUsage: 0, count: 0 });
+    }
+    const dept = deptMap.get(emp.department)!;
+    dept.totalUsage += emp.usageRate || 0;
+    dept.count++;
+  });
+  
+  return Array.from(deptMap.entries()).map(([department, stats]) => ({
+    department,
+    avgUsage: stats.count > 0 ? Math.round(stats.totalUsage / stats.count) : 0,
+    totalEmployees: stats.count
+  }));
+};
+
+/**
+ * Calculate overall statistics
+ * Original implementation from UnifiedLeaveOverview
+ */
+export const calculateStatistics = (employees: any[]) => {
+  const totalEmployees = employees.length;
+  const totalUsage = employees.reduce((sum, emp) => sum + (emp.usageRate || 0), 0);
+  const averageUsage = totalEmployees > 0 ? Math.round(totalUsage / totalEmployees) : 0;
+  const highRiskCount = employees.filter(emp => emp.riskLevel === 'high').length;
+  const pendingRequests = employees.reduce((sum, emp) => sum + (emp.pendingAnnualLeave > 0 ? 1 : 0), 0);
+  
+  return {
+    totalEmployees,
+    averageUsage,
+    highRiskCount,
+    pendingRequests
+  };
+};
+
+/**
+ * Get color based on leave usage percentage
+ * Used for visual indicators
+ */
+export const getLeaveUsageColor = (usageRate: number): string => {
+  if (usageRate >= 80) return 'error';
+  if (usageRate >= 60) return 'warning'; 
+  return 'success';
+};
