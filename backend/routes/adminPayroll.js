@@ -14,6 +14,7 @@ const { ObjectId } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const { requirePermission } = require('../middleware/permissions');
 const RollbackService = require('../services/RollbackService');
 const {
   strictRateLimiter,
@@ -43,42 +44,7 @@ const router = express.Router();
 function createAdminPayrollRoutes(db, previewStorage, idempotencyStorage) {
   const rollbackService = new RollbackService(db);
 
-  // Permission middleware
-  const requirePermission = (permission) => {
-    return (req, res, next) => {
-      if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      const userPermissions = req.user.permissions || [];
-      const userRole = req.user.role;
-      
-      // Admin role has all permissions
-      if (userRole === 'admin' || userRole === 'Admin') {
-        return next();
-      }
-      
-      // Check specific permission in user's permissions array
-      if (userPermissions.includes(permission)) {
-        return next();
-      }
-
-      // Role-based permissions fallback
-      const roleBasedPermissions = {
-        user: [],
-        manager: ['payroll:view'],
-        supervisor: ['payroll:view', 'payroll:manage'],
-        admin: ['payroll:view', 'payroll:manage', 'payroll:create', 'payroll:delete', 'admin:permissions']
-      };
-
-      const rolePermissions = roleBasedPermissions[userRole.toLowerCase()] || [];
-      if (rolePermissions.includes(permission)) {
-        return next();
-      }
-      
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    };
-  };
+  // Using requirePermission from middleware/permissions.js
 
   /**
    * GET /api/admin/payroll/debug/memory - Memory usage monitoring endpoint

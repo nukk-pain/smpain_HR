@@ -11,6 +11,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:refresh": "vitest run src/services/api.refresh.test.ts src/utils/tokenManager.test.ts",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run src/test/e2e/**/*.test.tsx",
     "test:integration": "vitest run src/**/*.integration.test.tsx",

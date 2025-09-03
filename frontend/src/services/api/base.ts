@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ApiResponse } from '../../types';
 import { getApiUrl } from '../../config/env';
-import { getValidToken, clearAuth } from '../../utils/tokenManager';
+import { getValidToken, getAccessToken, getRefreshToken, storeTokens, storeToken, clearAuth } from '../../utils/tokenManager';
 
 export class BaseApiService {
   protected api: AxiosInstance;
@@ -29,19 +29,44 @@ export class BaseApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true,
+      // withCredentials removed: JWT header auth only
     });
 
     this.setupInterceptors();
   }
 
   private setupInterceptors() {
+    // Shared refresh state for this client instance
+    let isRefreshing = false as boolean;
+    let refreshPromise: Promise<string> | null = null;
+    let requestQueue: Array<(token: string) => void> = [];
+
+    const enqueueRequest = (cb: (token: string) => void) => { requestQueue.push(cb); };
+    const resolveQueue = (token: string) => { requestQueue.forEach(cb => cb(token)); requestQueue = []; };
+    const rejectQueue = () => { requestQueue = []; };
+
+    const doRefresh = async (): Promise<string> => {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) throw new Error('No refresh token');
+      const resp = await this.api.post('/auth/refresh', { refreshToken }, { headers: { Authorization: '' } });
+      const data = resp.data || {};
+      const newAccess = data.accessToken || data.token;
+      const newRefresh = data.refreshToken || refreshToken;
+      if (!newAccess) throw new Error('Refresh returned no access token');
+      if (newRefresh) storeTokens(newAccess, newRefresh); else storeToken(newAccess);
+      this.api.defaults.headers.common['Authorization'] = `Bearer ${newAccess}`;
+      return newAccess;
+    };
+
     // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
+        // Skip auth header for login/refresh
+        const url = config.url || '';
+        const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh');
         // Add JWT token to Authorization header
-        const token = getValidToken();
-        if (token) {
+        const token = isAuthEndpoint ? null : (getAccessToken() || getValidToken());
+        if (token && !isAuthEndpoint) {
           config.headers.Authorization = `Bearer ${token}`;
           if (import.meta.env.DEV) {
             console.log('🔑 Token added to request', {
@@ -74,32 +99,50 @@ export class BaseApiService {
         return response;
       },
       (error) => {
-        // Handle common errors
-        if (error.response?.status === 401) {
-          // Only clear token if this is not a login request and not already on login page
-          const isLoginRequest = error.config?.url?.includes('/auth/login');
-          const isOnLoginPage = window.location.pathname === '/login';
-          
-          if (import.meta.env.DEV) {
-            console.warn('🚫 401 Unauthorized received', {
-              url: error.config?.url,
-              isLoginRequest,
-              isOnLoginPage,
-              currentPath: window.location.pathname,
-              willClearToken: !isLoginRequest && !isOnLoginPage,
-              timestamp: new Date().toISOString()
-            });
-          }
-          
-          if (!isLoginRequest && !isOnLoginPage) {
-            if (import.meta.env.DEV) {
-              console.warn('🗑️ Clearing token due to 401 error');
-            }
-            clearAuth();
-            window.location.href = '/login';
-          }
+        const { response, config } = error || {};
+        const originalRequest = config || {};
+        if (!response || response.status !== 401) {
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
+        const url: string = originalRequest?.url || '';
+        const isLogin = url.includes('/auth/login');
+        const isRefresh = url.includes('/auth/refresh');
+        if (isLogin || isRefresh) {
+          return Promise.reject(error);
+        }
+        if ((originalRequest as any)._retry) {
+          return Promise.reject(error);
+        }
+        (originalRequest as any)._retry = true;
+
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = doRefresh()
+            .then((token) => { resolveQueue(token); return token; })
+            .catch((err) => {
+              clearAuth();
+              if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+              rejectQueue();
+              throw err;
+            })
+            .finally(() => { isRefreshing = false; refreshPromise = null; });
+        }
+
+        return new Promise((resolve, reject) => {
+          const retry = (token: string) => {
+            if (!token) return reject(error);
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve(this.api.request(originalRequest));
+          };
+          if (refreshPromise) {
+            enqueueRequest(retry);
+          } else {
+            reject(error);
+          }
+        });
       }
     );
   }

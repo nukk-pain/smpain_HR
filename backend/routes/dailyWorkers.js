@@ -118,7 +118,13 @@ router.post('/daily-workers/bulk', requireAuth, requirePermission('payroll:manag
   }
 
   // MongoDB session for transaction
-  const client = db.s ? db.s.client : db.client;
+  const client = db.client;
+  if (!client) {
+    return res.status(500).json({
+      success: false,
+      error: 'Database connection not available'
+    });
+  }
   const session = client.startSession();
 
   try {

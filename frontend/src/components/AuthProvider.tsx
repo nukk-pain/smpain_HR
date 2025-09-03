@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User, AuthState } from '../types'
 import apiService from '../services/api'
-import { storeToken, getValidToken, clearAuth, getUserFromToken } from '../utils/tokenManager'
+import { storeToken, storeTokens, getValidToken, clearAuth, getUserFromToken } from '../utils/tokenManager'
 
 // Debug flag - set to true only when debugging auth issues
 const DEBUG_AUTH = import.meta.env.DEV && false;
@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await apiService.login(username, password)
-      if (response.success && response.token && response.user) {
+      if (response.success && (response.token || response.accessToken) && response.user) {
         // Check if user is active before storing token
         if (response.user.isActive === false) {
           if (import.meta.env.DEV) {
@@ -208,8 +208,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
           return false
         }
 
-        // Store the JWT token
-        storeToken(response.token)
+        // Store tokens (Phase 4 preferred)
+        if (response.accessToken && response.refreshToken) {
+          storeTokens(response.accessToken, response.refreshToken)
+        } else if (response.token) {
+          storeToken(response.token)
+        }
         
         // Set auth state with login response data first
         setAuthState({

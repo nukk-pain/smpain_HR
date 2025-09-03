@@ -50,11 +50,13 @@ const {
   securityHeaders,
   corsOptions
 } = require('./middleware/errorHandler');
+const { requirePermission, requireRole, requireAdmin } = require('./middleware/permissions');
 const { setupSwagger } = require('./config/swagger');
 
 // Import JWT utilities
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
 const { tokenBlacklist, TokenBlacklist } = require('./utils/tokenBlacklist');
+const logger = require('./utils/logger');
 
 // Import feature flag services
 const featureFlags = require('./config/featureFlags');
@@ -112,21 +114,7 @@ const DEFAULT_PERMISSIONS = {
   ]
 };
 
-// Permission middleware
-// JWT-based permission middleware
-const requirePermission = (permission) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    const userPermissions = req.user.permissions || [];
-    const hasPermission = userPermissions.includes(permission);
-    if (!hasPermission) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-    next();
-  };
-};
+// Permission middleware is now imported from middleware/permissions.js
 
 // Multer configuration for file uploads (commented out - not used)
 // const storage = multer.memoryStorage();
@@ -139,7 +127,7 @@ const requirePermission = (permission) => {
 
 // Connect to MongoDB
 async function connectDB() {
-  console.log('🚀 Starting MongoDB connection...');
+  logger.info('Starting MongoDB connection...');
   try {
     // MongoDB Atlas connection options
     const connectionOptions = {
@@ -150,28 +138,28 @@ async function connectDB() {
     const client = new MongoClient(MONGO_URL, connectionOptions);
     await client.connect();
     db = client.db(DB_NAME);
+    // Store the client reference for transactions
+    db.client = client;
 
-    // Mask password in connection string for logging
-    const maskedUrl = MONGO_URL.replace(/:[^:]*@/, ':****@');
-    console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
-    console.log(`📊 Using database: ${DB_NAME}`);
+    // Password is automatically masked by logger
+    logger.info('Connected to MongoDB', { url: MONGO_URL, database: DB_NAME });
 
     // Initialize MonitoringService based on feature flag
     const featureFlags = require('./config/featureFlags');
     let MonitoringService;
     
     if (featureFlags.isEnabled('MODULAR_ERROR_SERVICE')) {
-      console.log('🔧 Using new modular error logging service');
+      logger.info('Using new modular error logging service');
       MonitoringService = require('./services/ErrorLoggingMonitoringServiceModular');
       global.errorLoggingService = new MonitoringService(db);
       await global.errorLoggingService.initialize();
     } else {
-      console.log('📝 Using existing monitoring service');
+      logger.info('Using existing monitoring service');
       MonitoringService = require('./services/monitoring');
       global.errorLoggingService = new MonitoringService(db);
       // Unified monitoring service doesn't need initialize()
     }
-    console.log('✅ MonitoringService initialized with all sub-services');
+    logger.info('MonitoringService initialized with all sub-services');
 
     // Initialize sample data
     await initializeData();
@@ -281,26 +269,28 @@ app.use((req, res, next) => {
       if (process.env.ENABLE_TOKEN_BLACKLIST === 'true') {
         const tokenId = TokenBlacklist.getTokenId(token);
         if (tokenBlacklist.isBlacklisted(tokenId)) {
-          console.log('❌ Blacklisted token rejected for', req.method, req.path);
+          logger.info('Blacklisted token rejected', { method: req.method, path: req.path });
           return res.status(401).json({ error: 'Token has been revoked' });
         }
       }
       
       const decoded = verifyToken(token);
       req.user = decoded; // Set user info for route handlers
-      console.log('✅ JWT token parsed for user:', decoded.username, 'on', req.method, req.path);
+      logger.debug('JWT token parsed', { user: decoded.username, method: req.method, path: req.path });
     }
   } catch (error) {
     // Don't fail the request, just log the error
     // Routes will handle authorization separately
-    console.warn('⚠️ JWT parsing error:', error.message, 'on', req.method, req.path);
+    logger.debug('JWT parsing error', { error: error.message, method: req.method, path: req.path });
   }
   
   next();
 });
 
-// Force CORS headers for production (in case reverse proxy strips them)
-if (process.env.NODE_ENV === 'production') {
+// Force CORS headers for production (only if reverse proxy strips them)
+// This is controlled by FORCE_CORS_HEADERS environment variable
+if (process.env.NODE_ENV === 'production' && process.env.FORCE_CORS_HEADERS === 'true') {
+  logger.warn('FORCE_CORS_HEADERS is enabled - using manual CORS header injection');
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     const allowedOrigins = [

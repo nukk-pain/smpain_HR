@@ -171,6 +171,10 @@ export const PayslipBulkUpload: React.FC = () => {
   );
 
   // Removed: loadUploadHistory function (upload-history endpoint deprecated)
+  // Keep a no-op stub for backward compatibility with existing calls
+  const loadUploadHistory = useCallback(() => {
+    // No operation: endpoint deprecated
+  }, []);
 
   const parseFileName = (fileName: string): PayslipFile['parsedData'] => {
     const patterns = [
@@ -566,9 +570,7 @@ export const PayslipBulkUpload: React.FC = () => {
           } else {
             setError('업로드된 파일이 없습니다.');
           }
-        } else {
-          setError('업로드 기록을 확인할 수 없습니다.');
-        }
+        */
       }
     } catch (error: any) {
       console.error('❌ Error verifying upload:', error);

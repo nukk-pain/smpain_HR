@@ -9,8 +9,8 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 1개 (DEPLOY 1개)
-- **완료**: 20개 (FEAT 5개, REFACTOR 9개, TEST 1개, FIX 4개, CHECK 1개)
+- **대기 중**: 2개 (FEAT 1개, DEPLOY 1개)
+- **완료**: 22개 (FEAT 6개, REFACTOR 10개, TEST 1개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -24,22 +24,16 @@
 
 ## ⏳ 대기 중인 계획
 
-### REFACTOR-09: **UnifiedLeaveOverview.tsx 분할** ✅ **완료**
-- **문서**: [`REFACTOR-09-unified-leave-overview-plan.md`](./plans/archived/REFACTOR-09-unified-leave-overview-plan.md)
-- **생성일**: 2025년 08월 25일
-- **완료일**: 2025년 08월 26일
-- **소요 시간**: 3시간
-- **우선순위**: CRITICAL (1,015줄)
-- **최종 결과**: 1,015줄 → 538줄 (47% 감소)
-- **주요 성과**:
-  - ✅ LeaveOverviewView 컴포넌트 분리 (193줄)
-  - ✅ TeamStatusView 컴포넌트 분리 (151줄)
-  - ✅ ViewModeSelector 컴포넌트 분리 (36줄)
-  - ✅ useLeaveOverviewState 훅 생성 (176줄)
-  - ✅ 타입 정의 통합 (types/leave.ts)
-  - ✅ 유틸리티 함수 추출 (leaveFilters.ts, 196줄)
-  - ✅ 모든 기능 테스트 통과
-- **테스트 결과**: [`TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md`](./frontend/TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md)
+### FEAT-07: **급여 기능 접근 권한 제한** 🔒 **대기**
+- **문서**: [`FEAT-07-payroll-access-restriction-plan.md`](./plans/FEAT-07-payroll-access-restriction-plan.md)
+- **예상 소요**: 1~1.5일
+- **우선순위**: HIGH
+- **선행 조건**: 없음
+- **주요 작업**:
+  - 모든 급여 API를 Admin 전용으로 제한
+  - Supervisor 역할에서 급여 메뉴/페이지 접근 차단
+  - Frontend 라우트 보호 및 UI 정리
+  - 연차 기능은 기존 권한 유지
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
 - **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
@@ -52,6 +46,8 @@
   - 성능 최적화 검토
   - Google Cloud Run 배포
   - Vercel 배포
+
+
 
 ---
 
@@ -82,6 +78,26 @@
 ---
 
 ## ✅ 완료된 계획
+
+### FEAT-06: **프론트엔드 리프레시 토큰 통합** ✅ **완료**
+- **문서**: [`FEAT-06-frontend-refresh-token-integration-plan.md`](./plans/FEAT-06-frontend-refresh-token-integration-plan.md)
+- **완료일**: 2025년 09월 03일
+- **소요 시간**: 2시간
+- **우선순위**: HIGH
+- **주요 성과**:
+  - ✅ Axios 인터셉터 자동 리프레시/재시도 구현
+    - 401 응답 시 자동 토큰 갱신 및 원요청 재시도
+    - 동시 401 요청에 대한 단일 리프레시 처리
+    - 큐 메커니즘으로 요청 순차 처리
+  - ✅ 토큰 매니저 이중 토큰 관리 구현
+    - `storeTokens()`, `getAccessToken()`, `getRefreshToken()` 함수 추가
+    - 레거시 단일 토큰 호환성 유지
+  - ✅ 통합 테스트 완료
+    - api.refresh.test.ts: 2/2 테스트 통과
+    - tokenManager.test.ts: 2/2 테스트 통과
+  - ✅ 백엔드 호환성 확인
+    - `/auth/refresh` 엔드포인트 구현 확인
+    - USE_REFRESH_TOKENS 환경변수로 활성화 가능
 
 ### FEAT-05: **급여 관리 개선 - 인센티브 자동 계산 및 일용직 관리** ✅ **완료**
 - **문서**: [`FEAT-05-payroll-incentive-daily-worker-plan.md`](./plans/archived/FEAT-05-payroll-incentive-daily-worker-plan.md)
@@ -333,6 +349,29 @@
   - ✅ 모든 기능 테스트 통과
 - **테스트 결과**: [`TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md`](./frontend/TEST-RESULTS-UNIFIED-LEAVE-OVERVIEW.md)
 
+### REFACTOR-10: **권한/CORS/로깅 일원화** ✅ **완료**
+- **문서**: [`plans/REFACTOR-10-permission-cors-logging-unification-plan.md`](./plans/REFACTOR-10-permission-cors-logging-unification-plan.md)
+- **시작일**: 2025년 09월 03일
+- **완료일**: 2025년 09월 03일
+- **소요 시간**: 30분
+- **우선순위**: HIGH
+- **주요 성과**:
+  - ✅ 권한 미들웨어 통일 완료
+    - 15개 파일에서 중복된 requirePermission 제거
+    - 중앙 집중식 `middleware/permissions.js` 사용으로 통일
+    - ~500줄 중복 코드 제거
+  - ✅ CORS 설정 단일화 완료
+    - `corsOptions`를 단일 소스로 사용
+    - 프로덕션 강제 헤더 주입을 `FORCE_CORS_HEADERS` 환경변수로 제어
+  - ✅ 로깅 보안 강화 완료
+    - 새로운 `utils/logger.js` 유틸리티 생성
+    - JWT 토큰, 비밀번호, MongoDB 연결 문자열 자동 마스킹
+    - LOG_LEVEL 환경변수로 로그 레벨 제어 (debug/info/warn/error)
+  - ✅ 모든 기능 테스트 통과
+    - 권한 체크 정상 동작 확인
+    - CORS 헤더 정상 응답 확인
+    - 민감정보 마스킹 확인
+
 ### REFACTOR-02: **Reports.js → Documents.js 리팩토링** ✅ **완료**
 - **완료일**: 2025년 08월 23일
 - **문서**: 
@@ -398,13 +437,13 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 - **코드 품질**: 테스트 커버리지 향상
 
 ### 누적 완료 (2025년)
-- **기능 개발 (FEAT)**: 5개 완료
-- **리팩토링 (REFACTOR)**: 9개 완료, 1개 취소
+- **기능 개발 (FEAT)**: 6개 완료
+- **리팩토링 (REFACTOR)**: 10개 완료, 1개 취소
 - **테스트 (TEST)**: 1개 완료
 - **버그 수정 (FIX)**: 4개 완료
 - **검토 (CHECK)**: 1개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 20개
+- **총 완료**: 22개
 
 ---
 
@@ -443,6 +482,16 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.09.03**: FEAT-06, REFACTOR-10 완료
+  - FEAT-06: 프론트엔드 리프레시 토큰 통합 완료
+    - Axios 인터셉터 자동 리프레시/재시도 구현
+    - 토큰 매니저 이중 토큰 관리 구현
+    - 통합 테스트 완료 (4/4 테스트 통과)
+  - REFACTOR-10: 권한/CORS/로깅 일원화 완료
+    - 15개 파일에서 중복 requirePermission 제거 (~500줄)
+    - CORS 설정 단일화 및 환경변수 제어
+    - 로깅 보안 강화 (민감정보 자동 마스킹)
 
 - **2025.08.26**: FEAT-05, REFACTOR-08, REFACTOR-09 완료
   - FEAT-05: 급여 관리 개선 완료

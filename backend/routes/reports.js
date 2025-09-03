@@ -1,6 +1,7 @@
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { requireAuth, asyncHandler } = require('../middleware/errorHandler');
+const { requirePermission } = require('../middleware/permissions');
 const PayrollRepository = require('../repositories/PayrollRepository');
 
 const router = express.Router();
@@ -9,41 +10,7 @@ const router = express.Router();
 function createReportsRoutes(db) {
   const payrollRepo = new PayrollRepository();
 
-  // Permission middleware with role-based fallback
-  const requirePermission = (permission) => {
-    return (req, res, next) => {
-      if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      const userRole = req.user.role;
-      const userPermissions = req.user.permissions || [];
-      
-      // Admin bypass
-      if (userRole === 'admin' || userRole === 'Admin') {
-        return next();
-      }
-      
-      // Check specific permission
-      if (userPermissions.includes(permission)) {
-        return next();
-      }
-      
-      // Role-based fallback for backward compatibility
-      const rolePermissions = {
-        'supervisor': ['payroll:view', 'payroll:manage'],
-        'hr': ['payroll:view', 'payroll:manage'],
-        'Supervisor': ['payroll:view', 'payroll:manage']
-      };
-      
-      const allowedPermissions = rolePermissions[userRole] || [];
-      if (allowedPermissions.includes(permission)) {
-        return next();
-      }
-      
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    };
-  };
+  // Using requirePermission from middleware/permissions.js
 
   // GET /api/reports/payroll/:year_month - Generate payroll report for a specific month
   router.get('/payroll/:year_month', 

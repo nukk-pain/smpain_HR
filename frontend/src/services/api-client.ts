@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
-import { getValidToken, removeToken } from '../utils/tokenManager';
+import { getValidToken, getAccessToken, getRefreshToken, storeTokens, storeToken, clearAuth, removeToken } from '../utils/tokenManager';
 
 // Base types
 export interface ApiResponse<T = any> {
@@ -76,12 +76,37 @@ export class ApiClient {
   }
 
   private setupInterceptors() {
+    // Shared refresh state for this client instance
+    let isRefreshing = false as boolean;
+    let refreshPromise: Promise<string> | null = null;
+    let requestQueue: Array<(token: string) => void> = [];
+
+    const enqueueRequest = (cb: (token: string) => void) => { requestQueue.push(cb); };
+    const resolveQueue = (token: string) => { requestQueue.forEach(cb => cb(token)); requestQueue = []; };
+    const rejectQueue = () => { requestQueue = []; };
+
+    const doRefresh = async (): Promise<string> => {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) throw new Error('No refresh token');
+      const resp = await this.client.post('/auth/refresh', { refreshToken }, { headers: { Authorization: '' } });
+      const data = resp.data || {};
+      const newAccess = data.accessToken || data.token;
+      const newRefresh = data.refreshToken || refreshToken;
+      if (!newAccess) throw new Error('Refresh returned no access token');
+      if (newRefresh) storeTokens(newAccess, newRefresh); else storeToken(newAccess);
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${newAccess}`;
+      return newAccess;
+    };
+
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
+        // Skip auth for login/refresh endpoints
+        const url = config.url || '';
+        const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh');
         // Add JWT token to Authorization header
-        const token = getValidToken();
-        if (token && !(config as any).skipAuth) {
+        const token = !isAuthEndpoint ? (getAccessToken() || getValidToken()) : null;
+        if (token && !(config as any).skipAuth && !isAuthEndpoint) {
           if (!config.headers) {
             config.headers = {} as any;
           }
@@ -120,7 +145,7 @@ export class ApiClient {
         return response;
       },
       (error) => {
-        const { response, request, message } = error;
+        const { response, request, message, config } = error;
 
         if ((import.meta as any).env.DEV || (import.meta as any).env.VITE_DEBUG === 'true') {
           console.error('❌ API Error:', {
@@ -128,6 +153,44 @@ export class ApiClient {
             status: response?.status,
             message: response?.data?.error || message,
           });
+        }
+
+        // Handle refresh on 401
+        if (response && response.status === 401) {
+          const url: string = config?.url || '';
+          const isLogin = url.includes('/auth/login');
+          const isRefresh = url.includes('/auth/refresh');
+          if (!isLogin && !isRefresh && !(config as any)._retry) {
+            (config as any)._retry = true;
+            if (!isRefreshing) {
+              isRefreshing = true;
+              refreshPromise = doRefresh()
+                .then((token) => { resolveQueue(token); return token; })
+                .catch((err) => {
+                  clearAuth();
+                  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+                    window.location.href = '/login';
+                  }
+                  rejectQueue();
+                  throw err;
+                })
+                .finally(() => { isRefreshing = false; refreshPromise = null; });
+            }
+
+            return new Promise((resolve, reject) => {
+              const retry = (token: string) => {
+                if (!token) return reject(error);
+                config.headers = config.headers || {};
+                config.headers['Authorization'] = `Bearer ${token}`;
+                resolve(this.client.request(config));
+              };
+              if (refreshPromise) {
+                enqueueRequest(retry);
+              } else {
+                reject(error);
+              }
+            });
+          }
         }
 
         // Handle specific HTTP status codes
@@ -138,11 +201,8 @@ export class ApiClient {
           switch (status) {
             case 401:
               // Unauthorized - clear token and redirect to login
-              console.log('🔄 401 error - clearing token and redirecting to login');
+              // If reached here, refresh failed or not applicable
               removeToken();
-              if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
-              }
               break;
             case 403:
               // Forbidden
