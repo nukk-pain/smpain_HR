@@ -49,26 +49,40 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             // Framework chunks (separated for better caching)
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'mui-core': ['@mui/material', '@mui/system'],
+            'mui-core': ['@mui/material', '@mui/system', '@emotion/react', '@emotion/styled'],
             'mui-icons': ['@mui/icons-material'],
+            'mui-x': ['@mui/x-data-grid', '@mui/x-date-pickers'],
             
-            // Utility chunks
-            'date-utils': ['date-fns'],
+            // Large vendor libraries (separate for better caching)
+            'ag-grid-vendor': ['ag-grid-community', 'ag-grid-react', '@ag-grid-community/core', '@ag-grid-community/client-side-row-model', '@ag-grid-community/csv-export', '@ag-grid-community/styles'],
+            'charting-vendor': ['recharts'],
+            'utility-vendor': ['date-fns', 'lodash-es'],
             'http-client': ['axios'],
             
-            // MUI DataGrid (lighter alternative to AG-Grid)
-            'mui-data-grid': ['@mui/x-data-grid'],
-            
             // Feature-specific chunks (more granular)
-            'payroll-core': [
+            'payroll-components': [
               './src/components/PayrollDashboard.tsx',
-              './src/components/IncentiveCalculator.tsx'
+              './src/components/IncentiveCalculator.tsx',
+              './src/components/PayrollGrid.tsx',
+              './src/components/PayrollDetail.tsx',
+              './src/components/PayrollList.tsx',
+              './src/components/PayrollPreviewSummary.tsx',
+              './src/components/PayrollPreviewTable.tsx'
             ],
-            'payroll-grid': ['./src/components/PayrollGrid.tsx'],
-            'payroll-pages': ['./src/pages/PayrollManagement.tsx'],
+            'payroll-excel': [
+              './src/components/PayrollExcelUploadWithPreview.tsx',
+              './src/components/FileUpload.tsx'
+            ],
+            'payroll-pages': [
+              './src/pages/PayrollManagement.tsx',
+              './src/pages/Payroll/PayrollDetail.tsx',
+              './src/pages/Payroll/PayrollList.tsx',
+              './src/pages/Payroll/PayrollExcelUpload.tsx',
+              './src/pages/Payroll/PayslipManagement.tsx'
+            ],
             
             // User management features
-            'user-management': [
+            'user-components': [
               './src/components/UserManagement.tsx',
               './src/components/UserManagementContainer.tsx',
               './src/components/UserForm.tsx',
@@ -76,23 +90,58 @@ export default defineConfig(({ mode }) => {
               './src/components/UserList.tsx',
               './src/components/UserFilters.tsx',
               './src/components/UserActions.tsx',
+              './src/components/UserFormSections.tsx'
+            ],
+            'user-hooks': [
               './src/hooks/useUserForm.ts',
               './src/hooks/useUserFilters.ts',
               './src/hooks/useUserPermissions.ts',
-              './src/pages/UserManagementPage.tsx'
+              './src/hooks/useUserManagement.ts'
+            ],
+            'user-pages': [
+              './src/pages/UserManagement.tsx',
+              './src/pages/UserManagementPage.tsx',
+              './src/pages/UserProfile.tsx'
             ],
             
             // Leave management features
-            'leave-management': [
+            'leave-components': [
+              './src/components/UnifiedLeaveOverview.tsx',
+              './src/components/LeaveAdjustmentDialog.tsx',
+              './src/components/LeaveCalendar.tsx'
+            ],
+            'leave-pages': [
               './src/pages/LeaveManagement.tsx',
               './src/pages/EmployeeLeaveManagement.tsx',
-              './src/components/TeamLeaveStatus.tsx'
+              './src/pages/LeaveCalendarPage.tsx',
+              './src/pages/UnifiedLeaveOverviewPage.tsx'
             ],
             
-            // File management
-            'file-management': [
-              './src/components/FileUpload.tsx',
-              './src/pages/FileManagement.tsx'
+            // Admin features
+            'admin-components': [
+              './src/components/DepartmentManagement.tsx',
+              './src/components/PositionManagement.tsx',
+              './src/components/BonusManagement.tsx',
+              './src/components/SalesManagement.tsx',
+              './src/components/DeactivationDialog.tsx'
+            ],
+            'admin-pages': [
+              './src/pages/AdminLeavePolicy.tsx',
+              './src/pages/AdminBulkOperations.tsx',
+              './src/pages/DepartmentManagementPage.tsx',
+              './src/pages/PositionManagementPage.tsx'
+            ],
+            
+            // Dashboard and general features
+            'dashboard-components': [
+              './src/components/UnifiedDashboard.tsx',
+              './src/components/UserDashboard.tsx',
+              './src/components/Layout.tsx',
+              './src/components/NotificationProvider.tsx'
+            ],
+            'dashboard-pages': [
+              './src/pages/Dashboard.tsx',
+              './src/pages/Reports.tsx'
             ]
           }
         }

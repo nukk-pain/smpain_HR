@@ -31,11 +31,15 @@ const leaveRoutes = require('./routes/leave');
 const createDepartmentRoutes = require('./routes/departments');
 const createPositionRoutes = require('./routes/positions');
 const createPayrollRoutes = require('./routes/payroll');
+const createAdminPayrollRoutes = require('./routes/adminPayroll');
 const createBonusRoutes = require('./routes/bonus');
 const createSalesRoutes = require('./routes/sales');
 const createUploadRoutes = require('./routes/upload');
 const createReportsRoutes = require('./routes/reports');
+const createPayslipVerifyRoutes = require('./routes/payslip-verify');
 const createAdminRoutes = require('./routes/admin');
+const featureFlagManagementRoutes = require('./routes/featureFlagManagement');
+const createDocumentsRoutes = require('./routes/documents');
 
 // Import middleware
 const {
@@ -46,10 +50,17 @@ const {
   securityHeaders,
   corsOptions
 } = require('./middleware/errorHandler');
+const { requirePermission, requireRole, requireAdmin } = require('./middleware/permissions');
+const { setupSwagger } = require('./config/swagger');
 
 // Import JWT utilities
 const { verifyToken, extractTokenFromHeader } = require('./utils/jwt');
 const { tokenBlacklist, TokenBlacklist } = require('./utils/tokenBlacklist');
+const logger = require('./utils/logger');
+
+// Import feature flag services
+const featureFlags = require('./config/featureFlags');
+const healthMonitor = require('./services/FeatureFlagHealthMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -103,21 +114,7 @@ const DEFAULT_PERMISSIONS = {
   ]
 };
 
-// Permission middleware
-// JWT-based permission middleware
-const requirePermission = (permission) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    const userPermissions = req.user.permissions || [];
-    const hasPermission = userPermissions.includes(permission);
-    if (!hasPermission) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-    next();
-  };
-};
+// Permission middleware is now imported from middleware/permissions.js
 
 // Multer configuration for file uploads (commented out - not used)
 // const storage = multer.memoryStorage();
@@ -130,7 +127,7 @@ const requirePermission = (permission) => {
 
 // Connect to MongoDB
 async function connectDB() {
-  console.log('🚀 Starting MongoDB connection...');
+  logger.info('Starting MongoDB connection...');
   try {
     // MongoDB Atlas connection options
     const connectionOptions = {
@@ -141,11 +138,28 @@ async function connectDB() {
     const client = new MongoClient(MONGO_URL, connectionOptions);
     await client.connect();
     db = client.db(DB_NAME);
+    // Store the client reference for transactions
+    db.client = client;
 
-    // Mask password in connection string for logging
-    const maskedUrl = MONGO_URL.replace(/:[^:]*@/, ':****@');
-    console.log(`✅ Connected to MongoDB at ${maskedUrl}`);
-    console.log(`📊 Using database: ${DB_NAME}`);
+    // Password is automatically masked by logger
+    logger.info('Connected to MongoDB', { url: MONGO_URL, database: DB_NAME });
+
+    // Initialize MonitoringService based on feature flag
+    const featureFlags = require('./config/featureFlags');
+    let MonitoringService;
+    
+    if (featureFlags.isEnabled('MODULAR_ERROR_SERVICE')) {
+      logger.info('Using new modular error logging service');
+      MonitoringService = require('./services/ErrorLoggingMonitoringServiceModular');
+      global.errorLoggingService = new MonitoringService(db);
+      await global.errorLoggingService.initialize();
+    } else {
+      logger.info('Using existing monitoring service');
+      MonitoringService = require('./services/monitoring');
+      global.errorLoggingService = new MonitoringService(db);
+      // Unified monitoring service doesn't need initialize()
+    }
+    logger.info('MonitoringService initialized with all sub-services');
 
     // Initialize sample data
     await initializeData();
@@ -188,7 +202,19 @@ async function initializeData() {
     await db.collection('leaveRequests').createIndex({ status: 1 });
     await db.collection('leaveRequests').createIndex({ startDate: 1 });
 
-    console.log('✅ Database indexes created');
+    // Create TTL index for temp_uploads collection to auto-cleanup expired documents
+    // Documents will be automatically deleted after their expiresAt timestamp
+    await db.collection('temp_uploads').createIndex(
+      { expiresAt: 1 }, 
+      { expireAfterSeconds: 0 }
+    );
+    
+    // Create supporting indexes for temp_uploads collection
+    await db.collection('temp_uploads').createIndex({ uploadedBy: 1 });
+    await db.collection('temp_uploads').createIndex({ type: 1 });
+    await db.collection('temp_uploads').createIndex({ createdAt: -1 });
+
+    console.log('✅ Database indexes created including TTL index for temp_uploads');
   } catch (error) {
     console.error('❌ Error initializing data:', error);
   }
@@ -224,6 +250,8 @@ app.use(securityHeaders);
 // CORS setup
 app.use(cors(corsOptions));
 
+// Setup API documentation
+setupSwagger(app);
 
 // JWT Authentication Middleware - Parse JWT token and set req.user
 app.use((req, res, next) => {
@@ -241,26 +269,28 @@ app.use((req, res, next) => {
       if (process.env.ENABLE_TOKEN_BLACKLIST === 'true') {
         const tokenId = TokenBlacklist.getTokenId(token);
         if (tokenBlacklist.isBlacklisted(tokenId)) {
-          console.log('❌ Blacklisted token rejected for', req.method, req.path);
+          logger.info('Blacklisted token rejected', { method: req.method, path: req.path });
           return res.status(401).json({ error: 'Token has been revoked' });
         }
       }
       
       const decoded = verifyToken(token);
       req.user = decoded; // Set user info for route handlers
-      console.log('✅ JWT token parsed for user:', decoded.username, 'on', req.method, req.path);
+      logger.debug('JWT token parsed', { user: decoded.username, method: req.method, path: req.path });
     }
   } catch (error) {
     // Don't fail the request, just log the error
     // Routes will handle authorization separately
-    console.warn('⚠️ JWT parsing error:', error.message, 'on', req.method, req.path);
+    logger.debug('JWT parsing error', { error: error.message, method: req.method, path: req.path });
   }
   
   next();
 });
 
-// Force CORS headers for production (in case reverse proxy strips them)
-if (process.env.NODE_ENV === 'production') {
+// Force CORS headers for production (only if reverse proxy strips them)
+// This is controlled by FORCE_CORS_HEADERS environment variable
+if (process.env.NODE_ENV === 'production' && process.env.FORCE_CORS_HEADERS === 'true') {
+  logger.warn('FORCE_CORS_HEADERS is enabled - using manual CORS header injection');
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     const allowedOrigins = [
@@ -279,7 +309,7 @@ if (process.env.NODE_ENV === 'production') {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cookie');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cookie, x-csrf-token');
       res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
     }
 
@@ -343,29 +373,7 @@ app.get('/api/permissions', requireAuth, requirePermission(PERMISSIONS.ADMIN_PER
   });
 });
 
-// Admin dashboard stats endpoint
-app.get('/api/admin/stats/system', requireAuth, asyncHandler(async (_, res) => {
-  // const currentDate = new Date();
-  // const currentMonth = currentDate.toISOString().substring(0, 7);
-
-  // Get current month data
-  const totalUsers = await db.collection('users').countDocuments({ role: { $ne: 'admin' } });
-  // const activeUsers = await db.collection('users').countDocuments({ isActive: true, role: { $ne: 'admin' } });
-
-  // Basic payroll stats (placeholder data for now)
-  const payrollData = {
-    total_employees: totalUsers,
-    total_payroll: 0,
-    total_incentive: 0,
-    total_bonus: 0,
-    avg_salary: 0
-  };
-
-  res.json({
-    success: true,
-    data: payrollData
-  });
-}));
+// Admin dashboard stats endpoint is now handled in routes/admin/systemAdmin.js
 
 // Admin system health endpoint
 app.get('/api/admin/system-health', requireAuth, asyncHandler(async (_, res) => {
@@ -509,6 +517,14 @@ async function initializeRoutes() {
   app.locals.db = db;
 
 
+    // Create shared storage maps for preview and idempotency
+  const previewStorage = new Map();
+  const idempotencyStorage = new Map();
+  
+  // Cleanup expired entries periodically
+  const { performCleanupAndMonitoring } = require('./utils/payrollUtils');
+  setInterval(() => performCleanupAndMonitoring(previewStorage, idempotencyStorage, db), 5 * 60 * 1000);
+
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/users', createUserRoutes(db));
   app.use('/api/leave', leaveRoutes);
@@ -517,9 +533,18 @@ async function initializeRoutes() {
   app.use('/api/payroll', createPayrollRoutes(db));
   app.use('/api/bonus', createBonusRoutes(db));
   app.use('/api/sales', createSalesRoutes(db));
-  app.use('/api/payroll-upload', createUploadRoutes(db));
+  app.use('/api/upload', createUploadRoutes(db, previewStorage, idempotencyStorage));
   app.use('/api/reports', createReportsRoutes(db));
+  app.use('/api/payslip', createPayslipVerifyRoutes(db));
   app.use('/api/admin', createAdminRoutes(db));
+  app.use('/api/admin/payroll', createAdminPayrollRoutes(db, previewStorage, idempotencyStorage));
+  app.use('/api/feature-flags', featureFlagManagementRoutes);
+  app.use('/api/documents', createDocumentsRoutes(db));
+  app.use('/api/incentive', require('./routes/incentive'));
+  app.use('/api/payroll', require('./routes/dailyWorkers'));
+
+  // Add feature flag middleware
+  app.use(featureFlags.middleware());
 
   // Health check endpoint for Cloud Run
   app.get('/health', (req, res) => {
@@ -569,6 +594,9 @@ async function startServer() {
   await connectDB();
   await ensureAdminPermissions();
   await initializeRoutes();
+  
+  // Initialize feature flag health monitoring
+  await healthMonitor.initialize();
 
   server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
@@ -580,8 +608,11 @@ async function startServer() {
 // Handle graceful shutdown
 let server;
 
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   console.log(`🛑 ${signal} received. Starting graceful shutdown...`);
+
+  // Shutdown health monitor
+  await healthMonitor.shutdown();
 
   if (server) {
     server.close(() => {

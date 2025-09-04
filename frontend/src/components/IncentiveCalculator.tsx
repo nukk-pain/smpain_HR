@@ -119,9 +119,10 @@ const IncentiveCalculator: React.FC = () => {
     try {
       const response = await apiService.get(`/incentive/formula/${employeeId}`);
       if (response.success && response.data) {
-        setCurrentFormula(response.data);
-        setFormulaText(response.data.formula || '');
-        setVariables(response.data.variables || {});
+        const data = response.data as IncentiveFormula;
+        setCurrentFormula(data);
+        setFormulaText(data.formula || '');
+        setVariables(data.variables || {});
       } else {
         // No formula exists, set defaults
         setCurrentFormula(null);
@@ -194,7 +195,7 @@ const IncentiveCalculator: React.FC = () => {
       });
 
       if (response.success) {
-        setCalculationResult(response.data);
+        setCalculationResult(response.data as CalculationResult);
         showNotification('success', 'Success', 'Incentive calculated successfully');
       }
     } catch (error: any) {
@@ -247,7 +248,7 @@ const IncentiveCalculator: React.FC = () => {
       });
 
       if (response.success) {
-        setSimulationResults(response.data || []);
+        setSimulationResults((response.data || []) as SimulationResult[]);
         showNotification('success', 'Success', 'Batch simulation completed');
       }
     } catch (error) {
@@ -581,7 +582,7 @@ const IncentiveCalculator: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         계산 세부사항:
                       </Typography>
-                      <TableContainer component={Paper} size="small">
+                      <TableContainer component={Paper}>
                         <Table size="small">
                           <TableBody>
                             {Object.entries(calculationResult.breakdown).map(([key, value]) => (

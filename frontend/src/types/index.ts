@@ -182,7 +182,9 @@ export interface AuthResponse {
   user?: User;
   success?: boolean;
   message?: string;
-  token?: string; // JWT token for login response
+  token?: string; // JWT token for legacy login response
+  accessToken?: string; // Phase 4 access token
+  refreshToken?: string; // Phase 4 refresh token
 }
 
 export interface PaginatedResponse<T> {

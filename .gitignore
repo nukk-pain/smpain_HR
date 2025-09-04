@@ -1,37 +1,87 @@
-# Node.js
+################################
+# Node.js & Dependencies
+################################
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+jspm_packages/
 
-# Frontend
+################################
+# Frontend Build & Cache
+################################
 frontend/node_modules/
 frontend/dist/
 frontend/.tmp/
 frontend/.cache/
+frontend/build/
+frontend/coverage/
+dist/
+build/
 
-# Environment variables
+################################
+# Backend Specific
+################################
+backend/node_modules/
+backend/uploads/temp/
+backend/uploads/payroll/
+backend/uploads/payslips/
+!backend/uploads/.gitkeep
+backend/logs/
+backend/*.log
+
+################################
+# Environment & Secrets
+################################
 .env
 .env.local
 .env.production
-# Keep .env.example and .env.development for deployment setup
+.env.staging
+.env.test
+# Keep .env.example and .env.development for setup
 secret.md
-
-# Database credentials
+secrets/
+credentials/
+*.pem
+*.key
+*.crt
+*.p12
 MONGODB_CREDENTIALS.md
 
-# Logs
+################################
+# Logs & Runtime
+################################
 *.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+pids/
+server.log
+server_test.log
+nohup.out
 
-
-# IDE
+################################
+# IDE & Editors
+################################
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
 *~
+.project
+.classpath
+.settings/
+*.sublime-*
 
-# OS
+################################
+# OS Generated
+################################
 .DS_Store
 .DS_Store?
 ._*
@@ -39,13 +89,33 @@ MONGODB_CREDENTIALS.md
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Temporary files
+################################
+# Temporary Files
+################################
 *.tmp
 *.temp
-nohup.out
-docs/previous_plans
+*.bak
+*.backup
+*.orig
+*-temp.*
+temp-*
+*-backup.*
+backup-*
+tmp/
+temp/
+
+################################
+# Personal & Planning
+################################
 todo.md
+todo-personal.md
+todo-development.md
+CLAUDE.local.md
+.claude-commands.md
+personal-notes/
+my-notes/
 
 # Google Cloud Platform
 # Service account keys and authentication
@@ -105,23 +175,89 @@ jspm_packages/
 .vercel
 
 
-# Cleanup and temporary files
-*.tmp
-*.temp
-*-temp.*
-temp-*
-*.backup
-*-backup.*
-backup-*
-
-# TDD phase test files (should not be committed)
+################################
+# Development & Testing Artifacts
+################################
+# TDD phase test files
 *-red-phase.*
 *-green-phase.*
 *-phase-*.*
 *-duplicate-*.*
 *-fixed-*.*
-
-# Development artifacts
 *.test.backup
 quick-*.test.js
 test-*.temp.js
+
+################################
+# Sample & Upload Data
+################################
+# Sample Data - 실제 급여 데이터 폴더 전체 제외
+# 노무사에게 받은 실제 급여명세서, 급여이체 파일들 보안을 위해 Git 추적 제외
+sample-data/
+
+# 실제 업로드된 파일들
+uploads/
+backend/uploads/
+frontend/uploads/
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
+!frontend/uploads/.gitkeep
+
+################################
+# Archives & Backups
+################################
+backups/
+archives/
+*.zip
+*.tar
+*.gz
+*.7z
+*.rar
+
+################################
+# Database
+################################
+*.sqlite
+*.sqlite3
+*.db
+data/
+mongodb-data/
+
+################################
+# Analytics & Metadata
+################################
+metadata/
+analytics/
+reports/generated/
+*.xlsx
+*.xls
+!sample-data/**/*.xlsx
+!sample-data/**/*.xls
+
+################################
+# Feature Flags & Monitoring
+################################
+logs/feature-health-metrics.json
+monitoring-data/
+alerts/
+
+################################
+# Project Specific Exclusions  
+################################
+# Completed work archives (large)
+completed/archive-*/
+completed/old-*/
+
+# Test outputs
+test-pdfs/
+test-outputs/
+test-results/
+
+# Temporary preview files
+*.preview.json
+*.preview.html
+
+# Local configuration overrides
+*.local.js
+*.local.ts
+!*.local.md

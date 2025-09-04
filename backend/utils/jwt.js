@@ -4,11 +4,13 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'fallback-jwt-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
-console.log('🔐 JWT Configuration:', {
-  secret: JWT_SECRET ? 'Set' : 'Missing',
-  expiresIn: JWT_EXPIRES_IN,
-  environment: process.env.NODE_ENV
-});
+if (process.env.NODE_ENV !== 'test') {
+  console.log('🔐 JWT Configuration:', {
+    secret: JWT_SECRET ? 'Set' : 'Missing',
+    expiresIn: JWT_EXPIRES_IN,
+    environment: process.env.NODE_ENV
+  });
+}
 
 /**
  * JWT 토큰 생성

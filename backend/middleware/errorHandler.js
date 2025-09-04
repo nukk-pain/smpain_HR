@@ -234,11 +234,13 @@ const corsOptions = {
           'http://localhost:3000', 
           'http://localhost:3727', 
           'http://localhost:3728', // 추가 포트
+          'http://localhost:3729', // 프리뷰 기능 테스트용 포트
           'http://localhost:5173',
           'http://localhost:8080',
           'http://127.0.0.1:3000',
           'http://127.0.0.1:3727', 
           'http://127.0.0.1:3728', // 127.0.0.1 주소 추가
+          'http://127.0.0.1:3729', // 프리뷰 기능 테스트용 포트
           'http://127.0.0.1:5173',
           'http://127.0.0.1:8080'
         ];
@@ -263,7 +265,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie', 'x-csrf-token'],
   exposedHeaders: ['Set-Cookie']
 };
 

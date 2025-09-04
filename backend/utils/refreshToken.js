@@ -1,17 +1,20 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const logger = require('./logger');
 
 // Refresh Token 설정
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET + '_refresh' || 'fallback-refresh-secret';
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '15m';
 
-console.log('🔄 Refresh Token Configuration:', {
-  secret: REFRESH_TOKEN_SECRET ? 'Set' : 'Missing',
-  refreshExpiresIn: REFRESH_TOKEN_EXPIRES_IN,
-  accessExpiresIn: ACCESS_TOKEN_EXPIRES_IN,
-  environment: process.env.NODE_ENV
-});
+if (process.env.NODE_ENV !== 'test') {
+  logger.info('Refresh Token Configuration', {
+    secret: REFRESH_TOKEN_SECRET ? 'Set' : 'Missing',
+    refreshExpiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    accessExpiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    environment: process.env.NODE_ENV
+  });
+}
 
 /**
  * Refresh Token 생성
@@ -31,7 +34,7 @@ function generateRefreshToken(user) {
     audience: 'hr-frontend'
   });
 
-  console.log('✅ Refresh token generated for user:', user.username);
+  logger.debug('Refresh token generated', { username: user.username });
   return token;
 }
 
@@ -57,7 +60,7 @@ function generateAccessToken(user) {
     audience: 'hr-frontend'
   });
 
-  console.log('✅ Access token generated for user:', user.username);
+  logger.debug('Access token generated', { username: user.username });
   return token;
 }
 
@@ -77,7 +80,7 @@ function verifyRefreshToken(token) {
       throw new Error('Invalid token type');
     }
     
-    console.log('✅ Refresh token verified for user:', decoded.username);
+    logger.debug('Refresh token verified', { username: decoded.username });
     return decoded;
   } catch (error) {
     console.error('❌ Refresh token verification failed:', error.message);

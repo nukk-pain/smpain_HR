@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Collapse,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -40,6 +41,13 @@ import {
   Event,
   Group,
   Edit as EditProfileIcon,
+  Folder,
+  ExpandLess,
+  ExpandMore,
+  Home,
+  Description,
+  BarChart,
+  AttachMoney,
 } from '@mui/icons-material'
 import { useAuth } from './AuthProvider'
 import { useNotification } from './NotificationProvider'
@@ -49,94 +57,174 @@ const drawerWidth = 240
 
 interface NavigationItem {
   text: string
-  icon: React.ReactElement
   path: string
   roles?: string[]
   permissions?: string[]
 }
 
-// Base navigation items available to all users
-const baseNavigationItems: NavigationItem[] = [
-  {
-    text: '대시보드',
-    icon: <Dashboard />,
-    path: '/dashboard',
-  },
-  {
-    text: '내 휴가 관리',
-    icon: <BeachAccess />,
-    path: '/leave',
-    permissions: ['leave:view'],
-  },
-  {
-    text: '휴가 달력',
-    icon: <Event />,
-    path: '/leave/calendar',
-    permissions: ['leave:view', 'leave:manage'],
-  },
-]
+interface NavigationGroup {
+  id: string
+  title: string
+  icon: React.ReactElement
+  items: NavigationItem[]
+  defaultExpanded?: boolean
+}
 
-// Supervisor-specific navigation items
-const supervisorNavigationItems: NavigationItem[] = [
+// Navigation groups structure
+const navigationGroups: NavigationGroup[] = [
   {
-    text: '직원 휴가 현황',
+    id: 'home',
+    title: '홈',
+    icon: <Home />,
+    defaultExpanded: true,
+    items: [
+      {
+        text: '대시보드',
+        path: '/dashboard',
+      },
+    ],
+  },
+  {
+    id: 'personal',
+    title: '내 정보',
+    icon: <Person />,
+    defaultExpanded: false,
+    items: [
+      {
+        text: '내 휴가 관리',
+        path: '/leave',
+        permissions: ['leave:view'],
+      },
+      {
+        text: '내 문서함',
+        path: '/my-documents',
+        permissions: ['leave:view'],
+      },
+    ],
+  },
+  {
+    id: 'leave-management',
+    title: '휴가 관리',
+    icon: <BeachAccess />,
+    defaultExpanded: false,
+    items: [
+      {
+        text: '휴가 달력',
+        path: '/leave/calendar',
+        permissions: ['leave:view', 'leave:manage'],
+      },
+    ],
+  },
+  {
+    id: 'organization',
+    title: '조직 관리',
     icon: <Group />,
-    path: '/supervisor/leave/status',
-    permissions: ['leave:manage'],
+    defaultExpanded: false,
+    items: [],
   },
   {
-    text: '직원 휴가 승인',
-    icon: <BeachAccess />,
-    path: '/supervisor/leave/requests',
-    permissions: ['leave:manage'],
+    id: 'payroll',
+    title: '급여 관리',
+    icon: <AttachMoney />,
+    defaultExpanded: false,
+    items: [],
   },
   {
-    text: '직원 관리',
-    icon: <People />,
-    path: '/supervisor/users',
-    permissions: ['users:view'],
+    id: 'documents',
+    title: '문서 관리',
+    icon: <Description />,
+    defaultExpanded: false,
+    items: [],
   },
   {
-    text: '부서 관리',
-    icon: <Business />,
-    path: '/supervisor/departments',
-    permissions: ['departments:view', 'departments:manage'],
+    id: 'reports',
+    title: '보고서',
+    icon: <BarChart />,
+    defaultExpanded: false,
+    items: [],
   },
   {
-    text: '급여 관리',
-    icon: <AccountBalance />,
-    path: '/supervisor/payroll',
-    permissions: ['payroll:view', 'payroll:manage'],
-  },
-  {
-    text: '보고서',
-    icon: <Assessment />,
-    path: '/supervisor/reports',
-    permissions: ['reports:view'],
-  },
-  {
-    text: '파일 관리',
-    icon: <CloudUpload />,
-    path: '/supervisor/files',
-    permissions: ['files:view', 'files:manage'],
+    id: 'settings',
+    title: '시스템 설정',
+    icon: <Settings />,
+    defaultExpanded: false,
+    items: [],
   },
 ]
 
-// Admin-specific navigation items (only admin-exclusive features)
-const adminNavigationItems: NavigationItem[] = [
-  {
-    text: '전체 휴가 현황',
-    icon: <BeachAccess />,
-    path: '/admin/leave/overview',
-    permissions: ['admin:permissions'],
-  },
-  {
-    text: '휴가 정책 설정',
-    icon: <Settings />,
-    path: '/admin/leave/policy',
-    permissions: ['admin:permissions'],
-  },
-]
+// Supervisor-specific items to be added to groups
+const supervisorItems = {
+  'leave-management': [
+    {
+      text: '휴가 현황 관리',
+      path: '/leave/overview',
+      permissions: ['leave:manage'],
+    },
+    {
+      text: '직원 휴가 승인',
+      path: '/supervisor/leave/requests',
+      permissions: ['leave:manage'],
+    },
+  ],
+  'organization': [
+    {
+      text: '직원 관리',
+      path: '/supervisor/users',
+      permissions: ['users:view'],
+    },
+    {
+      text: '부서 관리',
+      path: '/supervisor/departments',
+      permissions: ['departments:view', 'departments:manage'],
+    },
+  ],
+  // Payroll items moved to adminItems - Admin only
+  'documents': [
+    {
+      text: '파일 업로드',
+      path: '/supervisor/files',
+      permissions: ['files:view', 'files:manage'],
+    },
+  ],
+  'reports': [
+    {
+      text: '보고서',
+      path: '/supervisor/reports',
+      permissions: ['reports:view'],
+    },
+  ],
+}
+
+// Admin-specific items to be added to groups
+const adminItems = {
+  // leave-management items are already in supervisorItems and shared
+  'payroll': [
+    {
+      text: '급여 관리',
+      path: '/supervisor/payroll',
+      permissions: ['payroll:view', 'payroll:manage'],
+    },
+    {
+      text: '인센티브 관리',
+      path: '/supervisor/incentives',
+      permissions: ['payroll:manage'],
+    },
+  ],
+  'documents': [
+    {
+      text: '문서 관리',
+      path: '/admin/documents',
+      permissions: ['admin:permissions'],
+    },
+  ],
+  'settings': [
+    {
+      text: '휴가 정책 설정',
+      path: '/admin/leave/policy',
+      permissions: ['admin:permissions'],
+    },
+  ],
+}
 
 const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -147,6 +235,19 @@ const Layout: React.FC = () => {
     newPassword: '',
     confirmPassword: ''
   })
+  
+  // Group expansion state management
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    const saved = localStorage.getItem('navigationGroupsExpanded')
+    if (saved) {
+      return JSON.parse(saved)
+    }
+    // Default expanded groups
+    return navigationGroups
+      .filter(group => group.defaultExpanded)
+      .map(group => group.id)
+  })
+  
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
@@ -154,6 +255,18 @@ const Layout: React.FC = () => {
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleGroupToggle = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const newExpanded = prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+      
+      // Save to localStorage
+      localStorage.setItem('navigationGroupsExpanded', JSON.stringify(newExpanded))
+      return newExpanded
+    })
   }
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -216,43 +329,86 @@ const Layout: React.FC = () => {
     setMobileOpen(false)
   }
 
-  // Build navigation items based on user role
-  const navigationItems = React.useMemo(() => {
-    if (!user) return baseNavigationItems;
+  // Build navigation groups based on user role
+  const userNavigationGroups = React.useMemo(() => {
+    if (!user) return navigationGroups;
     
-    // Start with base items
-    let items = [...baseNavigationItems];
+    // Clone the navigation groups (cannot use JSON.parse/stringify because of JSX elements)
+    const groups = navigationGroups.map(group => ({
+      ...group,
+      items: [...group.items]
+    }))
     
-    // Add role-specific items
+    // Add role-specific items to groups
+    if (user.role === 'admin' || user.role === 'supervisor') {
+      // Add supervisor items
+      Object.entries(supervisorItems).forEach(([groupId, items]) => {
+        const group = groups.find(g => g.id === groupId)
+        if (group) {
+          group.items.push(...items)
+        }
+      })
+    }
+    
     if (user.role === 'admin') {
-      // Admin gets both supervisor items and admin-specific items
-      items = [...items, ...supervisorNavigationItems, ...adminNavigationItems];
-    } else if (user.role === 'supervisor') {
-      // Supervisor only gets supervisor items
-      items = [...items, ...supervisorNavigationItems];
+      // Add admin-specific items
+      Object.entries(adminItems).forEach(([groupId, items]) => {
+        const group = groups.find(g => g.id === groupId)
+        if (group) {
+          group.items.push(...items)
+        }
+      })
     }
     
-    return items;
-  }, [user]);
-
-  const filteredNavigationItems = navigationItems.filter(item => {
-    // If no permissions required, show to all users
-    if (!item.permissions && !item.roles) {
-      return true;
-    }
+    // Filter items based on permissions
+    groups.forEach(group => {
+      group.items = group.items.filter(item => {
+        // If no permissions required, show to all users
+        if (!item.permissions && !item.roles) {
+          return true
+        }
+        
+        // Check role-based access (legacy)
+        if (item.roles && item.roles.includes(user.role)) {
+          return true
+        }
+        
+        // Check permission-based access
+        if (item.permissions && user.permissions) {
+          return item.permissions.some(permission => user.permissions.includes(permission))
+        }
+        
+        return false
+      })
+    })
     
-    // Check role-based access (legacy)
-    if (item.roles && user && item.roles.includes(user.role)) {
-      return true;
-    }
+    // Remove empty groups
+    return groups.filter(group => group.items.length > 0)
+  }, [user])
+  
+  // Auto-expand group containing current page
+  React.useEffect(() => {
+    const currentGroup = userNavigationGroups.find(group =>
+      group.items.some(item => item.path === location.pathname)
+    )
     
-    // Check permission-based access
-    if (item.permissions && user && user.permissions) {
-      return item.permissions.some(permission => user.permissions.includes(permission));
+    if (currentGroup && !expandedGroups.includes(currentGroup.id)) {
+      setExpandedGroups(prev => {
+        const newExpanded = [...prev, currentGroup.id]
+        localStorage.setItem('navigationGroupsExpanded', JSON.stringify(newExpanded))
+        return newExpanded
+      })
     }
-    
-    return false;
-  })
+  }, [location.pathname, userNavigationGroups, expandedGroups])
+  
+  // Memoize current page title
+  const currentPageTitle = React.useMemo(() => {
+    for (const group of userNavigationGroups) {
+      const item = group.items.find(item => item.path === location.pathname)
+      if (item) return item.text
+    }
+    return '대시보드'
+  }, [location.pathname, userNavigationGroups])
 
   const drawer = (
     <div>
@@ -262,31 +418,66 @@ const Layout: React.FC = () => {
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
-        {filteredNavigationItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
+      <List sx={{ pt: 0 }}>
+        {userNavigationGroups.map((group) => (
+          <React.Fragment key={group.id}>
+            {/* Group Header */}
             <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
+              onClick={() => handleGroupToggle(group.id)}
               sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.contrastText',
-                  },
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.08)',
                 },
+                borderLeft: '3px solid',
+                borderLeftColor: 'primary.main',
+                mt: group.id === userNavigationGroups[0].id ? 0 : 1,
               }}
             >
-              <ListItemIcon>
-                {item.icon}
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                {group.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText 
+                primary={group.title} 
+                primaryTypographyProps={{
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                }}
+              />
+              {expandedGroups.includes(group.id) ? <ExpandLess /> : <ExpandMore />}
             </ListItemButton>
-          </ListItem>
+            
+            {/* Group Items */}
+            <Collapse in={expandedGroups.includes(group.id)} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {group.items.map((item) => (
+                  <ListItem key={item.path} disablePadding>
+                    <ListItemButton
+                      selected={location.pathname === item.path}
+                      onClick={() => handleNavigation(item.path)}
+                      sx={{
+                        pl: 6,
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.main',
+                          color: 'primary.contrastText',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                        },
+                      }}
+                    >
+                      <ListItemText 
+                        primary={item.text}
+                        primaryTypographyProps={{
+                          fontSize: '0.9rem',
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </React.Fragment>
         ))}
       </List>
     </div>
@@ -314,7 +505,7 @@ const Layout: React.FC = () => {
           </IconButton>
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navigationItems.find(item => item.path === location.pathname)?.text || '대시보드'}
+            {currentPageTitle}
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

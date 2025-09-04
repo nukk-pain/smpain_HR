@@ -6,6 +6,205 @@ class PayrollRepository extends BaseRepository {
     super('payroll');
   }
 
+  /**
+   * AI-HEADER Enhanced PayrollRepository Methods
+   * DomainMeaning: Create payroll records with comprehensive schema including allowances and deductions
+   * MisleadingNames: createPayroll vs createPayrollRecord - both create new payroll entries
+   * SideEffects: Inserts record into payroll collection, calculates totals automatically
+   * Invariants: netSalary = baseSalary + totalAllowances - totalDeductions
+   * RAG_Keywords: payroll create, salary calculation, allowances deductions
+   * DuplicatePolicy: canonical - this is the primary method for creating enhanced payroll records
+   * FunctionIdentity: sha256(createPayroll_enhanced_schema)
+   */
+  async createPayroll(payrollData) {
+    try {
+      // Check for duplicate payroll record
+      const existing = await this.findOne({
+        userId: payrollData.userId,
+        year: payrollData.year,
+        month: payrollData.month
+      });
+
+      if (existing) {
+        throw new Error('Payroll record already exists for this user and period');
+      }
+
+      // Calculate totals
+      const totalAllowances = Object.values(payrollData.allowances || {}).reduce((sum, val) => sum + (val || 0), 0);
+      const totalDeductions = Object.values(payrollData.deductions || {}).reduce((sum, val) => sum + (val || 0), 0);
+      const netSalary = (payrollData.baseSalary || 0) + totalAllowances - totalDeductions;
+
+      // Prepare full payroll record
+      const fullRecord = {
+        ...payrollData,
+        totalAllowances,
+        totalDeductions,
+        netSalary,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await this.create(fullRecord);
+      return result;
+    } catch (error) {
+      if (error.message.includes('already exists')) {
+        throw error;
+      }
+      throw new Error(`Error creating payroll record: ${error.message}`);
+    }
+  }
+
+  /**
+   * AI-HEADER 
+   * DomainMeaning: Approve a pending payroll record and set approval metadata
+   * MisleadingNames: approvePayroll vs markAsApproved - both update approval status
+   * SideEffects: Updates payroll record status, sets approvedBy and approvedAt
+   * Invariants: Can only approve pending payrolls, approver must be provided
+   * RAG_Keywords: payroll approval, status update, workflow
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: sha256(approvePayroll_workflow)
+   */
+  async approvePayroll(payrollId, approverId) {
+    try {
+      const updateData = {
+        paymentStatus: 'approved',
+        approvedBy: new ObjectId(approverId),
+        approvedAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const updated = await this.update(payrollId, updateData);
+      return updated;
+    } catch (error) {
+      throw new Error(`Error approving payroll: ${error.message}`);
+    }
+  }
+
+  /**
+   * AI-HEADER
+   * DomainMeaning: Update payroll record with audit trail and validation
+   * MisleadingNames: updatePayroll vs modifyPayroll - both update existing payroll records
+   * SideEffects: Updates payroll record, logs audit trail if ErrorLoggingService available
+   * Invariants: Must recalculate totals after update, must log edit for compliance
+   * RAG_Keywords: payroll update, audit logging, payroll modification
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: sha256(updatePayroll_with_audit)
+   */
+  async updatePayroll(payrollId, updateData, userId) {
+    try {
+      // Get original record for audit
+      const originalRecord = await this.findById(payrollId);
+      if (!originalRecord) {
+        throw new Error('Payroll record not found');
+      }
+
+      // Recalculate totals if salary components changed
+      if (updateData.baseSalary !== undefined || 
+          updateData.allowances !== undefined || 
+          updateData.deductions !== undefined) {
+        
+        const baseSalary = updateData.baseSalary ?? originalRecord.baseSalary ?? 0;
+        const allowances = updateData.allowances ?? originalRecord.allowances ?? {};
+        const deductions = updateData.deductions ?? originalRecord.deductions ?? {};
+        
+        const totalAllowances = Object.values(allowances).reduce((sum, val) => sum + (val || 0), 0);
+        const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + (val || 0), 0);
+        
+        updateData.totalAllowances = totalAllowances;
+        updateData.totalDeductions = totalDeductions;
+        updateData.netSalary = baseSalary + totalAllowances - totalDeductions;
+      }
+
+      // Add audit metadata
+      updateData.updatedAt = new Date();
+      updateData.updatedBy = new ObjectId(userId);
+
+      // Log audit trail if service is available
+      if (global.errorLoggingService) {
+        await global.errorLoggingService.logAuditTrail({
+          action: 'payroll_update',
+          category: 'payroll',
+          userId: userId,
+          targetId: payrollId,
+          previousData: originalRecord,
+          newData: updateData,
+          metadata: {
+            collection: 'payroll',
+            operation: 'update'
+          }
+        });
+      }
+
+      // Update the record
+      const updated = await this.update(payrollId, updateData);
+      return updated;
+    } catch (error) {
+      throw new Error(`Error updating payroll: ${error.message}`);
+    }
+  }
+
+  /**
+   * AI-HEADER
+   * DomainMeaning: Find payroll record for specific user and time period
+   * MisleadingNames: findByUserAndPeriod vs findUserPayroll - both find by user/period
+   * SideEffects: None - read-only operation
+   * Invariants: userId must be ObjectId, year/month must be numbers
+   * RAG_Keywords: payroll lookup, user period search
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: sha256(findByUserAndPeriod_enhanced)
+   */
+  async findByUserAndPeriod(userId, year, month) {
+    try {
+      return await this.findOne({
+        userId: new ObjectId(userId),
+        year: year,
+        month: month
+      });
+    } catch (error) {
+      throw new Error(`Error finding payroll by user and period: ${error.message}`);
+    }
+  }
+
+  /**
+   * AI-HEADER
+   * DomainMeaning: Calculate aggregate payroll summary for a specific period
+   * MisleadingNames: getPayrollSummaryByPeriod vs calculatePeriodSummary - both aggregate period data
+   * SideEffects: None - read-only aggregation
+   * Invariants: Returns null if no data found, all totals are numeric
+   * RAG_Keywords: payroll summary, period aggregation, totals calculation
+   * DuplicatePolicy: canonical
+   * FunctionIdentity: sha256(getPayrollSummaryByPeriod_aggregation)
+   */
+  async getPayrollSummaryByPeriod(year, month) {
+    try {
+      const pipeline = [
+        {
+          $match: {
+            year: year,
+            month: month
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalEmployees: { $sum: 1 },
+            totalBaseSalary: { $sum: '$baseSalary' },
+            totalAllowances: { $sum: '$totalAllowances' },
+            totalDeductions: { $sum: '$totalDeductions' },
+            totalNetPay: { $sum: '$netSalary' },
+            averageBaseSalary: { $avg: '$baseSalary' },
+            averageNetPay: { $avg: '$netSalary' }
+          }
+        }
+      ];
+
+      const result = await this.aggregate(pipeline);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      throw new Error(`Error calculating payroll summary: ${error.message}`);
+    }
+  }
+
   async findByYearMonth(year, month) {
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
     return await this.findAll({ yearMonth });
@@ -242,6 +441,135 @@ class PayrollRepository extends BaseRepository {
         { baseSalary: 0 }
       ]
     });
+  }
+
+  /**
+   * Calculate payroll totals from base salary, allowances, and deductions
+   * @param {Object} payrollData - Object with baseSalary, allowances, deductions
+   * @returns {Object} - Object with totalAllowances, totalDeductions, netSalary
+   */
+  calculatePayrollTotals(payrollData) {
+    const { baseSalary = 0, allowances = {}, deductions = {} } = payrollData;
+    
+    const totalAllowances = Object.values(allowances).reduce((sum, value) => sum + (value || 0), 0);
+    const totalDeductions = Object.values(deductions).reduce((sum, value) => sum + (value || 0), 0);
+    const netSalary = baseSalary + totalAllowances - totalDeductions;
+    
+    return {
+      totalAllowances,
+      totalDeductions,
+      netSalary
+    };
+  }
+
+  /**
+   * Validate payroll data
+   * @param {Object} data - Payroll data to validate
+   * @param {boolean} strict - Whether to perform strict validation
+   * @throws {Error} - If validation fails
+   */
+  validatePayrollData(data, strict = false) {
+    const errors = [];
+    
+    if (strict) {
+      if (!data.userId) errors.push('userId is required');
+      if (!data.year) errors.push('year is required');
+      if (!data.month) errors.push('month is required');
+    }
+    
+    if (data.baseSalary !== undefined && data.baseSalary < 0) {
+      errors.push('baseSalary cannot be negative');
+    }
+    
+    if (data.year !== undefined) {
+      const currentYear = new Date().getFullYear();
+      if (data.year < 2020 || data.year > currentYear + 1) {
+        errors.push('year must be between 2020 and next year');
+      }
+    }
+    
+    if (data.month !== undefined) {
+      if (data.month < 1 || data.month > 12) {
+        errors.push('month must be between 1 and 12');
+      }
+    }
+    
+    if (errors.length > 0) {
+      throw new Error(`Validation failed: ${errors.join(', ')}`);
+    }
+  }
+
+  /**
+   * Check for duplicate payroll period
+   * @param {Object} data - Object with userId, year, month
+   * @throws {Error} - If duplicate exists
+   */
+  async checkDuplicatePeriod(data) {
+    const existing = await this.findByUserAndPeriod(data.userId, data.year, data.month);
+    if (existing) {
+      throw new Error(`Payroll record already exists for ${data.year}-${data.month}`);
+    }
+  }
+
+  /**
+   * Validate payroll status transition
+   * @param {string} fromStatus - Current status
+   * @param {string} toStatus - Target status
+   * @throws {Error} - If transition is invalid
+   */
+  validateStatusTransition(fromStatus, toStatus) {
+    const validTransitions = {
+      'pending': ['approved', 'cancelled'],
+      'approved': ['paid', 'cancelled'],
+      'paid': [], // No transitions from paid
+      'cancelled': [] // No transitions from cancelled
+    };
+    
+    if (!validTransitions[fromStatus]) {
+      throw new Error(`Invalid current status: ${fromStatus}`);
+    }
+    
+    if (!validTransitions[fromStatus].includes(toStatus)) {
+      throw new Error(`Invalid status transition from ${fromStatus} to ${toStatus}`);
+    }
+  }
+
+  /**
+   * Calculate monthly summary from payroll records
+   * @param {Array} records - Array of payroll records
+   * @returns {Object} - Summary statistics
+   */
+  calculateMonthlySummary(records) {
+    if (!records || records.length === 0) {
+      return {
+        totalEmployees: 0,
+        totalBaseSalary: 0,
+        totalAllowances: 0,
+        totalDeductions: 0,
+        totalNetSalary: 0,
+        paidCount: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        cancelledCount: 0,
+        averageNetSalary: 0
+      };
+    }
+    
+    const summary = {
+      totalEmployees: records.length,
+      totalBaseSalary: records.reduce((sum, r) => sum + (r.baseSalary || 0), 0),
+      totalAllowances: records.reduce((sum, r) => sum + (r.totalAllowances || 0), 0),
+      totalDeductions: records.reduce((sum, r) => sum + (r.totalDeductions || 0), 0),
+      totalNetSalary: records.reduce((sum, r) => sum + (r.netSalary || 0), 0),
+      paidCount: records.filter(r => r.paymentStatus === 'paid').length,
+      pendingCount: records.filter(r => r.paymentStatus === 'pending').length,
+      approvedCount: records.filter(r => r.paymentStatus === 'approved').length,
+      cancelledCount: records.filter(r => r.paymentStatus === 'cancelled').length
+    };
+    
+    summary.averageNetSalary = summary.totalNetSalary / summary.totalEmployees;
+    
+    return summary;
   }
 }
 

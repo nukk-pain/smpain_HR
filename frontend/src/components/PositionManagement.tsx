@@ -28,17 +28,7 @@ import {
 } from '@mui/icons-material';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
-
-interface Position {
-  _id: string;
-  title: string;
-  description: string;
-  department?: string;
-  responsibilities: string[];
-  requirements: string[];
-  createdAt: string;
-  updatedAt?: string;
-}
+import { Position } from '../types';
 
 const PositionManagement: React.FC = () => {
   const [positions, setPositions] = useState<Position[]>([]);

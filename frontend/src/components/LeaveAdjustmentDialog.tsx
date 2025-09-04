@@ -106,7 +106,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
       setDetailsLoading(true);
       const response = await apiService.getEmployeeLeaveDetails(employeeId);
       console.log('Employee details received:', response.data);
-      setEmployeeDetails(response.data);
+      setEmployeeDetails(response.data as EmployeeLeaveDetails);
     } catch (error) {
       console.error('Error loading employee details:', error);
       showError('직원 정보를 불러오는 중 오류가 발생했습니다.');
@@ -202,7 +202,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
   const calculatePreviewBalance = () => {
     if (!employeeDetails) return 0;
     const adjustmentAmount = adjustmentType === 'add' ? amount : -amount;
-    return (employeeDetails?.leaveInfo?.currentBalance || 0) + adjustmentAmount;
+    return (employeeDetails?.leaveStatus?.remainingAnnualLeave || 0) + adjustmentAmount;
   };
 
   if (detailsLoading) {
@@ -223,7 +223,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
         ⚙️ {employeeName}님 연차 조정
       </DialogTitle>
       <DialogContent>
-        {employeeDetails && employeeDetails.leaveInfo ? (
+        {employeeDetails && employeeDetails.leaveStatus ? (
           <Grid container spacing={3} sx={{ mt: 1 }}>
             {/* 현재 연차 현황 */}
             <Grid size={12}>
@@ -241,7 +241,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       기본 연차
                     </Typography>
                     <Typography variant="h6">
-                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
+                      {employeeDetails?.leaveStatus?.totalAnnualLeave || 0}일
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       ({employeeDetails?.employee?.yearsOfService || 0}년차)
@@ -268,7 +268,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       조정 연차
                     </Typography>
                     <Typography variant="h6" color="info.main">
-                      {employeeDetails?.adjustments?.length || 0}건
+                      {employeeDetails?.adjustmentHistory?.length || 0}건
                     </Typography>
                   </Grid>
                   <Grid
@@ -280,7 +280,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       총 연차
                     </Typography>
                     <Typography variant="h6" color="primary">
-                      {employeeDetails?.leaveInfo?.annualEntitlement || 0}일
+                      {employeeDetails?.leaveStatus?.totalAnnualLeave || 0}일
                     </Typography>
                   </Grid>
                   <Grid
@@ -292,7 +292,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       사용 연차
                     </Typography>
                     <Typography variant="h6">
-                      {employeeDetails?.leaveInfo?.totalUsedThisYear || 0}일
+                      {employeeDetails?.leaveStatus?.usedAnnualLeave || 0}일
                     </Typography>
                   </Grid>
                   <Grid
@@ -304,7 +304,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       잔여 연차
                     </Typography>
                     <Typography variant="h6" color="success.main">
-                      {employeeDetails?.leaveInfo?.currentBalance || 0}일
+                      {employeeDetails?.leaveStatus?.remainingAnnualLeave || 0}일
                     </Typography>
                   </Grid>
                 </Grid>
@@ -373,7 +373,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                 <Alert severity="info">
                   <Typography variant="body2">
                     <strong>조정 미리보기:</strong><br />
-                    현재 잔여 연차: {employeeDetails?.leaveInfo?.currentBalance || 0}일<br />
+                    현재 잔여 연차: {employeeDetails?.leaveStatus?.remainingAnnualLeave || 0}일<br />
                     조정 후 잔여 연차: {calculatePreviewBalance()}일<br />
                     변경량: {adjustmentType === 'add' ? '+' : '-'}{amount}일
                   </Typography>
@@ -382,7 +382,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
             )}
 
             {/* 조정 히스토리 */}
-            {(employeeDetails?.adjustments?.length || 0) > 0 && (
+            {(employeeDetails?.adjustmentHistory?.length || 0) > 0 && (
               <Grid size={12}>
                 <Typography variant="h6" gutterBottom>
                   조정 히스토리
@@ -401,7 +401,7 @@ const LeaveAdjustmentDialog: React.FC<LeaveAdjustmentDialogProps> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {(employeeDetails?.adjustments || []).slice(0, 5).map((adjustment) => (
+                      {(employeeDetails?.adjustmentHistory || []).slice(0, 5).map((adjustment) => (
                         <TableRow key={adjustment._id}>
                           <TableCell>
                             {format(new Date(adjustment.adjustedAt), 'yyyy-MM-dd HH:mm', { locale: ko })}

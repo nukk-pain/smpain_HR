@@ -1,24 +1,32 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Box, CircularProgress } from '@mui/material'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { AuthProvider, useAuth } from './components/AuthProvider'
-import Layout from './components/Layout'
+import { queryClient } from './config/queryClient'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import UserProfile from './pages/UserProfile'
+
+// Lazy load all heavy components to reduce initial bundle size
+const Layout = React.lazy(() => import('./components/Layout'))
+const Dashboard = React.lazy(() => import('./pages/Dashboard'))
+const UserProfile = React.lazy(() => import('./pages/UserProfile'))
 
 // Lazy load heavy components to reduce initial bundle size
 const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement'))
+const PayrollExcelUploadPage = React.lazy(() => import('./pages/Payroll/PayrollExcelUpload'))
 const LeaveManagement = React.lazy(() => import('./pages/LeaveManagement'))
 const EmployeeLeaveManagement = React.lazy(() => import('./pages/EmployeeLeaveManagement'))
 const LeaveCalendarPage = React.lazy(() => import('./pages/LeaveCalendarPage'))
-const TeamLeaveStatusPage = React.lazy(() => import('./pages/TeamLeaveStatusPage'))
+const UnifiedLeaveOverviewPage = React.lazy(() => import('./pages/UnifiedLeaveOverviewPage'))
 const UserManagementPage = React.lazy(() => import('./pages/UserManagementPage'))
 const DepartmentManagementPage = React.lazy(() => import('./pages/DepartmentManagementPage'))
 const Reports = React.lazy(() => import('./pages/Reports'))
 const FileManagement = React.lazy(() => import('./pages/FileManagement'))
-const AdminLeaveOverview = React.lazy(() => import('./pages/AdminLeaveOverview'))
 const AdminLeavePolicy = React.lazy(() => import('./pages/AdminLeavePolicy'))
+const MyDocuments = React.lazy(() => import('./pages/MyDocuments'))
+const AdminDocuments = React.lazy(() => import('./pages/AdminDocuments'))
+const IncentiveManagement = React.lazy(() => import('./pages/IncentiveManagement'))
 import { NotificationProvider } from './components/NotificationProvider'
 
 // Protected Route Component
@@ -27,6 +35,18 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: strin
   allowedRoles 
 }) => {
   const { isAuthenticated, user, loading } = useAuth()
+
+  // Debug logging for payroll route
+  if (window.location.pathname === '/payroll/excel-upload') {
+    console.log('🔐 ProtectedRoute for payroll:', {
+      isAuthenticated,
+      loading,
+      userRole: user?.role,
+      userName: user?.name,
+      allowedRoles,
+      hasValidRole: allowedRoles ? (user && allowedRoles.includes(user.role)) : true
+    });
+  }
 
   if (loading) {
     return (
@@ -37,13 +57,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: strin
   }
 
   if (!isAuthenticated) {
+    console.log('🔐 ProtectedRoute: Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    console.log('🔐 ProtectedRoute: Role not allowed, redirecting to dashboard. User role:', user.role, 'Required roles:', allowedRoles);
     return <Navigate to="/dashboard" replace />
   }
 
+  console.log('🔐 ProtectedRoute: Access granted, rendering children');
   return <>{children}</>
 }
 
@@ -61,29 +84,61 @@ const AppContent: React.FC = () => {
 
   return (
     <Routes>
+      {/* Test route - FIRST PRIORITY - completely minimal */}
+      <Route path="/test-minimal" element={
+        <div style={{padding: '20px', backgroundColor: 'lightgreen', minHeight: '100vh'}}>
+          <h1>🎯 TEST MINIMAL ROUTE WORKS!</h1>
+          <p>This is a completely minimal test route.</p>
+          <p>URL: /test-minimal</p>
+          <p>No auth, no layout, no complex components.</p>
+          <p>Current time: {new Date().toLocaleTimeString()}</p>
+        </div>
+      } />
+      
       <Route 
         path="/login" 
         element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} 
       />
       
+      {/* Payroll Excel Upload Route - Direct top-level route to avoid conflicts */}
+      <Route 
+        path="/payroll/excel-upload" 
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+              <PayrollExcelUploadPage />
+            </React.Suspense>
+          </ProtectedRoute>
+        } 
+      />
+      
       <Route path="/" element={
         <ProtectedRoute>
-          <Layout />
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+            <Layout />
+          </React.Suspense>
         </ProtectedRoute>
       }>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <Dashboard />
+          </React.Suspense>
+        } />
         
-        <Route path="profile" element={<UserProfile />} />
+        <Route path="profile" element={
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+            <UserProfile />
+          </React.Suspense>
+        } />
         
         <Route path="supervisor/payroll" element={
-          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <PayrollManagement />
             </React.Suspense>
           </ProtectedRoute>
         } />
-        
         
         <Route path="leave" element={
           <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
@@ -97,6 +152,22 @@ const AppContent: React.FC = () => {
           </React.Suspense>
         } />
         
+        <Route path="my-documents" element={
+          <ProtectedRoute>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <MyDocuments />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+
+        <Route path="admin/documents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminDocuments />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
+        
         {/* Redirect old URLs to new structure */}
         <Route path="leave-calendar" element={<Navigate to="/leave/calendar" replace />} />
         <Route path="employee-leave-status" element={<Navigate to="/supervisor/leave/status" replace />} />
@@ -104,20 +175,26 @@ const AppContent: React.FC = () => {
         <Route path="admin/leave-overview" element={<Navigate to="/admin/leave/overview" replace />} />
         <Route path="admin/leave-policy" element={<Navigate to="/admin/leave/policy" replace />} />
         
+      </Route>
+      
+      <Route path="/" element={
+        <ProtectedRoute>
+          <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
+            <Layout />
+          </React.Suspense>
+        </ProtectedRoute>
+      }>
+        
         {/* Role-based redirects for old management pages - Admin now uses supervisor routes */}
         <Route path="users" element={<Navigate to="/supervisor/users" replace />} />
         <Route path="departments" element={<Navigate to="/supervisor/departments" replace />} />
+        {/* Make payroll redirect more specific to avoid matching /payroll/excel-upload */}
         <Route path="payroll" element={<Navigate to="/supervisor/payroll" replace />} />
         <Route path="reports" element={<Navigate to="/supervisor/reports" replace />} />
         <Route path="files" element={<Navigate to="/supervisor/files" replace />} />
         
-        <Route path="supervisor/leave/status" element={
-          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
-            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-              <TeamLeaveStatusPage />
-            </React.Suspense>
-          </ProtectedRoute>
-        } />
+        {/* Redirect old supervisor/leave/status to new unified route */}
+        <Route path="supervisor/leave/status" element={<Navigate to="/leave/overview" replace />} />
         
         <Route path="supervisor/leave/requests" element={
           <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
@@ -143,7 +220,13 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        
+        <Route path="supervisor/incentives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <IncentiveManagement />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
         
         <Route path="supervisor/reports" element={
           <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
@@ -162,14 +245,17 @@ const AppContent: React.FC = () => {
         } />
         
         
-        
-        <Route path="admin/leave/overview" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+        {/* Unified Leave Overview - replaces both admin/leave/overview and supervisor/leave/status */}
+        <Route path="leave/overview" element={
+          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
-              <AdminLeaveOverview />
+              <UnifiedLeaveOverviewPage />
             </React.Suspense>
           </ProtectedRoute>
         } />
+        
+        {/* Redirect old admin/leave/overview to new unified route */}
+        <Route path="admin/leave/overview" element={<Navigate to="/leave/overview" replace />} />
         
         <Route path="admin/leave/policy" element={
           <ProtectedRoute allowedRoles={['admin']}>
@@ -178,8 +264,17 @@ const AppContent: React.FC = () => {
             </React.Suspense>
           </ProtectedRoute>
         } />
+        
+        <Route path="admin/documents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
+              <AdminDocuments />
+            </React.Suspense>
+          </ProtectedRoute>
+        } />
       </Route>
       
+      {/* Catch-all route - MUST be last to avoid overriding specific routes */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
@@ -188,11 +283,16 @@ const AppContent: React.FC = () => {
 // Main App Component
 const App: React.FC = () => {
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </NotificationProvider>
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </NotificationProvider>
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
+    </QueryClientProvider>
   )
 }
 

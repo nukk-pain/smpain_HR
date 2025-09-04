@@ -1,0 +1,1 @@
+- 개발환경 mongodb는 비밀번호 없어도 되고 프로그램 admin 계정은 admin/admin

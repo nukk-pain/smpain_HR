@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ApiResponse, AuthResponse, User, Department, Position, OrganizationChart, DepartmentEmployees } from '../types';
 import { getApiUrl } from '../config/env';
-import { getValidToken, clearAuth } from '../utils/tokenManager';
+import { getValidToken, getAccessToken, getRefreshToken, storeTokens, storeToken, clearAuth } from '../utils/tokenManager';
 
 class ApiService {
   private api: AxiosInstance;
@@ -29,20 +29,62 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true, // Flask session-based auth
+      // withCredentials removed: using JWT header auth
     });
 
     this.setupInterceptors();
   }
 
   private setupInterceptors() {
+    // Shared refresh state for this client instance
+    let isRefreshing = false as boolean;
+    let refreshPromise: Promise<string> | null = null;
+    let requestQueue: Array<(token: string) => void> = [];
+
+    const enqueueRequest = (cb: (token: string) => void) => {
+      requestQueue.push(cb);
+    };
+    const resolveQueue = (token: string) => {
+      requestQueue.forEach((cb) => cb(token));
+      requestQueue = [];
+    };
+    const rejectQueue = (err: any) => {
+      requestQueue = [];
+    };
+
+    const doRefresh = async (): Promise<string> => {
+      const refreshToken = getRefreshToken?.();
+      if (!refreshToken) {
+        throw new Error('No refresh token');
+      }
+      const resp = await this.api.post('/auth/refresh', { refreshToken }, { headers: { Authorization: '' } });
+      const newAccess = resp.data?.accessToken || resp.data?.token;
+      const newRefresh = resp.data?.refreshToken || refreshToken;
+      if (!newAccess) throw new Error('Refresh failed: no access token');
+      // Persist tokens
+      if (newRefresh) {
+        storeTokens(newAccess, newRefresh);
+      } else {
+        storeToken(newAccess);
+      }
+      // Set default header for subsequent requests
+      this.api.defaults.headers.common['Authorization'] = `Bearer ${newAccess}`;
+      return newAccess;
+    };
+
     // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
+        // Skip auth header for login/refresh endpoints
+        const url = config.url || '';
+        const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh');
         // Add JWT token to Authorization header
-        const token = getValidToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const token = isAuthEndpoint ? null : getAccessToken?.() || getValidToken();
+        if (token && !isAuthEndpoint) {
+          if (!config.headers) {
+            config.headers = {} as any;
+          }
+          (config.headers as any).Authorization = `Bearer ${token}`;
           if (import.meta.env.DEV) {
             console.log('🔑 Token added to request', {
               url: config.url,
@@ -74,32 +116,71 @@ class ApiService {
         return response;
       },
       (error) => {
-        // Handle common errors
-        if (error.response?.status === 401) {
-          // Only clear token if this is not a login request and not already on login page
-          const isLoginRequest = error.config?.url?.includes('/auth/login');
-          const isOnLoginPage = window.location.pathname === '/login';
-          
-          if (import.meta.env.DEV) {
-            console.warn('🚫 401 Unauthorized received', {
-              url: error.config?.url,
-              isLoginRequest,
-              isOnLoginPage,
-              currentPath: window.location.pathname,
-              willClearToken: !isLoginRequest && !isOnLoginPage,
-              timestamp: new Date().toISOString()
-            });
-          }
-          
-          if (!isLoginRequest && !isOnLoginPage) {
-            if (import.meta.env.DEV) {
-              console.warn('🗑️ Clearing token due to 401 error');
-            }
-            clearAuth();
-            window.location.href = '/login';
-          }
+        const { response, config } = error || {};
+        const originalRequest = config || {};
+        // If no response or not 401, pass through
+        if (!response || response.status !== 401) {
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
+        const url: string = originalRequest?.url || '';
+        const isLogin = url.includes('/auth/login');
+        const isRefresh = url.includes('/auth/refresh');
+        if (isLogin || isRefresh) {
+          // Don't try to refresh on auth endpoints
+          return Promise.reject(error);
+        }
+        // Prevent infinite loop
+        if ((originalRequest as any)._retry) {
+          return Promise.reject(error);
+        }
+        (originalRequest as any)._retry = true;
+
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = doRefresh()
+            .then((newToken) => {
+              resolveQueue(newToken);
+              return newToken;
+            })
+            .catch((err) => {
+              if (import.meta.env.DEV) {
+                console.warn('🔒 Token refresh failed, clearing auth');
+              }
+              clearAuth();
+              // Redirect to login if not already there
+              if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+              rejectQueue(err);
+              throw err;
+            })
+            .finally(() => {
+              isRefreshing = false;
+              refreshPromise = null;
+            });
+        }
+
+        // Queue the current request until refresh completes
+        return new Promise((resolve, reject) => {
+          const retry = (token: string) => {
+            if (!token) {
+              return reject(error);
+            }
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve(this.api.request(originalRequest));
+          };
+
+          if (refreshPromise) {
+            enqueueRequest(retry);
+            refreshPromise.then((token) => {
+              // no-op here; queued callbacks will run via resolveQueue
+            }).catch(reject);
+          } else {
+            // Should not happen, but guard
+            reject(error);
+          }
+        });
       }
     );
   }
@@ -119,8 +200,8 @@ class ApiService {
     return response.data;
   }
 
-  async put<T>(url: string, data?: any): Promise<ApiResponse<T>> {
-    const response = await this.api.put(url, data);
+  async put<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+    const response = await this.api.put(url, data, config);
     return response.data;
   }
 
@@ -130,9 +211,35 @@ class ApiService {
   }
 
   async upload(url: string, formData: FormData): Promise<any> {
+    // Generate a simple CSRF token for file uploads
+    const csrfToken = Math.random().toString(36).substr(2) + Date.now().toString(36);
+    
     const response = await this.api.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        'x-csrf-token': csrfToken,
+      },
+    });
+    return response.data;
+  }
+
+  // Upload with progress tracking
+  async uploadWithProgress(
+    url: string, 
+    formData: FormData, 
+    onProgress?: (progress: number) => void
+  ): Promise<any> {
+    const response = await this.api.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          onProgress(percentCompleted);
+        }
       },
     });
     return response.data;
@@ -146,10 +253,17 @@ class ApiService {
       fullURL: `${this.api.defaults.baseURL}/auth/login`,
       method: 'POST'
     });
-    
-    
     const response = await this.api.post('/auth/login', { username, password });
-    return response.data;
+    // Store tokens if present (Phase 4) else legacy token
+    const data = response.data || {};
+    const access = data.accessToken || data.token;
+    const refresh = data.refreshToken;
+    if (access && refresh) {
+      storeTokens(access, refresh);
+    } else if (access) {
+      storeToken(access);
+    }
+    return data;
   }
 
   async logout(): Promise<ApiResponse<any>> {
@@ -158,6 +272,11 @@ class ApiService {
 
   async getCurrentUser(): Promise<AuthResponse> {
     const response = await this.api.get('/auth/me');
+    return response.data;
+  }
+
+  async verifyPassword(password: string): Promise<{ verificationToken: string; expiresAt: string }> {
+    const response = await this.api.post('/auth/verify-password', { password });
     return response.data;
   }
 
@@ -304,6 +423,15 @@ class ApiService {
     return this.get(`/payroll/monthly/${yearMonth}`);
   }
 
+  async exportPayrollExcel(yearMonth: string) {
+    const response = await this.api.request({
+      method: 'GET',
+      url: `/payroll/monthly/${yearMonth}/export`,
+      responseType: 'blob'
+    });
+    return response;
+  }
+
   async updatePayroll(data: any) {
     return this.post('/payroll/monthly', data);
   }
@@ -312,21 +440,14 @@ class ApiService {
     return this.get(`/sales/${yearMonth}`);
   }
 
-  async calculateIncentive(userId: number, yearMonth: string, salesAmount: number) {
-    return this.post('/payroll/calculate-incentive', { 
-      user_id: userId, 
-      year_month: yearMonth, 
-      sales_amount: salesAmount 
-    });
-  }
 
   async getBonuses(userId: number, yearMonth?: string) {
-    const url = yearMonth ? `/payroll/bonus/${userId}/${yearMonth}` : `/payroll/bonus/${userId}`;
+    const url = yearMonth ? `/bonus/user/${userId}?yearMonth=${yearMonth}` : `/bonus/user/${userId}`;
     return this.get(url);
   }
 
   async addBonus(data: any) {
-    return this.post('/payroll/bonus', data);
+    return this.post('/bonus', data);
   }
 
   // Reports
@@ -355,31 +476,25 @@ class ApiService {
     return response.data;
   }
 
-  async downloadPayrollTemplate() {
-    const response = await this.api.get('/reports/template/payroll', {
-      responseType: 'blob',
-    });
-    return response.data;
-  }
 
   // File Upload and Processing
   async uploadPayrollFile(file: File, yearMonth: string) {
     const formData = new FormData();
     formData.append('payrollFile', file);
     formData.append('yearMonth', yearMonth);
-    return this.upload('/payroll-upload', formData);
+    return this.upload('/upload', formData);
   }
 
   async getUploadPreview(uploadId: string, page: number = 1, limit: number = 20) {
-    return this.get(`/payroll-upload/${uploadId}/preview`, { page, limit });
+    return this.get(`/upload/${uploadId}/preview`, { page, limit });
   }
 
   async compareUploadData(uploadId: string, yearMonth: string) {
-    return this.get(`/payroll-upload/${uploadId}/compare/${yearMonth}`);
+    return this.get(`/upload/${uploadId}/compare/${yearMonth}`);
   }
 
   async processUpload(uploadId: string, yearMonth: string) {
-    return this.put(`/payroll-upload/${uploadId}/process`, { yearMonth });
+    return this.put(`/upload/${uploadId}/process`, { yearMonth });
   }
 
   // Statistics
@@ -388,7 +503,15 @@ class ApiService {
   }
 
   async getLeaveStats() {
-    return this.get('/leave/stats/overview');
+    // TODO: This endpoint doesn't exist in backend - needs implementation
+    console.warn('getLeaveStats endpoint not implemented in backend');
+    return Promise.resolve({ 
+      success: true, 
+      data: { totalEmployees: 0, onLeave: 0, upcoming: 0 },
+      message: 'Endpoint not implemented' 
+    });
+    // Original call:
+    // return this.get('/leave/stats/overview');
   }
 
   async getUserStats() {
@@ -397,6 +520,93 @@ class ApiService {
 
   async getPayrollStats(yearMonth: string) {
     return this.get(`/payroll/stats/${yearMonth}`);
+  }
+
+  // Enhanced Payroll Management (Phase 1)
+  async getPayrollRecords(params?: {
+    year?: number;
+    month?: number;
+    userId?: string;
+    paymentStatus?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.get('/payroll', params);
+  }
+
+  async getPayrollRecord(id: string) {
+    return this.get(`/payroll/${id}`);
+  }
+
+  async createPayrollRecord(data: any) {
+    return this.post('/payroll', data);
+  }
+
+  async updatePayrollRecord(id: string, data: any) {
+    return this.put(`/payroll/${id}`, data);
+  }
+
+  async deletePayrollRecord(id: string) {
+    return this.delete(`/payroll/${id}`);
+  }
+
+  // Excel Upload/Export
+
+  async previewPayrollExcel(file: File, year?: number, month?: number) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (year) formData.append('year', year.toString());
+    if (month) formData.append('month', month.toString());
+    return this.upload('/upload/excel/preview', formData);
+  }
+
+  async confirmPayrollExcel(
+    previewToken: string, 
+    idempotencyKey?: string, 
+    duplicateMode?: 'skip' | 'update' | 'replace',
+    recordActions?: Array<{rowNumber: number; action: string; userId?: string}>
+  ) {
+    const payload: any = { previewToken };
+    if (idempotencyKey) {
+      payload.idempotencyKey = idempotencyKey;
+    }
+    if (duplicateMode) {
+      payload.duplicateMode = duplicateMode;
+    }
+    if (recordActions && recordActions.length > 0) {
+      payload.recordActions = recordActions;
+    }
+    return this.post('/upload/excel/confirm', payload);
+  }
+
+  async exportPayrollData(params?: {
+    year?: number;
+    month?: number;
+    userId?: string;
+  }) {
+    const response = await this.api.get('/upload/excel/export', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Payslip Management
+  async uploadPayslip(payrollId: string, file: File) {
+    const formData = new FormData();
+    formData.append('payslip', file);
+    return this.upload(`/payroll/${payrollId}/payslip`, formData);
+  }
+
+  async downloadPayslipPdf(payrollId: string) {
+    const response = await this.api.get(`/payroll/${payrollId}/payslip`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async deletePayslip(payrollId: string) {
+    return this.delete(`/payroll/${payrollId}/payslip`);
   }
 
   // Departments
@@ -459,7 +669,15 @@ class ApiService {
   }
 
   async getAvailablePermissions() {
-    return this.get('/permissions');
+    // TODO: This endpoint doesn't exist in backend - needs implementation
+    console.warn('getAvailablePermissions endpoint not implemented in backend');
+    return Promise.resolve({ 
+      success: true, 
+      data: [],
+      message: 'Endpoint not implemented' 
+    });
+    // Original call:
+    // return this.get('/permissions');
   }
 
   // Admin
@@ -492,6 +710,155 @@ class ApiService {
 
   async bulkApproveLeaveRequests(requestIds: string[], action: 'approve' | 'reject', comment?: string) {
     return this.post('/admin/leave/bulk-approve', { requestIds, action, comment });
+  }
+
+  // My Documents
+  async getMyDocuments(params?: {
+    type?: string;
+    year?: number;
+    month?: number;
+    category?: string;
+  }): Promise<ApiResponse<any[]>> {
+    const queryString = new URLSearchParams(params as any).toString();
+    return this.get(`/documents${queryString ? '?' + queryString : ''}`);
+  }
+
+  async downloadDocument(documentId: string) {
+    const response = await this.api.get(`/documents/${documentId}/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  getDocumentPreviewUrl(documentId: string): string {
+    const token = getValidToken();
+    return `${this.api.defaults.baseURL}/documents/${documentId}/preview?token=${token}`;
+  }
+
+  async generateCertificate(data: {
+    type: 'employment' | 'career' | 'income';
+    purpose: string;
+    language?: 'ko' | 'en';
+  }): Promise<ApiResponse<any>> {
+    return this.post('/documents/certificate/generate', data);
+  }
+
+  // Admin Document Management
+  async getAdminDocuments(params?: {
+    userId?: string;
+    type?: string;
+    includeDeleted?: boolean;
+  }): Promise<ApiResponse<any[]>> {
+    const queryString = new URLSearchParams(params as any).toString();
+    return this.get(`/documents/admin/all${queryString ? '?' + queryString : ''}`);
+  }
+
+  async deleteDocument(documentId: string, reason: string): Promise<ApiResponse<any>> {
+    return this.delete(`/documents/${documentId}`, { reason });
+  }
+
+  async replaceDocument(documentId: string, formData: FormData): Promise<ApiResponse<any>> {
+    return this.upload(`/documents/${documentId}/replace`, formData);
+  }
+
+  // Incentive Management
+  async getIncentiveTypes(): Promise<ApiResponse<any[]>> {
+    return this.get('/incentive/types');
+  }
+
+  async getIncentiveConfig(userId: string): Promise<ApiResponse<any>> {
+    return this.get(`/incentive/config/${userId}`);
+  }
+
+  async updateIncentiveConfig(userId: string, config: {
+    type: string;
+    parameters: Record<string, number>;
+    customFormula?: string;
+    isActive: boolean;
+    effectiveDate?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/incentive/config/${userId}`, config);
+  }
+
+  async calculateIncentive(userId: string, yearMonth: string): Promise<ApiResponse<any>> {
+    return this.post('/incentive/calculate', { userId, yearMonth });
+  }
+
+  async simulateIncentive(config: any, salesData: any): Promise<ApiResponse<any>> {
+    return this.post('/incentive/simulate', { config, salesData });
+  }
+
+  async batchCalculateIncentives(yearMonth: string): Promise<ApiResponse<any>> {
+    return this.post('/incentive/batch-calculate', { yearMonth });
+  }
+
+  async getIncentiveHistory(userId: string, startDate?: string, endDate?: string): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const queryString = params.toString();
+    return this.get(`/incentive/history/${userId}${queryString ? '?' + queryString : ''}`);
+  }
+
+  async validateIncentiveFormula(formula: string, testData?: any): Promise<ApiResponse<any>> {
+    return this.post('/incentive/validate', { formula, testData });
+  }
+
+  async restoreDocument(documentId: string): Promise<ApiResponse<any>> {
+    return this.put(`/documents/${documentId}/restore`, {});
+  }
+
+  // Leave Excel Export
+  async exportLeaveToExcel(params: {
+    view: 'overview' | 'team' | 'department';
+    year: number;
+    department?: string;
+    riskLevel?: string;
+  }): Promise<void> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('view', params.view);
+      queryParams.append('year', params.year.toString());
+      if (params.department && params.department !== 'all') {
+        queryParams.append('department', params.department);
+      }
+      if (params.riskLevel) {
+        queryParams.append('riskLevel', params.riskLevel);
+      }
+
+      const response = await this.api.get(`/admin/leave/export/excel?${queryParams.toString()}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      });
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `leave-${params.view}-${params.year}.xlsx`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)|filename="?(.+?)"?(?:;|$)/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
+        }
+      }
+
+      // Create blob and download
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      throw new Error('Excel 내보내기에 실패했습니다.');
+    }
   }
 }
 

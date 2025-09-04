@@ -39,7 +39,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { Department, DepartmentEmployees, User, OrganizationChart, Position } from '../types';
+import { Department, DepartmentEmployees, User, OrganizationChart, Position, UserRole } from '../types';
 import { apiService } from '../services/api';
 import { useNotification } from './NotificationProvider';
 import { getRoleColor, isSupervisorRole } from '../utils/roleUtils';
@@ -263,9 +263,9 @@ const DepartmentManagement: React.FC = () => {
         <Card sx={{ mb: 1, backgroundColor: level === 0 ? '#f5f5f5' : 'white' }}>
           <CardContent sx={{ py: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color={getRoleColor(user.role || 'user')} />
+              <PersonIcon color={getRoleColor((user.role || 'user') as UserRole)} />
               <Typography variant="subtitle2">{user.name}</Typography>
-              {user.role && <Chip label={user.role} size="small" color={getRoleColor(user.role)} />}
+              {user.role && <Chip label={user.role} size="small" color={getRoleColor(user.role as UserRole)} />}
               <Typography variant="body2" color="text.secondary">
                 {user.department} - {user.position}
               </Typography>
@@ -388,6 +388,7 @@ const DepartmentManagement: React.FC = () => {
                               </Box>
                             </Box>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
                               <Chip
@@ -490,9 +491,6 @@ const DepartmentManagement: React.FC = () => {
             <Grid size={12}>
             <Card>
               <CardContent>
-                {(() => {
-                  return null;
-                })()}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <PositionIcon color="primary" />
                   <Typography variant="h6">Positions</Typography>

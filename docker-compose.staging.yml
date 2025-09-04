@@ -1,0 +1,218 @@
+version: '3.8'
+
+services:
+  # MongoDB for staging
+  mongodb-staging:
+    image: mongo:6.0
+    container_name: hr-mongodb-staging
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-staging_password}
+      MONGO_INITDB_DATABASE: SM_nomu_staging
+    ports:
+      - "27018:27017"  # Different port for staging
+    volumes:
+      - mongodb-staging-data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - hr-staging-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/SM_nomu_staging --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Backend API for staging
+  backend-staging:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: staging
+    container_name: hr-backend-staging
+    restart: unless-stopped
+    environment:
+      NODE_ENV: staging
+      PORT: 8080
+      MONGODB_URI: mongodb://admin:${MONGO_ROOT_PASSWORD:-staging_password}@mongodb-staging:27017/SM_nomu_staging?authSource=admin
+      DB_NAME: SM_nomu_staging
+      JWT_SECRET: ${JWT_SECRET:-staging-jwt-secret}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3728}
+      # Feature Flags for staging
+      FEATURE_PREVIEW_UPLOAD: "true"
+      FEATURE_LEGACY_UPLOAD: "false"
+      FEATURE_BULK_OPERATIONS: "true"
+      # Health monitoring
+      ENABLE_AUTO_ROLLBACK: "true"
+      ROLLBACK_ERROR_THRESHOLD: "0.1"
+    ports:
+      - "8081:8080"  # Different port for staging
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - staging-uploads:/app/uploads
+      - staging-logs:/app/logs
+    depends_on:
+      mongodb-staging:
+        condition: service_healthy
+    networks:
+      - hr-staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend for staging (if not using Vercel)
+  frontend-staging:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8081/api
+        VITE_ENV: staging
+    container_name: hr-frontend-staging
+    restart: unless-stopped
+    environment:
+      NODE_ENV: staging
+      VITE_API_URL: http://localhost:8081/api
+    ports:
+      - "3728:80"  # Different port for staging
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      backend-staging:
+        condition: service_healthy
+    networks:
+      - hr-staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx reverse proxy for staging
+  nginx-staging:
+    image: nginx:alpine
+    container_name: hr-nginx-staging
+    restart: unless-stopped
+    ports:
+      - "8443:443"  # HTTPS for staging
+      - "8080:80"   # HTTP for staging
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl-staging:/etc/nginx/ssl:ro
+      - staging-static:/usr/share/nginx/html:ro
+    depends_on:
+      - backend-staging
+      - frontend-staging
+    networks:
+      - hr-staging-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching (staging)
+  redis-staging:
+    image: redis:7-alpine
+    container_name: hr-redis-staging
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # Different port for staging
+    volumes:
+      - redis-staging-data:/data
+    networks:
+      - hr-staging-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring with Prometheus (staging)
+  prometheus-staging:
+    image: prom/prometheus:latest
+    container_name: hr-prometheus-staging
+    restart: unless-stopped
+    ports:
+      - "9091:9090"  # Different port for staging
+    volumes:
+      - ./monitoring/prometheus-staging.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-staging-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - hr-staging-network
+
+  # Grafana for visualization (staging)
+  grafana-staging:
+    image: grafana/grafana:latest
+    container_name: hr-grafana-staging
+    restart: unless-stopped
+    ports:
+      - "3001:3000"  # Different port for staging
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-staging_admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-staging-data:/var/lib/grafana
+      - ./monitoring/grafana-staging:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus-staging
+    networks:
+      - hr-staging-network
+
+  # Backup service for staging
+  backup-staging:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.backup
+    container_name: hr-backup-staging
+    restart: unless-stopped
+    environment:
+      MONGODB_URI: mongodb://admin:${MONGO_ROOT_PASSWORD:-staging_password}@mongodb-staging:27017/SM_nomu_staging?authSource=admin
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      BACKUP_RETENTION_DAYS: 7
+      S3_BUCKET: ${S3_BUCKET:-hr-staging-backups}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - staging-backups:/backups
+    depends_on:
+      - mongodb-staging
+    networks:
+      - hr-staging-network
+
+networks:
+  hr-staging-network:
+    driver: bridge
+    name: hr-staging-network
+
+volumes:
+  mongodb-staging-data:
+    name: hr-mongodb-staging-data
+  staging-uploads:
+    name: hr-staging-uploads
+  staging-logs:
+    name: hr-staging-logs
+  staging-static:
+    name: hr-staging-static
+  redis-staging-data:
+    name: hr-redis-staging-data
+  prometheus-staging-data:
+    name: hr-prometheus-staging-data
+  grafana-staging-data:
+    name: hr-grafana-staging-data
+  staging-backups:
+    name: hr-staging-backups

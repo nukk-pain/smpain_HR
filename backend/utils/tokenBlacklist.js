@@ -8,8 +8,10 @@ class TokenBlacklist {
     this.blacklistedTokens = new Map();
     this.cleanupInterval = null;
     
-    // Start cleanup process
-    this.startCleanup();
+    // Start cleanup process (skip in test environment)
+    if (process.env.NODE_ENV !== 'test') {
+      this.startCleanup();
+    }
   }
 
   /**

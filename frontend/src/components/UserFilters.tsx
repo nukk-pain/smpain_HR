@@ -49,19 +49,19 @@ export interface UserFiltersProps {
 }
 
 // Constants memoized for performance
-const ROLE_NAMES = Object.freeze({
+const ROLE_NAMES = {
   admin: '관리자',
   supervisor: '팀장',
   user: '사용자'
-}) as const;
+} as const;
 
-const STATUS_OPTIONS = Object.freeze([
+const STATUS_OPTIONS = [
   { value: 'all', label: '전체' },
   { value: 'active', label: '활성' },
   { value: 'inactive', label: '비활성' }
-]) as const;
+] as const;
 
-const SORT_FIELD_OPTIONS = Object.freeze([
+const SORT_FIELD_OPTIONS = [
   { value: 'id' as SortField, label: 'ID' },
   { value: 'name' as SortField, label: '이름' },
   { value: 'username' as SortField, label: '사용자명' },
@@ -69,7 +69,7 @@ const SORT_FIELD_OPTIONS = Object.freeze([
   { value: 'role' as SortField, label: '역할' },
   { value: 'status' as SortField, label: '상태' },
   { value: 'position' as SortField, label: '직책' }
-]) as const;
+] as const;
 
 /**
  * Optimized UserFilters component with React.memo and performance enhancements
@@ -235,7 +235,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
       {/* Filter Controls */}
       <Grid container spacing={2} alignItems="center" sx={{ mb: hasActiveFilters ? 2 : 0 }}>
         {/* Search Field */}
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <TextField
             fullWidth
             size="small"
@@ -255,7 +255,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
         </Grid>
 
         {/* Department Filter */}
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <FormControl fullWidth size="small">
             <InputLabel id="department-filter-label">부서</InputLabel>
             <Select
@@ -272,7 +272,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
         </Grid>
 
         {/* Role Filter */}
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <FormControl fullWidth size="small">
             <InputLabel id="role-filter-label">역할</InputLabel>
             <Select
@@ -289,7 +289,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
         </Grid>
 
         {/* Status Filter */}
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <FormControl fullWidth size="small">
             <InputLabel id="status-filter-label">상태</InputLabel>
             <Select
@@ -305,7 +305,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
         </Grid>
 
         {/* Sort Controls */}
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <Box display="flex" alignItems="center" gap={1}>
             <FormControl fullWidth size="small">
               <InputLabel id="sort-by-label">정렬 기준</InputLabel>
@@ -342,7 +342,7 @@ export const UserFilters: React.FC<UserFiltersProps> = memo(({
         </Grid>
 
         {/* Reset Button */}
-        <Grid item xs={12} md={1}>
+        <Grid size={{ xs: 12, md: 1 }}>
           <Box display="flex" justifyContent="center">
             {hasActiveFilters && (
               <Tooltip title="모든 필터 초기화">

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
 const { requireAuth } = require('../middleware/errorHandler');
+const { requirePermission } = require('../middleware/permissions');
 const { generateToken, verifyToken } = require('../utils/jwt');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/refreshToken');
 const { tokenBlacklist, TokenBlacklist } = require('../utils/tokenBlacklist');
@@ -12,45 +13,61 @@ const router = express.Router();
 
 // Authentication routes
 function createAuthRoutes(db) {
-  // Make requirePermission available to this module (JWT-based) with role-based fallback
-  const requirePermission = (permission) => {
-    return (req, res, next) => {
-      if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      const userPermissions = req.user.permissions || [];
-      const userRole = req.user.role;
-      
-      // Admin role has all permissions
-      if (userRole === 'admin' || userRole === 'Admin') {
-        return next();
-      }
-      
-      // Check specific permission in user's permissions array
-      if (userPermissions.includes(permission)) {
-        return next();
-      }
-
-      // If user doesn't have explicit permission, check if their role should have it
-      const roleBasedPermissions = {
-        user: ['leave:view'],
-        manager: ['leave:view', 'leave:manage', 'users:view'],
-        supervisor: ['leave:view', 'leave:manage', 'users:view'],
-        admin: ['users:view', 'users:manage', 'users:create', 'users:edit', 'users:delete',
-                 'leave:view', 'leave:manage', 'payroll:view', 'payroll:manage',
-                 'reports:view', 'files:view', 'files:manage', 'departments:view',
-                 'departments:manage', 'admin:permissions']
-      };
-
-      const rolePermissions = roleBasedPermissions[userRole.toLowerCase()] || [];
-      if (rolePermissions.includes(permission)) {
-        return next();
-      }
-      
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    };
-  };
+  // Using requirePermission from middleware/permissions.js
+  /**
+   * @swagger
+   * /api/auth/login:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: User login
+   *     description: Authenticate a user with username and password, returns JWT token
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginRequest'
+   *           example:
+   *             username: "admin"
+   *             password: "admin"
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponse'
+   *             example:
+   *               success: true
+   *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+   *               user:
+   *                 _id: "507f1f77bcf86cd799439011"
+   *                 username: "admin"
+   *                 role: "Admin"
+   *                 name: "Administrator"
+   *               message: "Login successful"
+   *       400:
+   *         description: Invalid request data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "VALIDATION_ERROR"
+   *               message: "Username and password are required"
+   *       401:
+   *         description: Authentication failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "INVALID_CREDENTIALS"
+   *               message: "Invalid username or password"
+   */
   // Login endpoint with validation middleware
   router.post('/login', validate.body(authSchemas.login), async (req, res) => {
     try {
@@ -143,6 +160,37 @@ function createAuthRoutes(db) {
     }
   });
 
+  /**
+   * @swagger
+   * /api/auth/logout:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: User logout
+   *     description: Logout current user and blacklist JWT token
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Logout successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ApiResponse'
+   *             example:
+   *               success: true
+   *               message: "Logout successful"
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "UNAUTHORIZED"
+   *               message: "Authentication required"
+   */
   // Logout endpoint (with token blacklisting support)
   router.post('/logout', requireAuth, (req, res) => {
     try {
@@ -166,6 +214,96 @@ function createAuthRoutes(db) {
       res.json({ 
         success: true,
         message: 'Logout successful. Please remove token from client.' 
+      });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/auth/check:
+   *   get:
+   *     tags:
+   *       - Authentication
+   *     summary: Check authentication status
+   *     description: Check if the current user is authenticated and return user info
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: User is authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 authenticated:
+   *                   type: boolean
+   *                 user:
+   *                   $ref: '#/components/schemas/User'
+   *       401:
+   *         description: User is not authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 authenticated:
+   *                   type: boolean
+   *                 error:
+   *                   type: string
+   */
+  // Check authentication status endpoint
+  router.get('/check', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ 
+          authenticated: false, 
+          error: 'No token provided' 
+        });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      
+      try {
+        const decoded = verifyToken(token);
+        
+        // Get fresh user data from database
+        const user = await db.collection('users').findOne({ 
+          _id: new ObjectId(decoded.userId || decoded.id) 
+        });
+        
+        if (!user || !user.isActive) {
+          return res.status(401).json({ 
+            authenticated: false, 
+            error: 'User not found or inactive' 
+          });
+        }
+        
+        res.json({
+          authenticated: true,
+          user: {
+            _id: user._id.toString(),
+            id: user._id.toString(),
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            permissions: user.permissions || []
+          }
+        });
+      } catch (tokenError) {
+        return res.status(401).json({ 
+          authenticated: false, 
+          error: 'Invalid or expired token' 
+        });
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      res.status(500).json({ 
+        authenticated: false, 
+        error: 'Internal server error' 
       });
     }
   });
@@ -216,6 +354,49 @@ function createAuthRoutes(db) {
     res.json({ message: 'For JWT auth, please clear token on client side' });
   });
 
+  /**
+   * @swagger
+   * /api/auth/me:
+   *   get:
+   *     tags:
+   *       - Authentication
+   *     summary: Get current user info
+   *     description: Retrieve information about the currently authenticated user
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current user information
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 user:
+   *                   $ref: '#/components/schemas/User'
+   *             example:
+   *               success: true
+   *               user:
+   *                 _id: "507f1f77bcf86cd799439011"
+   *                 username: "admin"
+   *                 role: "Admin"
+   *                 name: "Administrator"
+   *                 email: "admin@company.com"
+   *                 isActive: true
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: "UNAUTHORIZED"
+   *               message: "Authentication required"
+   */
   // Get current user (JWT-based)
   router.get('/me', requireAuth, async (req, res) => {
     try {
@@ -293,6 +474,63 @@ function createAuthRoutes(db) {
     } catch (error) {
       console.error('Change password error:', error);
       res.status(500).json({ error: '비밀번호 변경 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // Password verification endpoint for sensitive operations
+  router.post('/verify-password', requireAuth, async (req, res) => {
+    try {
+      const { password } = req.body;
+      const userId = req.user.id;
+
+      if (!password) {
+        return res.status(400).json({ error: 'Password is required' });
+      }
+
+      // Get user from database
+      const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify password
+      const isPasswordValid = bcrypt.compareSync(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Invalid password' });
+      }
+
+      // Generate temporary verification token (5 min expiry)
+      const crypto = require('crypto');
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      // Store verification token in memory cache (or database)
+      // Using a simple in-memory store for now
+      if (!global.passwordVerificationTokens) {
+        global.passwordVerificationTokens = new Map();
+      }
+      
+      global.passwordVerificationTokens.set(verificationToken, {
+        userId: userId,
+        expiresAt: expiresAt
+      });
+
+      // Clean up expired tokens periodically
+      for (const [token, data] of global.passwordVerificationTokens.entries()) {
+        if (new Date() > data.expiresAt) {
+          global.passwordVerificationTokens.delete(token);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        verificationToken: verificationToken,
+        expiresAt: expiresAt,
+        message: 'Password verified successfully'
+      });
+    } catch (error) {
+      console.error('Password verification error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

@@ -55,7 +55,8 @@ const ROLE_PERMISSIONS = {
     'leave:view',
     'leave:approve',
     'leave:manage',
-    'payroll:view',
+    // 'payroll:view', // Removed - Admin only
+    // 'payroll:manage', // Removed - Admin only
     'reports:view',
     'reports:export',
     'departments:view',
@@ -67,7 +68,8 @@ const ROLE_PERMISSIONS = {
     'leave:view',
     'leave:approve',
     'leave:manage',
-    'payroll:view',
+    // 'payroll:view', // Removed - Admin only
+    // 'payroll:manage', // Removed - Admin only
     'reports:view',
     'reports:export',
     'departments:view',
@@ -448,6 +450,71 @@ const addPermissionInfo = async (req, res, next) => {
   next();
 };
 
+// Password verification middleware for sensitive operations
+const requirePasswordVerification = (req, res, next) => {
+  try {
+    const verificationToken = req.headers['x-verification-token'];
+    
+    if (!verificationToken) {
+      return res.status(403).json({ 
+        error: 'Password verification required',
+        requiresVerification: true 
+      });
+    }
+
+    // Check if global verification tokens exist
+    if (!global.passwordVerificationTokens) {
+      return res.status(403).json({ 
+        error: 'No verification tokens available',
+        requiresVerification: true 
+      });
+    }
+
+    // Get verification data
+    const verification = global.passwordVerificationTokens.get(verificationToken);
+    
+    if (!verification) {
+      return res.status(403).json({ 
+        error: 'Invalid verification token',
+        requiresVerification: true 
+      });
+    }
+
+    // Check if token has expired
+    if (new Date() > verification.expiresAt) {
+      global.passwordVerificationTokens.delete(verificationToken);
+      return res.status(403).json({ 
+        error: 'Verification token expired',
+        requiresVerification: true 
+      });
+    }
+
+    // Check if token belongs to current user
+    if (verification.userId !== req.user.id) {
+      return res.status(403).json({ 
+        error: 'Verification token mismatch',
+        requiresVerification: true 
+      });
+    }
+
+    // Token is valid, proceed
+    // Store verification info for audit logging
+    req.verificationToken = verificationToken;
+    req.verifiedAt = new Date();
+    
+    // Delete token after use (single-use tokens)
+    global.passwordVerificationTokens.delete(verificationToken);
+    
+    next();
+  } catch (error) {
+    console.error('Password verification middleware error:', error);
+    return res.status(500).json({ 
+      error: 'Verification check failed',
+      requiresVerification: true 
+    });
+  }
+};
+
 module.exports = {
   // Core middleware
   requireAuth,
@@ -461,6 +528,7 @@ module.exports = {
   requireAllPermissions,
   requireAnyPermission,
   addPermissionInfo,
+  requirePasswordVerification,
 
   // Utility functions
   checkUserPermission,
