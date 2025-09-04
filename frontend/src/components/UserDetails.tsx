@@ -54,16 +54,16 @@ export interface UserDetailsProps {
 }
 
 // Memoized constants for performance
-const ROLE_NAMES = Object.freeze({
+const ROLE_NAMES = {
   admin: '관리자',
   supervisor: '팀장',
   user: '사용자'
-}) as const;
+} as const;
 
-const CONTRACT_TYPES = Object.freeze({
+const CONTRACT_TYPES = {
   regular: '정규직',
   contract: '계약직'
-}) as const;
+} as const;
 
 // Information section interface
 interface InfoSectionProps {
@@ -107,7 +107,7 @@ interface InfoRowProps {
 
 const InfoRow: React.FC<InfoRowProps> = memo(({ label, value, icon }) => (
   <Grid container spacing={2} sx={{ mb: 1.5 }}>
-    <Grid item xs={12} sm={4}>
+    <Grid size={{ xs: 12, sm: 4 }}>
       <Typography 
         variant="body2" 
         color="text.secondary"
@@ -122,7 +122,7 @@ const InfoRow: React.FC<InfoRowProps> = memo(({ label, value, icon }) => (
         {label}
       </Typography>
     </Grid>
-    <Grid item xs={12} sm={8}>
+    <Grid size={{ xs: 12, sm: 8 }}>
       <Typography variant="body1">
         {value || '-'}
       </Typography>

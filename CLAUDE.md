@@ -2,6 +2,15 @@
 
 Always follow the instructions in plan.md. When I say "go", find the next unmarked test in plan.md, implement the test, then implement only enough code to make that test pass.
 
+# PLANNING PRINCIPLES
+
+When creating any development plan, ALWAYS apply TDD methodology:
+- Every plan must be structured as a series of test-implementation cycles
+- Each task in the plan should follow: Write Test → Run Test (Red) → Implement → Run Test (Green) → Refactor
+- Plans should break down features into small, testable increments
+- Each increment should have its own test case defined before implementation
+- Never plan to implement features without corresponding tests
+
 # ROLE AND EXPERTISE
 
 You are a senior software engineer who follows Kent Beck's Test-Driven Development (TDD) and Tidy First principles. Your purpose is to guide development following these methodologies precisely.
@@ -53,6 +62,15 @@ You are a senior software engineer who follows Kent Beck's Test-Driven Developme
 - Minimize state and side effects
 - Use the simplest solution that could possibly work
 
+# DATE ACCURACY STANDARDS
+
+- ALWAYS use `date` command to get current date, never type manually
+- Korean format: `date +"%Y년 %m월 %d일"`  
+- ISO format: `date +"%Y-%m-%d"`
+- Dot format: `date +"%Y.%m.%d"` (for file organization)
+- Before marking tasks complete, update completion date with actual date
+- Available helper: `python3 scripts/auto-date-updater.py` for batch updates
+
 # REFACTORING GUIDELINES
 
 - Refactor only when tests are passing (in the "Green" phase)
@@ -76,6 +94,40 @@ When approaching a new feature:
 Follow this process precisely, always prioritizing clean, well-tested code over quick implementation.
 
 Always write one test at a time, make it run, then improve structure. Always run all the tests (except long-running tests) each time.
+
+# PROGRESS SYNC RULES
+
+## 🤖 자동 감지 및 동기화 명령어
+
+### 핵심 명령어:
+- **"sync"** 또는 **"s"**: 모든 파일을 스캔하고 자동으로 완료된 작업을 감지해 업데이트
+- **"quick-sync"** 또는 **"qs"**: 빠른 동기화 (Glob/Grep만 사용, 3초 이내)
+- **"detect"** 또는 **"d"**: 완료 가능한 작업을 감지만 하고 리포트 (업데이트 없음)
+- **"update"** 또는 **"u"**: 감지된 작업들을 실제로 업데이트
+
+### 자동 감지 방법:
+1. **파일 존재 확인**: Plan에 명시된 파일이 실제로 생성되었는지
+2. **함수 구현 확인**: FUNCTIONS_VARIABLES.md에 새 함수가 추가되었는지
+3. **테스트 통과 확인**: 관련 테스트 파일이 있고 에러가 없는지
+4. **Import 확인**: 새 컴포넌트가 실제로 import되어 사용되는지
+
+### 동작 과정:
+사용자: "sync"
+Claude Code가 자동으로:
+1. 모든 plan 파일에서 미완료 작업 [ ] 추출
+2. 각 작업에 대해:
+   - 관련 파일/함수/컴포넌트 존재 확인
+   - 존재하면 → 완료로 추론
+3. 추론된 완료 작업을:
+   - Plan 파일에서 [x]로 체크
+   - todo-development.md 업데이트
+   - 완료 날짜 추가
+4. 결과 리포트 제공
+
+## 동기화 규칙
+- **작업 완료 감지 시**: 자동으로 모든 관련 파일 업데이트
+- **불일치 발견 시**: 사용자에게 확인 요청
+- **매일 작업 시작 시**: "sync" 명령으로 전체 동기화
 
 # IMPORTANT
 Never use a mock data. use the data from mongodb.
@@ -260,12 +312,35 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 - Pagination on all list endpoints
 
 ### Development Workflow
-1. Check docs/development/FUNCTIONS_VARIABLES.md before creating new functions
-2. Follow TDD cycle for new features
-3. Separate structural and behavioral changes
-4. Test manually following docs/development/TEST_GUIDE.md
-5. Only commit when explicitly requested
-6. Update documentation for new features
+
+#### Pre-Development Phase
+1. **Review existing code**: Check `docs/development/FUNCTIONS_VARIABLES.md` to avoid duplicating existing functions
+2. **Plan with TDD**: Break down the feature into small, testable increments
+3. **Check field consistency**: Verify field names across frontend, backend, and MongoDB layers
+
+#### TDD Development Cycle
+1. **Write failing test first**: Define expected behavior before implementation
+2. **Run test to see it fail (Red)**: Confirm the test properly detects the missing functionality
+3. **Implement minimal code**: Write just enough code to make the test pass
+4. **Run test to see it pass (Green)**: Verify implementation meets requirements
+5. **Refactor if needed**: Improve code structure while keeping tests green
+6. **Repeat cycle**: Continue with the next test for the next increment
+
+#### Code Organization
+1. **Separate changes**: Never mix structural changes (refactoring) with behavioral changes (new features)
+2. **Structural changes first**: When both are needed, commit structural changes separately
+3. **Test after each change**: Run relevant tests after every modification
+
+#### Quality Assurance
+1. **Manual testing**: Follow `docs/development/TEST_GUIDE.md` for end-to-end verification
+2. **Cross-layer validation**: Test data flow from frontend → API → database → response
+3. **Error handling**: Verify edge cases and error scenarios work correctly
+
+#### Documentation & Commit
+1. **Update FUNCTIONS_VARIABLES.md**: Document new functions and their purposes
+2. **Update relevant docs**: Keep API documentation and guides current
+3. **Commit only when requested**: Never auto-commit; wait for explicit user instruction
+4. **Clear commit messages**: Specify whether commits contain structural or behavioral changes
 
 ### UI Development Notes
 - Project uses Material-UI, not Tailwind CSS
@@ -295,8 +370,31 @@ Currently using manual testing with TEST_GUIDE.md. When implementing automated t
 
 ## Project Structure Guidelines
 
-- 수정 계획은 root 폴더에 만들고 docs에는 영구적으로 남길 파일만 남겨줘.
+- **계획 파일 관리** (ROOT-ORGANIZATION-RULES.md 준수):
+  - `/plans/active/` - 현재 작업 중인 계획 (FEAT-XX, FIX-XX, REFACTOR-XX)
+  - `/plans/pending/` - 대기 중인 계획
+  - `/plans/archived/` - 완료된 계획
+  - 루트 폴더에는 계획 파일을 생성하지 않음
+- **완료된 작업**: `/completed/YYYY/MM/` 형식으로 저장
+- **문서화**: 
+  - 사용자 문서는 `/docs/`
+  - 개발 문서는 `/documentation/`
+- 자세한 규칙은 `/documentation/organization/ROOT-ORGANIZATION-RULES.md` 참조
 
 ## Development Notes
 
 - frontend, backend 실행은 사용자에게 따로 요청할 것 
+- 코드는 최대 1000줄까지만 작성하도록. 넘어가면 refactoring 계획을 세워서 md 파일로 정리.
+
+## Task Management Files
+
+- **INDEX-PLAN.md** - Claude Code가 모든 개발 계획과 진행 상황을 기록하는 메인 파일
+  - 진행 중, 대기 중, 보류, 완료된 모든 계획 관리
+  - FEAT, REFACTOR, TEST, DEPLOY 등 모든 개발 작업 추적
+  - Claude Code는 이 파일에만 작업 상태를 업데이트
+
+- **todo-personal.md** - 사용자가 개인적으로 관리하는 할 일 목록
+  - Claude Code는 이 파일을 수정하지 않음
+  - 사용자 전용 메모 및 계획
+
+- **todo-development.md** - (더 이상 사용하지 않음, INDEX-PLAN.md로 대체)

@@ -27,7 +27,7 @@ import PayrollGrid from '@/components/PayrollGrid'
 import PayrollDashboard from '@/components/PayrollDashboard'
 import BonusManagement from '@/components/BonusManagement'
 import SalesManagement from '@/components/SalesManagement'
-import IncentiveCalculator from '@/components/IncentiveCalculator'
+import DailyWorkerManagement from '@/components/DailyWorkerManagement'
 import { useAuth } from '@/components/AuthProvider'
 import { useNotification } from '@/components/NotificationProvider'
 import apiService from '@/services/api'
@@ -68,7 +68,7 @@ const PayrollManagement: React.FC = () => {
     try {
       const response = await apiService.getDashboardStats()
       if (response.success) {
-        setDashboardStats(response.data)
+        setDashboardStats(response.data as DashboardStats)
       }
     } catch (error) {
       console.error('Failed to load dashboard stats:', error)
@@ -80,7 +80,7 @@ const PayrollManagement: React.FC = () => {
     try {
       const response = await apiService.getPayrollStats(selectedMonth)
       if (response.success) {
-        setStats(response.data)
+        setStats(response.data as PayrollStats)
       } else {
         setStats(null)
       }
@@ -135,7 +135,7 @@ const PayrollManagement: React.FC = () => {
               {title}
             </Typography>
             <Typography variant="h5" component="div">
-              {typeof value === 'number' ? value.toLocaleString() : value}
+              {typeof value === 'number' && value !== null && value !== undefined ? value.toLocaleString() : (value || '0')}
               {typeof value === 'number' && '원'}
             </Typography>
           </Box>
@@ -218,10 +218,10 @@ const PayrollManagement: React.FC = () => {
           {stats && (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                직원 수: {stats.employee_count}명
+                직원 수: {stats.employee_count || 0}명
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                총 지급액: {stats.grand_total.toLocaleString()}원
+                총 지급액: {stats.grand_total && typeof stats.grand_total === 'number' ? stats.grand_total.toLocaleString() : '0'}원
               </Typography>
             </Box>
           )}
@@ -242,7 +242,7 @@ const PayrollManagement: React.FC = () => {
           <Tab label="급여 현황" />
           <Tab label="매출 관리" />
           <Tab label="상여금/포상금" />
-          <Tab label="인센티브 계산" />
+          <Tab label="일용직 관리" />
           {user?.role === 'admin' && <Tab label="파일 업로드" />}
         </Tabs>
 
@@ -269,7 +269,7 @@ const PayrollManagement: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={currentTab} index={4}>
-          <IncentiveCalculator />
+          <DailyWorkerManagement yearMonth={selectedMonth} />
         </TabPanel>
 
         {user?.role === 'admin' && (
@@ -286,9 +286,9 @@ const PayrollManagement: React.FC = () => {
                 variant="contained"
                 startIcon={<FileUpload />}
                 sx={{ mt: 2 }}
-                onClick={() => window.location.href = user?.role === 'admin' ? '/admin/files' : '/supervisor/files'}
+                onClick={() => window.location.href = '/supervisor/files'}
               >
-                파일 관리로 이동
+                Excel 업로드하기 (파일 관리로 이동)
               </Button>
             </Box>
           </TabPanel>

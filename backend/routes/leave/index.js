@@ -9,6 +9,8 @@ const leaveApprovalRouter = require('./leaveApproval');
 const leaveCancellationRouter = require('./leaveCancellation');
 const leaveCalendarRouter = require('./leaveCalendar');
 const leaveExceptionsRouter = require('./leaveExceptions');
+const leaveTeamStatusRouter = require('./leaveTeamStatus');
+const createLeaveAdminRoutes = require('../admin/leaveAdmin');
 
 // Set up middleware to provide database access to all sub-routes
 router.use((req, res, next) => {
@@ -20,6 +22,13 @@ router.use((req, res, next) => {
 });
 
 // Mount sub-routers - ORDER MATTERS: more specific routes first
+
+// Admin routes (highest priority, most specific)
+router.use('/admin', (req, res, next) => {
+  const db = req.app.locals.db;
+  const adminRouter = createLeaveAdminRoutes(db);
+  adminRouter(req, res, next);
+});
 
 // Exception management routes (must be before /:id routes)
 router.use('/exceptions', leaveExceptionsRouter);
@@ -34,11 +43,13 @@ router.use('/pending', leaveApprovalRouter);
 // Cancellation routes
 router.use('/cancellations', leaveCancellationRouter);
 
-// Calendar and team status routes
+// Calendar routes
 router.use('/calendar', leaveCalendarRouter);
 router.use('/team-calendar', leaveCalendarRouter);
-router.use('/team-status', leaveCalendarRouter);
-router.use('/employee', leaveCalendarRouter);
+
+// Team status routes (moved to dedicated router)
+router.use('/team-status', leaveTeamStatusRouter);
+router.use('/employee', leaveTeamStatusRouter);
 
 // Approval and cancellation routes with ID parameter need to be handled by specific endpoints
 

@@ -1,373 +1,432 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid'
-import { Box, Paper, Button, IconButton, Tooltip, TextField } from '@mui/material'
-import { Edit, Save, Cancel, Download } from '@mui/icons-material'
-import { MonthlyPayment, User } from '@/types'
-import apiService from '@/services/api'
+import React, { useState, useMemo, useCallback } from 'react'
+import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid'
+import { 
+  Box, 
+  Paper, 
+  Button, 
+  Typography, 
+  Menu, 
+  MenuItem, 
+  FormControlLabel, 
+  Checkbox, 
+  Divider,
+  CircularProgress,
+  TablePagination 
+} from '@mui/material'
+import { Settings, Print, Download } from '@mui/icons-material'
+import DataGridErrorBoundary from './DataGridErrorBoundary'
+
+// Types
+import { PayrollGridProps, PayrollRowData, DEFAULT_VISIBLE_COLUMNS, PAYROLL_STORAGE_KEYS } from '@/types/PayrollTypes'
+
+// Hooks
+import { usePayrollData } from '@/hooks/usePayrollData'
 import { useNotification } from './NotificationProvider'
 
-interface PayrollGridProps {
-  yearMonth: string
-  onDataChange?: () => void
-}
+// Components
+import PrintPreviewDialog, { PrintOptions } from './PrintPreviewDialog'
+import PayrollExpandableAllowances from './PayrollExpandableAllowances'
+import PayrollExpandableDeductions from './PayrollExpandableDeductions'
+import PayrollEditableCell from './PayrollEditableCell'
+import PayrollActionButtons from './PayrollActionButtons'
 
-interface PayrollRowData extends MonthlyPayment {
-  id: string // MUI DataGrid requires an id field
-  employeeName: string
-  department: string
-  isEditing?: boolean
-}
+// Configuration
+import { getColumnDefinitions, defaultGridOptions } from '@/config/payrollGridConfig'
 
+// Utils
+import { formatCurrency, formatYearMonth } from '@/utils/payrollFormatters'
+import { calculatePayrollSummary } from '@/utils/payrollCalculations'
+
+/**
+ * Refactored PayrollGrid Component
+ * Manages payroll data display and editing with AG Grid
+ */
 const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) => {
-  const [rowData, setRowData] = useState<PayrollRowData[]>([])
-  const [loading, setLoading] = useState(false)
-  const [editingRows, setEditingRows] = useState<Set<number>>(new Set())
+  // Data management hook
+  const {
+    rowData,
+    loading,
+    editingRows,
+    savePayroll,
+    startEditing,
+    cancelEditing,
+    updateCellValue,
+    isEditing,
+    loadData,
+  } = usePayrollData(yearMonth)
+
+  // UI state
+  const [expandedAllowances, setExpandedAllowances] = useState<Set<string>>(new Set())
+  const [expandedDeductions, setExpandedDeductions] = useState<Set<string>>(new Set())
+  const [columnSettingsAnchor, setColumnSettingsAnchor] = useState<null | HTMLElement>(null)
+  const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([])
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(20)
+  
+  // Column visibility with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem(PAYROLL_STORAGE_KEYS.VISIBLE_COLUMNS)
+    return saved ? JSON.parse(saved) : DEFAULT_VISIBLE_COLUMNS
+  })
+
   const { showSuccess, showError } = useNotification()
 
-  // Currency formatter
-  const currencyFormatter = (params: any) => {
-    if (params.value == null) return '0원'
-    return `${Number(params.value).toLocaleString()}원`
-  }
-
-  // Editable cell renderer for MUI DataGrid
-  const EditableCellRenderer = (params: GridRenderCellParams) => {
-    const [value, setValue] = useState(params.value || 0)
-    const isEditing = editingRows.has(params.row.id)
-
-    useEffect(() => {
-      setValue(params.value || 0)
-    }, [params.value])
-
-    if (!isEditing) {
-      return currencyFormatter({ value: params.value })
-    }
-
-    return (
-      <TextField
-        type="number"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        onBlur={() => {
-          // Update the row data
-          const updatedRows = rowData.map(row => 
-            row.id === params.row.id 
-              ? { ...row, [params.field]: value }
-              : row
-          )
-          setRowData(updatedRows)
-        }}
-        size="small"
-        sx={{ width: '100%' }}
-      />
-    )
-  }
-
-  // Action cell renderer for MUI DataGrid
-  const ActionCellRenderer = (params: GridRenderCellParams) => {
-    const isEditing = editingRows.has(params.row.id)
-
-    const handleEdit = () => {
-      setEditingRows(prev => new Set(prev).add(params.row.id))
-    }
-
-    const handleSave = async () => {
-      try {
-        await apiService.updatePayroll({
-          employee_id: params.row.employee_id,
-          year_month: yearMonth,
-          base_salary: params.row.base_salary,
-        })
-        setEditingRows(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(params.row.id)
-          return newSet
-        })
-        showSuccess('급여 정보가 저장되었습니다')
-        onDataChange?.()
-      } catch (error) {
-        showError('저장 중 오류가 발생했습니다')
-      }
-    }
-
-    const handleCancel = () => {
-      setEditingRows(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(params.row.id)
-        return newSet
-      })
-      // Refresh data to reset changes
-      loadData()
-    }
-
-    return (
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        {!isEditing ? (
-          <Tooltip title="수정">
-            <IconButton size="small" onClick={handleEdit}>
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        ) : (
-          <>
-            <Tooltip title="저장">
-              <IconButton size="small" onClick={handleSave} color="primary">
-                <Save fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="취소">
-              <IconButton size="small" onClick={handleCancel} color="secondary">
-                <Cancel fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </>
-        )}
-      </Box>
-    )
-  }
-
-  // Column definitions for MUI DataGrid
-  const columns: GridColDef[] = useMemo(() => [
-    {
-      field: 'employeeName',
-      headerName: '직원명',
-      width: 120,
-      renderCell: (params) => (
-        <Box sx={{ fontWeight: 'bold' }}>{params.value}</Box>
-      )
-    },
-    {
-      field: 'department',
-      headerName: '부서',
-      width: 100,
-    },
-    {
-      field: 'base_salary',
-      headerName: '기본급',
-      width: 130,
-      type: 'number',
-      renderCell: EditableCellRenderer,
-    },
-    {
-      field: 'incentive',
-      headerName: '인센티브',
-      width: 130,
-      type: 'number',
-      valueFormatter: (params) => currencyFormatter({ value: params.value }),
-      renderCell: (params) => (
-        <Box sx={{ backgroundColor: '#e3f2fd', width: '100%', p: 1 }}>
-          {currencyFormatter({ value: params.value })}
-        </Box>
-      )
-    },
-    {
-      field: 'bonus_total',
-      headerName: '상여금',
-      width: 120,
-      type: 'number',
-      renderCell: (params) => (
-        <Box sx={{ backgroundColor: '#f3e5f5', width: '100%', p: 1 }}>
-          {currencyFormatter({ value: params.value })}
-        </Box>
-      )
-    },
-    {
-      field: 'award_total',
-      headerName: '포상금',
-      width: 120,
-      type: 'number',
-      renderCell: (params) => (
-        <Box sx={{ backgroundColor: '#e8f5e8', width: '100%', p: 1 }}>
-          {currencyFormatter({ value: params.value })}
-        </Box>
-      )
-    },
-    {
-      field: 'input_total',
-      headerName: '총액',
-      width: 140,
-      type: 'number',
-      renderCell: (params) => (
-        <Box sx={{ 
-          backgroundColor: '#fff3e0',
-          fontWeight: 'bold',
-          color: '#e65100',
-          width: '100%',
-          p: 1
-        }}>
-          {currencyFormatter({ value: params.value })}
-        </Box>
-      )
-    },
-    {
-      field: 'actual_payment',
-      headerName: '실제 지급액',
-      width: 140,
-      type: 'number',
-      renderCell: (params) => (
-        <Box sx={{ 
-          backgroundColor: params.value == null ? 'transparent' : '#f1f8e9',
-          color: params.value == null ? '#999' : 'inherit',
-          width: '100%',
-          p: 1
-        }}>
-          {currencyFormatter({ value: params.value })}
-        </Box>
-      )
-    },
-    {
-      field: 'difference',
-      headerName: '차이',
-      width: 120,
-      type: 'number',
-      renderCell: (params) => {
-        if (params.value == null) return <Box sx={{ color: '#999' }}>-</Box>
-        const value = Number(params.value)
-        const formatted = `${Math.abs(value).toLocaleString()}원`
-        const displayValue = value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : '0원'
-        const color = value > 0 ? '#2e7d32' : value < 0 ? '#d32f2f' : '#666'
-        
-        return (
-          <Box sx={{ color, fontWeight: 'bold' }}>
-            {displayValue}
-          </Box>
-        )
-      }
-    },
-    {
-      field: 'actions',
-      headerName: '작업',
-      width: 100,
-      renderCell: ActionCellRenderer,
-      sortable: false,
-      filterable: false,
-    }
-  ], [editingRows])
-
-
-  // Load payroll data
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const response = await apiService.getMonthlyPayments(yearMonth)
-      if (response.success && response.data) {
-        const transformedData: PayrollRowData[] = response.data.map((payment: MonthlyPayment, index: number) => ({
-          ...payment,
-          id: payment._id || `row-${index}`, // MUI DataGrid requires unique id
-          employeeName: payment.employee?.full_name || payment.employee?.username || 'Unknown',
-          department: payment.employee?.department || '-',
-        }))
-        setRowData(transformedData)
+  // Handlers for expandable components
+  const toggleAllowances = useCallback((rowId: string) => {
+    setExpandedAllowances(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(rowId)) {
+        newSet.delete(rowId)
       } else {
-        // Handle empty data gracefully
-        setRowData([])
+        newSet.add(rowId)
       }
-    } catch (error: any) {
-      // Only show error for actual errors, not empty data
-      if (error.response?.status !== 404) {
-        showError('데이터를 불러오는 중 오류가 발생했습니다')
-      } else {
-        // 404 means no data exists for this month, which is normal
-        setRowData([])
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [yearMonth, showError])
-
-  // Load data when component mounts or yearMonth changes
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-
-  // Export to Excel
-  const handleExportExcel = () => {
-    // Implementation would use ag-grid's export functionality
-    showSuccess('Excel 내보내기 기능은 곧 구현됩니다')
-  }
-
-  // Calculate totals
-  const totals = useMemo(() => {
-    return rowData.reduce((acc, row) => ({
-      base_salary: acc.base_salary + (row.base_salary || 0),
-      incentive: acc.incentive + (row.incentive || 0),
-      bonus_total: acc.bonus_total + (row.bonus_total || 0),
-      award_total: acc.award_total + (row.award_total || 0),
-      input_total: acc.input_total + (row.input_total || 0),
-      actual_payment: acc.actual_payment + (row.actual_payment || 0),
-    }), {
-      base_salary: 0,
-      incentive: 0,
-      bonus_total: 0,
-      award_total: 0,
-      input_total: 0,
-      actual_payment: 0,
+      return newSet
     })
+  }, [])
+
+  const toggleDeductions = useCallback((rowId: string) => {
+    setExpandedDeductions(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(rowId)) {
+        newSet.delete(rowId)
+      } else {
+        newSet.add(rowId)
+      }
+      return newSet
+    })
+  }, [])
+
+  // Column visibility handlers
+  const handleColumnVisibilityChange = (columnField: string, visible: boolean) => {
+    const newVisibleColumns = { ...visibleColumns, [columnField]: visible }
+    setVisibleColumns(newVisibleColumns)
+    localStorage.setItem(PAYROLL_STORAGE_KEYS.VISIBLE_COLUMNS, JSON.stringify(newVisibleColumns))
+  }
+
+  const handleColumnSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+    setColumnSettingsAnchor(event.currentTarget)
+  }
+
+  const handleColumnSettingsClose = () => {
+    setColumnSettingsAnchor(null)
+  }
+
+  // Ensure rowData is always an array with valid structure to prevent DataGrid footer errors
+  const safeRowData = useMemo(() => {
+    if (!Array.isArray(rowData) || rowData.length === 0) return []
+    // Filter out any invalid rows and ensure each row has an id
+    const validRows = rowData.filter(row => row && typeof row === 'object' && Object.keys(row).length > 0)
+    if (validRows.length === 0) return []
+    
+    return validRows.map((row, index) => ({
+      ...row,
+      id: row.id || row._id || `row-${index}` // Ensure every row has an id
+    }))
   }, [rowData])
 
+  // Component renderers with proper props
+  const ExpandableAllowancesRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollExpandableAllowances
+        params={params}
+        isExpanded={expandedAllowances.has(params.row.id)}
+        onToggle={toggleAllowances}
+      />
+    );
+  }, [expandedAllowances, toggleAllowances])
+
+  const ExpandableDeductionsRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollExpandableDeductions
+        params={params}
+        isExpanded={expandedDeductions.has(params.row.id)}
+        onToggle={toggleDeductions}
+      />
+    );
+  }, [expandedDeductions, toggleDeductions])
+
+  const EditableCellRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollEditableCell
+        params={params}
+        isEditing={isEditing(params.row.id)}
+        onUpdate={updateCellValue}
+      />
+    );
+  }, [isEditing, updateCellValue])
+
+  const ActionCellRenderer = useCallback((params: any) => {
+    // Safety check for params.row
+    if (!params || !params.row) {
+      return <div>-</div>;
+    }
+    return (
+      <PayrollActionButtons
+        params={params}
+        isEditing={isEditing(params.row.id)}
+        onEdit={startEditing}
+        onSave={async (rowId, rowData) => {
+          await savePayroll(rowId, rowData)
+          onDataChange?.()
+        }}
+        onCancel={cancelEditing}
+      />
+    );
+  }, [isEditing, startEditing, savePayroll, cancelEditing, onDataChange])
+
+  // Get column definitions with renderers
+  const columns = useMemo(() => {
+    const cols = getColumnDefinitions(
+      EditableCellRenderer,
+      ExpandableAllowancesRenderer,
+      ExpandableDeductionsRenderer,
+      ActionCellRenderer
+    ).filter(col => visibleColumns[col.field] !== false)
+    return cols
+  }, [
+      EditableCellRenderer,
+      ExpandableAllowancesRenderer,
+      ExpandableDeductionsRenderer,
+      ActionCellRenderer,
+      visibleColumns
+    ]
+  )
+
+  // Calculate summary using safeRowData to ensure consistency
+  const summary = useMemo(() => calculatePayrollSummary(safeRowData), [safeRowData])
+
+  // Print handling
+  const handlePrint = () => {
+    setPrintDialogOpen(true)
+  }
+
+  const handlePrintClose = () => {
+    setPrintDialogOpen(false)
+  }
+
+  const handlePrintConfirm = (options: PrintOptions) => {
+    // Print logic is handled by PrintPreviewDialog
+    setPrintDialogOpen(false)
+  }
+
+  // Export handling
+  const handleExport = async () => {
+    try {
+      // TODO: Implement Excel export
+      showSuccess('Export 기능은 준비 중입니다')
+    } catch (error) {
+      showError('Export 중 오류가 발생했습니다')
+    }
+  }
+
+  // Selection handling
+  const handleSelectionChange = (selection: GridRowSelectionModel) => {
+    setSelectedRows(selection)
+  }
+
+  // Pagination handlers
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setPage(0)
+  }
+
   return (
-    <Paper sx={{ height: '600px', width: '100%' }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <strong>{yearMonth} 급여 현황</strong>
-          <Box sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}>
-            총 {rowData.length}명 | 총 지급액: {totals.input_total.toLocaleString()}원
+    <Box sx={{ width: '100%', height: '100%' }}>
+      {/* Header */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">
+            {formatYearMonth(yearMonth)} 급여 관리
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              startIcon={<Settings />}
+              onClick={handleColumnSettingsClick}
+              size="small"
+            >
+              열 설정
+            </Button>
+            <Button
+              startIcon={<Print />}
+              onClick={handlePrint}
+              size="small"
+            >
+              인쇄
+            </Button>
+            <Button
+              startIcon={<Download />}
+              onClick={handleExport}
+              size="small"
+              variant="contained"
+            >
+              Excel 내보내기
+            </Button>
           </Box>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Download />}
-          onClick={handleExportExcel}
-          disabled={rowData.length === 0}
-        >
-          Excel 내보내기
-        </Button>
-      </Box>
-      
-      <Box sx={{ height: 'calc(100% - 80px)' }} className="ag-theme-alpine">
-        {!loading && rowData.length === 0 ? (
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '100%',
-            color: 'text.secondary' 
-          }}>
-            <Box sx={{ fontSize: '3rem', mb: 2 }}>📊</Box>
-            <Box sx={{ fontSize: '1.2rem', fontWeight: 'medium', mb: 1 }}>
-              {yearMonth} 급여 데이터가 없습니다
-            </Box>
-            <Box sx={{ fontSize: '0.9rem' }}>
-              해당 월의 급여 정보를 추가하거나 다른 월을 선택해 주세요
-            </Box>
+
+        {/* Summary */}
+        {safeRowData.length > 0 && (
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <Typography variant="body2">
+              총 인원: <strong>{summary.totalEmployees}명</strong>
+            </Typography>
+            <Typography variant="body2">
+              총 기본급: <strong>{formatCurrency(summary.totalBaseSalary)}</strong>
+            </Typography>
+            <Typography variant="body2">
+              총 수당: <strong>{formatCurrency(summary.totalAllowances)}</strong>
+            </Typography>
+            <Typography variant="body2">
+              총 공제: <strong>{formatCurrency(summary.totalDeductions)}</strong>
+            </Typography>
+            <Typography variant="body2">
+              총 실지급액: <strong>{formatCurrency(summary.totalPayment)}</strong>
+            </Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Data Grid */}
+      <Paper sx={{ height: 'calc(100% - 150px)' }}>
+        {loading || !columns || columns.length === 0 || !safeRowData || safeRowData.length === 0 ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            {loading ? (
+              <CircularProgress />
+            ) : !columns || columns.length === 0 ? (
+              <Typography>No columns available</Typography>
+            ) : (
+              <Typography>No data available</Typography>
+            )}
           </Box>
         ) : (
-          <DataGrid
-            rows={rowData}
-            columns={columns}
-            loading={loading}
-            pageSizeOptions={[10, 20, 50]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 20 } },
-            }}
-            checkboxSelection
-            disableRowSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-cell': {
-                borderBottom: '1px solid #e0e0e0',
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                backgroundColor: '#f5f5f5',
-                borderBottom: '2px solid #e0e0e0',
-              },
-            }}
+          <DataGridErrorBoundary fallbackMessage="급여 데이터를 표시하는 중 오류가 발생했습니다. 새로고침을 시도해주세요.">
+            <DataGrid
+              key={`datagrid-${yearMonth}-${safeRowData.length}`}
+              rows={safeRowData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)}
+              columns={columns}
+              getRowId={(row) => row.id || `row-${safeRowData.indexOf(row)}`}
+              checkboxSelection={false}
+              disableRowSelectionOnClick
+              disableColumnSelector
+              disableMultipleRowSelection
+              autoPageSize={false}
+              density="comfortable"
+              hideFooter
+              hideFooterPagination
+              columnHeaderHeight={56}
+              rowHeight={52}
+              slots={{
+                columnHeaderCheckbox: () => null,
+                baseCheckbox: () => null,
+                cellCheckbox: () => null,
+                headerCheckbox: () => null,
+              }}
+              slotProps={{
+                columnsPanel: {
+                  disableHideAllButton: true,
+                  disableShowAllButton: true,
+                },
+                row: {
+                  'aria-selected': false,
+                },
+              }}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  borderRight: '1px solid rgba(224, 224, 224, 1)',
+                },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: '#f5f5f5',
+                  fontWeight: 'bold',
+                },
+                '& .MuiDataGrid-columnHeaderCheckbox': {
+                  display: 'none',
+                },
+                '& .MuiDataGrid-cellCheckbox': {
+                  display: 'none',
+                },
+              }}
+            />
+          </DataGridErrorBoundary>
+        )}
+        {/* Custom Pagination */}
+        {safeRowData.length > 0 && (
+          <TablePagination
+            component="div"
+            count={safeRowData.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[10, 20, 50, 100]}
+            labelRowsPerPage="페이지당 행:"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} / 전체 ${count}`}
           />
         )}
-      </Box>
-    </Paper>
+      </Paper>
+
+      {/* Column Settings Menu */}
+      <Menu
+        anchorEl={columnSettingsAnchor}
+        open={Boolean(columnSettingsAnchor)}
+        onClose={handleColumnSettingsClose}
+      >
+        <MenuItem disabled>
+          <Typography variant="subtitle2">표시할 열 선택</Typography>
+        </MenuItem>
+        <Divider />
+        {Object.entries(DEFAULT_VISIBLE_COLUMNS).map(([field, defaultVisible]) => (
+          <MenuItem key={field} sx={{ paddingY: 0.5 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={visibleColumns[field] ?? defaultVisible}
+                  onChange={(e) => handleColumnVisibilityChange(field, e.target.checked)}
+                  size="small"
+                />
+              }
+              label={field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              sx={{ margin: 0, width: '100%' }}
+            />
+          </MenuItem>
+        ))}
+        <Divider />
+        <MenuItem onClick={() => {
+          setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)
+          localStorage.setItem(PAYROLL_STORAGE_KEYS.VISIBLE_COLUMNS, JSON.stringify(DEFAULT_VISIBLE_COLUMNS))
+          handleColumnSettingsClose()
+        }}>
+          기본값으로 재설정
+        </MenuItem>
+      </Menu>
+
+      {/* Print Preview Dialog */}
+      <PrintPreviewDialog
+        open={printDialogOpen}
+        onClose={handlePrintClose}
+        onPrint={handlePrintConfirm}
+        totalEmployees={safeRowData.length}
+        totalPayment={summary.totalPayment}
+        selectedCount={selectedRows.length}
+        yearMonth={yearMonth}
+      />
+    </Box>
   )
 }
 

@@ -219,8 +219,9 @@ export const API_ENDPOINTS = {
   
   // 보고서
   REPORTS: {
-    PAYROLL: '/reports/payroll',
-    LEAVE: '/reports/leave',
+    PAYROLL: (yearMonth: string) => `/reports/payroll/${yearMonth}`,
+    PAYROLL_EXCEL: (yearMonth: string) => `/reports/payroll/${yearMonth}/excel`,
+    TEMPLATE_PAYROLL: '/reports/template/payroll' as const,
     EMPLOYEE: '/reports/employee',
     EXPORT: '/reports/export',
   },

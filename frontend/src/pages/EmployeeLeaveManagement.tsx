@@ -125,7 +125,7 @@ const EmployeeLeaveManagement: React.FC = () => {
     try {
       if (user?.role === 'admin' || user?.role === 'supervisor') {
         const response = await apiService.getPendingLeaveRequests();
-        setPendingRequests(response.data || []);
+        setPendingRequests((response.data as LeaveRequest[]) || []);
       }
     } catch (error) {
       console.error('Error loading pending requests:', error);
@@ -137,7 +137,7 @@ const EmployeeLeaveManagement: React.FC = () => {
     try {
       if (user?.role === 'admin' || user?.role === 'supervisor') {
         const response = await apiService.getPendingCancellations();
-        setPendingCancellations(response.data || []);
+        setPendingCancellations((response.data as LeaveRequest[]) || []);
       }
     } catch (error) {
       console.error('Error loading pending cancellations:', error);
@@ -224,22 +224,22 @@ const EmployeeLeaveManagement: React.FC = () => {
   };
 
   // Legacy handlers (keep for compatibility)
+  // Note: These are not currently used as the component uses the newer approveLeaveRequest method
+  /*
   const handleApprove = async (requestId: string) => {
     try {
-      await apiService.approveLeave(requestId, { status: 'approved' });
+      await apiService.approveLeave(Number(requestId));
       showSuccess('휴가 신청이 승인되었습니다.');
       loadData();
     } catch (error) {
       showError('휴가 승인 중 오류가 발생했습니다.');
     }
   };
+  */
 
   const handleReject = async () => {
     try {
-      await apiService.approveLeave(selectedRequestId, { 
-        status: 'rejected', 
-        rejectReason 
-      });
+      await apiService.rejectLeave(Number(selectedRequestId));
       showSuccess('휴가 신청이 거부되었습니다.');
       setRejectDialogOpen(false);
       setRejectReason('');
@@ -437,8 +437,7 @@ const EmployeeLeaveManagement: React.FC = () => {
                               color="success"
                               onClick={() => {
                                 if (request) {
-                                  setSelectedRequest(request);
-                                  handleApproval('approve');
+                                  handleOpenApprovalDialog(request);
                                 }
                               }}
                             >

@@ -209,6 +209,11 @@ env: {
 | 🔐 **JWT Authentication** | ✅ Complete | Modern token-based authentication |
 | 🌐 **Cross-Domain Support** | ✅ Complete | Vercel ↔ Cloud Run integration |
 | 📱 **Responsive Dashboard** | ✅ Complete | Role-based dashboards |
+| 📄 **Document Management** | ✅ Complete | Unified document storage and management system |
+| 📈 **Leave Overview** | ✅ Complete | Comprehensive unified leave tracking and analysis |
+| 💵 **Payroll Bulk Upload** | ✅ Complete | Excel-based bulk payroll data import/export |
+| ⚡ **Incentive Simulation** | ✅ Complete | Interactive incentive calculation simulator |
+| 📊 **Reports Generation** | ✅ Complete | Various HR reports with Excel export |
 
 ### 🚀 Phase 4 Advanced Features
 
@@ -221,10 +226,16 @@ env: {
 
 ### 🔄 Future Enhancements
 
-- **Redis Token Store**: Production-ready token blacklisting
-- **Rate Limiting**: API endpoint protection
-- **Advanced Monitoring**: JWT operation analytics
-- **Mobile App Support**: React Native application
+- **Redis Token Store**: Production-ready token blacklisting with Redis
+- **Rate Limiting**: API endpoint protection and DDoS prevention
+- **Advanced Monitoring**: JWT operation analytics and metrics
+- **Mobile App Support**: React Native application for iOS/Android
+- **Advanced Analytics**: Data visualization with charts and insights
+- **Workflow Automation**: Automated approval workflows and notifications
+- **Multi-language Support**: Internationalization (i18n)
+- **Email Notifications**: Automated email alerts for important events
+- **Attendance Tracking**: Clock in/out and attendance management
+- **Employee Self-Service**: Personal data and document management
 
 ---
 
@@ -274,17 +285,23 @@ HR/
 │   │   ├── auth.js            # JWT authentication + Phase 4
 │   │   ├── users.js           # User management
 │   │   ├── leave/             # Leave management routes
-│   │   └── payroll.js         # Payroll operations
+│   │   ├── payroll.js         # Payroll operations
+│   │   ├── reports.js         # Report generation
+│   │   └── documents.js       # Document management
 │   ├── utils/
 │   │   ├── jwt.js             # JWT core functions
 │   │   ├── refreshToken.js    # Phase 4: Refresh tokens
-│   │   └── tokenBlacklist.js  # Phase 4: Token revocation
+│   │   ├── tokenBlacklist.js  # Phase 4: Token revocation
+│   │   └── excel.js           # Excel processing utilities
 │   ├── middleware/            # Authentication & validation
 │   └── package.json           # Dependencies (session-free)
 ├── frontend/                  # React TypeScript app
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
 │   │   ├── pages/             # Page components
+│   │   │   ├── PayrollManagement.tsx # Payroll UI
+│   │   │   ├── LeaveCalendar.tsx     # Calendar view
+│   │   │   └── Reports.tsx           # Reports page
 │   │   ├── services/
 │   │   │   └── api.ts         # JWT-enabled API client
 │   │   ├── utils/
@@ -295,11 +312,15 @@ HR/
 ├── scripts/                   # Deployment & testing scripts
 │   ├── test-jwt-endpoints.js  # JWT functionality tests
 │   ├── test-phase4-features.js # Advanced features tests
-│   └── create-test-users.js   # User account management
+│   ├── create-test-users.js   # User account management
+│   └── resetDatabase.js       # Database reset utility
 ├── docs/                      # Comprehensive documentation
+│   ├── development/           # Development guides
+│   │   └── FUNCTIONS_VARIABLES.md # Function documentation
 │   └── deployment/            # Deployment guides and results
 ├── ecosystem.config.js        # PM2 configuration
 ├── CLAUDE.md                  # Development guide
+├── INDEX-PLAN.md              # Development plan tracker
 └── README.md                  # This file
 ```
 
@@ -329,6 +350,18 @@ HR/
 - `GET /api/payroll` - Get payroll data
 - `GET /api/payroll/monthly/:year_month` - Monthly payroll
 - `GET /api/payroll/employee/:userId` - Employee payroll
+- `POST /api/payroll/upload` - Upload payroll data
+- `GET /api/payroll/simulate` - Incentive simulation
+
+#### Document Management
+- `GET /api/documents` - Get all documents
+- `POST /api/documents/upload` - Upload document
+- `GET /api/documents/:id` - Get specific document
+- `DELETE /api/documents/:id` - Delete document
+
+#### Leave Overview
+- `GET /api/leave/unified-overview` - Get unified leave overview data
+- `GET /api/leave/summary/:userId` - Get user leave summary
 
 ---
 
@@ -526,7 +559,7 @@ curl -X POST https://hr-backend-429401177957.asia-northeast3.run.app/api/auth/lo
 
 ## 📈 Migration History
 
-### 🔄 Session to JWT Migration (Completed 2025-08)
+### 🔄 Session to JWT Migration (Completed 2025-08-25)
 
 #### Before (Session-based)
 - ❌ Cross-domain cookie issues
@@ -624,12 +657,15 @@ This project is proprietary software developed for internal use.
 
 ## 🏆 Achievements
 
-- ✅ **Successful JWT Migration**: Zero downtime transition
-- ✅ **Cloud Deployment**: Scalable multi-cloud architecture
-- ✅ **Advanced Security**: Phase 4 JWT features implemented
-- ✅ **100% Test Coverage**: Comprehensive automated testing
+- ✅ **Successful JWT Migration**: Zero downtime transition from session-based auth
+- ✅ **Cloud Deployment**: Scalable multi-cloud architecture (GCP + Vercel)
+- ✅ **Advanced Security**: Phase 4 JWT features with refresh tokens & blacklisting
+- ✅ **100% Test Coverage**: Comprehensive automated testing suite
 - ✅ **Production Ready**: Live deployment with all features working
+- ✅ **Excel Integration**: Full Excel import/export for payroll and reports
+- ✅ **PDF Generation**: Automated payslip generation
+- ✅ **Performance Optimized**: Stateless architecture with efficient caching
 
 ---
 
-*Last updated: August 2025 - JWT Migration & Phase 4 Complete*
+*Last updated: 2025-08-25 - Payroll Management Features Enhanced*

@@ -3,7 +3,9 @@
  * Handles token storage, retrieval, and validation in localStorage
  */
 
-const TOKEN_KEY = 'hr_auth_token';
+const LEGACY_TOKEN_KEY = 'hr_auth_token';
+const ACCESS_TOKEN_KEY = 'hr_access_token';
+const REFRESH_TOKEN_KEY = 'hr_refresh_token';
 
 export interface DecodedToken {
   id: string;
@@ -24,7 +26,9 @@ export interface DecodedToken {
  */
 export const storeToken = (token: string): void => {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    // Backward compatible: store as access token and legacy key
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    localStorage.setItem(LEGACY_TOKEN_KEY, token);
     if (import.meta.env.DEV) {
       console.log('✅ Token stored successfully', { 
         tokenLength: token.length,
@@ -44,8 +48,11 @@ export const storeToken = (token: string): void => {
  */
 export const getToken = (): string | null => {
   try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    return token;
+    // Prefer new access token, fall back to legacy for compatibility
+    return (
+      localStorage.getItem(ACCESS_TOKEN_KEY) ||
+      localStorage.getItem(LEGACY_TOKEN_KEY)
+    );
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('❌ Failed to retrieve token:', error);
@@ -59,8 +66,10 @@ export const getToken = (): string | null => {
  */
 export const removeToken = (): void => {
   try {
-    const existingToken = localStorage.getItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_KEY);
+    const existingToken = localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
     if (import.meta.env.DEV) {
       console.warn('🗑️ Token removed', {
         hadToken: !!existingToken,
@@ -302,4 +311,49 @@ export const hasRole = (role: string): boolean => {
 export const clearAuth = (): void => {
   removeToken();
   console.log('🔄 Authentication data cleared');
+};
+
+// New dual-token helpers
+export const storeTokens = (accessToken: string, refreshToken: string): void => {
+  try {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    // Keep legacy for backward compatibility paths still reading it
+    localStorage.setItem(LEGACY_TOKEN_KEY, accessToken);
+    if (import.meta.env.DEV) {
+      console.log('✅ Tokens stored (access/refresh)', {
+        accessLength: accessToken?.length,
+        refreshLength: refreshToken?.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Failed to store tokens:', error);
+    }
+  }
+};
+
+export const getAccessToken = (): string | null => {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const getRefreshToken = (): string | null => {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const clearTokens = (): void => {
+  try {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+  } catch {}
 };

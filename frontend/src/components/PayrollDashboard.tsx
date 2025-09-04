@@ -86,9 +86,17 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
   const loadStats = async () => {
     setLoading(true);
     try {
-      const response = await apiService.getPayrollReport(yearMonth);
-      if (response.success) {
-        setStats(response.data);
+      // Convert yyyy-MM format to YYYYMM for API
+      const apiYearMonth = yearMonth.replace('-', '');
+      const response = await apiService.getPayrollReport(apiYearMonth);
+      if (response.success && (response as any).data?.summary) {
+        // Map summary data to stats structure
+        setStats({
+          ...(response as any).data.summary,
+          departmentStats: [],  // Empty for now - can be calculated from reportData later
+          monthlyTrends: [],    // Empty for now - requires multiple months data
+          topPerformers: []     // Empty for now - can be calculated from reportData later
+        });
       }
     } catch (error) {
       showNotification('error', 'Error', 'Failed to load payroll statistics');
@@ -142,6 +150,9 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
     format?: 'currency' | 'number' | 'percent';
   }> = ({ title, value, icon, color, growth, format = 'currency' }) => {
     const formatValue = (val: number) => {
+      if (val === null || val === undefined) {
+        return format === 'currency' ? '0원' : '0';
+      }
       switch (format) {
         case 'currency':
           return `${val.toLocaleString()}원`;
@@ -384,8 +395,8 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                         <TableRow key={dept.department}>
                           <TableCell>{dept.department}</TableCell>
                           <TableCell align="right">{dept.employeeCount}명</TableCell>
-                          <TableCell align="right">{dept.totalSalary.toLocaleString()}원</TableCell>
-                          <TableCell align="right">{dept.averageSalary.toLocaleString()}원</TableCell>
+                          <TableCell align="right">{dept.totalSalary ? dept.totalSalary.toLocaleString() : '0'}원</TableCell>
+                          <TableCell align="right">{dept.averageSalary ? dept.averageSalary.toLocaleString() : '0'}원</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -433,8 +444,8 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                             </Box>
                           </TableCell>
                           <TableCell>{performer.department}</TableCell>
-                          <TableCell align="right">{performer.totalPay.toLocaleString()}원</TableCell>
-                          <TableCell align="right">{performer.incentive.toLocaleString()}원</TableCell>
+                          <TableCell align="right">{performer.totalPay ? performer.totalPay.toLocaleString() : '0'}원</TableCell>
+                          <TableCell align="right">{performer.incentive ? performer.incentive.toLocaleString() : '0'}원</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -473,7 +484,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       총 급여
                     </Typography>
                     <Typography variant="body2" fontWeight="bold">
-                      {dept.totalSalary.toLocaleString()}원
+                      {dept.totalSalary ? dept.totalSalary.toLocaleString() : '0'}원
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -481,7 +492,7 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                       평균 급여
                     </Typography>
                     <Typography variant="body2" fontWeight="bold">
-                      {dept.averageSalary.toLocaleString()}원
+                      {dept.averageSalary ? dept.averageSalary.toLocaleString() : '0'}원
                     </Typography>
                   </Box>
                   <LinearProgress 
@@ -522,10 +533,10 @@ const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ yearMonth, onMonthC
                         <TableRow key={trend.month}>
                           <TableCell>{trend.month}</TableCell>
                           <TableCell align="right">{trend.employeeCount}명</TableCell>
-                          <TableCell align="right">{trend.totalPayroll.toLocaleString()}원</TableCell>
-                          <TableCell align="right">{trend.totalIncentive.toLocaleString()}원</TableCell>
+                          <TableCell align="right">{trend.totalPayroll ? trend.totalPayroll.toLocaleString() : '0'}원</TableCell>
+                          <TableCell align="right">{trend.totalIncentive ? trend.totalIncentive.toLocaleString() : '0'}원</TableCell>
                           <TableCell align="right">
-                            {trend.employeeCount > 0 ? (trend.totalPayroll / trend.employeeCount).toLocaleString() : 0}원
+                            {trend.employeeCount > 0 && trend.totalPayroll ? (trend.totalPayroll / trend.employeeCount).toLocaleString() : '0'}원
                           </TableCell>
                         </TableRow>
                       ))}
