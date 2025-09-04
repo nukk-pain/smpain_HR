@@ -34,6 +34,7 @@ describe('Payroll Access Control', () => {
     
     const adminUser = {
       userId: 'admin-test',
+      employeeId: 'EMP-ADMIN-TEST',
       username: 'admin-test',
       name: 'Test Admin',
       email: 'admin-test@test.com',
@@ -46,6 +47,7 @@ describe('Payroll Access Control', () => {
 
     const supervisorUser = {
       userId: 'supervisor-test',
+      employeeId: 'EMP-SUPERVISOR-TEST',
       username: 'supervisor-test',
       name: 'Test Supervisor',
       email: 'supervisor-test@test.com',
@@ -58,6 +60,7 @@ describe('Payroll Access Control', () => {
 
     const regularUser = {
       userId: 'user-test',
+      employeeId: 'EMP-USER-TEST',
       username: 'user-test',
       name: 'Test User',
       email: 'user-test@test.com',
@@ -73,17 +76,20 @@ describe('Payroll Access Control', () => {
     // Generate tokens
     adminToken = jwt.sign(
       { userId: adminUser.userId, role: 'Admin' },
-      process.env.JWT_SECRET || 'test-secret'
+      process.env.JWT_SECRET || 'test-secret',
+      { audience: 'hr-frontend', expiresIn: '24h' }
     );
     
     supervisorToken = jwt.sign(
       { userId: supervisorUser.userId, role: 'Supervisor' },
-      process.env.JWT_SECRET || 'test-secret'
+      process.env.JWT_SECRET || 'test-secret',
+      { audience: 'hr-frontend', expiresIn: '24h' }
     );
     
     userToken = jwt.sign(
       { userId: regularUser.userId, role: 'User' },
-      process.env.JWT_SECRET || 'test-secret'
+      process.env.JWT_SECRET || 'test-secret',
+      { audience: 'hr-frontend', expiresIn: '24h' }
     );
   });
 
