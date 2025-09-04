@@ -10,7 +10,7 @@
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
 - **대기 중**: 1개 (DEPLOY 1개)
-- **완료**: 23개 (FEAT 7개, REFACTOR 10개, TEST 1개, FIX 4개, CHECK 1개)
+- **완료**: 24개 (FEAT 7개, REFACTOR 10개, TEST 2개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -26,7 +26,7 @@
 
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
-- **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
+- **문서**: [`DEPLOY-01-production-plan.md`](./plans/pending/DEPLOY-01-production-plan.md)
 - **예상 소요**: 3일
 - **우선순위**: HIGH
 - **선행 조건**: TEST-01 완료 후
@@ -70,7 +70,7 @@
 ## ✅ 완료된 계획
 
 ### FEAT-07: **급여 기능 접근 권한 제한** ✅ **완료**
-- **문서**: [`FEAT-07-payroll-access-restriction-plan.md`](./plans/FEAT-07-payroll-access-restriction-plan.md)
+- **문서**: [`FEAT-07-payroll-access-restriction-plan.md`](./plans/archived/FEAT-07-payroll-access-restriction-plan.md)
 - **완료일**: 2025년 09월 03일
 - **소요 시간**: 1시간
 - **우선순위**: HIGH
@@ -200,6 +200,24 @@
   - CI/CD 실행 시간: ~5분
   - 문서: 4개 가이드 작성
 - **정리 완료**: 모든 TEST-01 파일들을 `completed/TEST-01/` 폴더로 이동 (2025-08-23)
+
+### TEST-02: **최근 구현 기능 통합 테스트** ✅ **완료**
+- **문서**: [`TEST-02-recent-features-integration-test-plan.md`](./plans/archived/TEST-02-recent-features-integration-test-plan.md)
+- **시작일**: 2025년 09월 04일
+- **완료일**: 2025년 09월 04일
+- **소요 시간**: 3시간
+- **우선순위**: HIGH
+- **테스트 구현**:
+  - ✅ payroll-access.test.js - 급여 권한 제한 테스트 (Admin 전용)
+  - ✅ auth-refresh.test.js - 리프레시 토큰 플로우 테스트
+  - ✅ daily-workers.test.js - 일용직 CRUD 테스트
+  - ✅ incentive-calculation.test.js - 인센티브 계산 테스트
+- **기술적 성과**:
+  - ✅ MongoDB 직접 연결 방식으로 테스트 구조 변경
+  - ✅ MongoClient 활용한 테스트 DB 관리
+  - ✅ username 필드 추가로 unique index 충돌 해결
+  - ✅ TDD 원칙 (RED→GREEN→REFACTOR) 적용
+- **테스트 결과**: `backend/tests/integration/TEST-02-RESULTS.md`
 
 ### FEAT-01: **Excel 내보내기 API 구현** ✅ **완료**
 - **문서**: [`FEAT-01-excel-export-plan.md`](./FEAT-01-excel-export-plan.md)
@@ -494,6 +512,13 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 ---
 
 ## 🔄 업데이트 이력
+
+- **2025.09.04**: TEST-02 완료
+  - TEST-02: 최근 구현 기능 통합 테스트 완료
+    - 4개 테스트 파일 작성 (payroll-access, auth-refresh, daily-workers, incentive-calculation)
+    - MongoDB 직접 연결 방식으로 테스트 구조 변경
+    - TDD 방식으로 총 14개 테스트 시나리오 구현
+    - 프로젝트 구조에 맞게 모든 테스트 코드 수정 완료
 
 - **2025.09.03**: FEAT-06, REFACTOR-10 완료
   - FEAT-06: 프론트엔드 리프레시 토큰 통합 완료
