@@ -116,6 +116,8 @@ CLAUDE.local.md
 .claude-commands.md
 personal-notes/
 my-notes/
+*-personal.*
+personal-*
 
 # Google Cloud Platform
 # Service account keys and authentication
@@ -194,6 +196,7 @@ test-*.temp.js
 # Sample Data - 실제 급여 데이터 폴더 전체 제외
 # 노무사에게 받은 실제 급여명세서, 급여이체 파일들 보안을 위해 Git 추적 제외
 sample-data/
+sample_data/
 
 # 실제 업로드된 파일들
 uploads/
@@ -207,6 +210,7 @@ frontend/uploads/
 # Archives & Backups
 ################################
 backups/
+backup/
 archives/
 *.zip
 *.tar
