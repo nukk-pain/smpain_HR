@@ -9,8 +9,8 @@
 
 ## 📊 현재 진행 상황 요약
 - **진행 중**: 0개
-- **대기 중**: 2개 (FEAT 1개, DEPLOY 1개)
-- **완료**: 22개 (FEAT 6개, REFACTOR 10개, TEST 1개, FIX 4개, CHECK 1개)
+- **대기 중**: 1개 (DEPLOY 1개)
+- **완료**: 23개 (FEAT 7개, REFACTOR 10개, TEST 1개, FIX 4개, CHECK 1개)
 - **보류**: 0개
 - **취소**: 1개 (REFACTOR 1개)
 
@@ -24,16 +24,6 @@
 
 ## ⏳ 대기 중인 계획
 
-### FEAT-07: **급여 기능 접근 권한 제한** 🔒 **대기**
-- **문서**: [`FEAT-07-payroll-access-restriction-plan.md`](./plans/FEAT-07-payroll-access-restriction-plan.md)
-- **예상 소요**: 1~1.5일
-- **우선순위**: HIGH
-- **선행 조건**: 없음
-- **주요 작업**:
-  - 모든 급여 API를 Admin 전용으로 제한
-  - Supervisor 역할에서 급여 메뉴/페이지 접근 차단
-  - Frontend 라우트 보호 및 UI 정리
-  - 연차 기능은 기존 권한 유지
 
 ### DEPLOY-01: **프로덕션 배포 계획** 📦 **대기**
 - **문서**: [`DEPLOY-01-production-plan.md`](./DEPLOY-01-production-plan.md)
@@ -78,6 +68,28 @@
 ---
 
 ## ✅ 완료된 계획
+
+### FEAT-07: **급여 기능 접근 권한 제한** ✅ **완료**
+- **문서**: [`FEAT-07-payroll-access-restriction-plan.md`](./plans/FEAT-07-payroll-access-restriction-plan.md)
+- **완료일**: 2025년 09월 03일
+- **소요 시간**: 1시간
+- **우선순위**: HIGH
+- **주요 성과**:
+  - ✅ Backend 권한 제한 구현
+    - 모든 급여 API Admin 전용으로 변경
+    - requirePermission 미들웨어에서 Supervisor의 payroll:view/manage 권한 제거
+    - bonus, sales, dailyWorkers 라우트 모두 Admin 전용
+  - ✅ Frontend 라우트 보호
+    - PayrollManagement, PayrollExcelUpload Admin 전용 라우트로 변경
+    - IncentiveManagement Admin 전용 확인
+    - ProtectedRoute 컴포넌트로 역할 기반 접근 제어
+  - ✅ UI 메뉴 정리
+    - Layout.tsx에서 급여 메뉴를 supervisorItems에서 adminItems로 이동
+    - Supervisor 로그인 시 급여 관련 메뉴 숨김
+  - ✅ TDD 개발 완료
+    - Backend 단위 테스트 8개 모두 통과
+    - 권한 미들웨어 테스트 완료
+  - ✅ 연차 기능은 기존 권한 유지
 
 ### FEAT-06: **프론트엔드 리프레시 토큰 통합** ✅ **완료**
 - **문서**: [`FEAT-06-frontend-refresh-token-integration-plan.md`](./plans/FEAT-06-frontend-refresh-token-integration-plan.md)
@@ -437,13 +449,13 @@ FUNCTIONS_VARIABLES.md (구현 문서화)
 - **코드 품질**: 테스트 커버리지 향상
 
 ### 누적 완료 (2025년)
-- **기능 개발 (FEAT)**: 6개 완료
+- **기능 개발 (FEAT)**: 7개 완료
 - **리팩토링 (REFACTOR)**: 10개 완료, 1개 취소
 - **테스트 (TEST)**: 1개 완료
 - **버그 수정 (FIX)**: 4개 완료
 - **검토 (CHECK)**: 1개 완료
 - **배포 (DEPLOY)**: 0개
-- **총 완료**: 22개
+- **총 완료**: 23개
 
 ---
 

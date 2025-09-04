@@ -178,18 +178,7 @@ const supervisorItems = {
       permissions: ['departments:view', 'departments:manage'],
     },
   ],
-  'payroll': [
-    {
-      text: '급여 관리',
-      path: '/supervisor/payroll',
-      permissions: ['payroll:view', 'payroll:manage'],
-    },
-    {
-      text: '인센티브 관리',
-      path: '/supervisor/incentives',
-      permissions: ['payroll:manage'],
-    },
-  ],
+  // Payroll items moved to adminItems - Admin only
   'documents': [
     {
       text: '파일 업로드',
@@ -209,6 +198,18 @@ const supervisorItems = {
 // Admin-specific items to be added to groups
 const adminItems = {
   // leave-management items are already in supervisorItems and shared
+  'payroll': [
+    {
+      text: '급여 관리',
+      path: '/supervisor/payroll',
+      permissions: ['payroll:view', 'payroll:manage'],
+    },
+    {
+      text: '인센티브 관리',
+      path: '/supervisor/incentives',
+      permissions: ['payroll:manage'],
+    },
+  ],
   'documents': [
     {
       text: '문서 관리',

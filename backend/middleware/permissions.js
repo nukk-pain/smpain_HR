@@ -55,7 +55,8 @@ const ROLE_PERMISSIONS = {
     'leave:view',
     'leave:approve',
     'leave:manage',
-    'payroll:view',
+    // 'payroll:view', // Removed - Admin only
+    // 'payroll:manage', // Removed - Admin only
     'reports:view',
     'reports:export',
     'departments:view',
@@ -67,7 +68,8 @@ const ROLE_PERMISSIONS = {
     'leave:view',
     'leave:approve',
     'leave:manage',
-    'payroll:view',
+    // 'payroll:view', // Removed - Admin only
+    // 'payroll:manage', // Removed - Admin only
     'reports:view',
     'reports:export',
     'departments:view',

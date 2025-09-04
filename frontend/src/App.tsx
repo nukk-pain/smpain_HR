@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
       <Route 
         path="/payroll/excel-upload" 
         element={
-          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>}>
               <PayrollExcelUploadPage />
             </React.Suspense>
@@ -133,7 +133,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="supervisor/payroll" element={
-          <ProtectedRoute allowedRoles={['admin', 'supervisor']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <React.Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>}>
               <PayrollManagement />
             </React.Suspense>

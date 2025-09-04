@@ -20,7 +20,7 @@ const { requireAuth, requirePermission } = require('../middleware/permissions');
  * @SideEffects: Database read
  * @Invariants: Returns array (empty if no data)
  */
-router.get('/daily-workers/:yearMonth', requireAuth, async (req, res) => {
+router.get('/daily-workers/:yearMonth', requireAuth, requirePermission('payroll:view'), async (req, res) => {
   const { yearMonth } = req.params;
   const db = req.app.locals.db;
 
@@ -292,7 +292,7 @@ router.delete('/daily-workers/:id', requireAuth, requirePermission('payroll:mana
  * @SideEffects: Database read from multiple collections
  * @Invariants: Returns comprehensive payroll statistics
  */
-router.get('/stats-with-daily/:yearMonth', requireAuth, async (req, res) => {
+router.get('/stats-with-daily/:yearMonth', requireAuth, requirePermission('payroll:view'), async (req, res) => {
   const { yearMonth } = req.params;
   const db = req.app.locals.db;
 

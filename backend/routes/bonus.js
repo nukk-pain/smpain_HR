@@ -9,8 +9,8 @@ const router = express.Router();
 function createBonusRoutes(db) {
   // Using requirePermission from middleware/permissions.js
 
-  // Get bonuses by year_month
-  router.get('/:year_month', requireAuth, asyncHandler(async (req, res) => {
+  // Get bonuses by year_month (Admin only)
+  router.get('/:year_month', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
     try {
       const { year_month } = req.params;
       const userRole = req.user.role;
@@ -168,7 +168,7 @@ function createBonusRoutes(db) {
   }));
 
   // Get bonus summary by user
-  router.get('/user/:userId', requireAuth, asyncHandler(async (req, res) => {
+  router.get('/user/:userId', requireAuth, requirePermission('payroll:view'), asyncHandler(async (req, res) => {
     try {
       const { userId } = req.params;
       const currentUser = req.user;
