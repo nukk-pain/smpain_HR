@@ -35,9 +35,9 @@ import { PreviewDataTable } from './PayrollPreviewTable';
 import { PreviewSummaryCard } from './PayrollPreviewSummary';
 import { PayrollUnmatchedSection } from './PayrollUnmatchedSection';
 import { PayrollUploadSummary } from './PayrollUploadSummary';
-import { PayrollConfirmDialog } from './payroll/PayrollConfirmDialog';
-import { PayrollFileSelectStep } from './payroll/PayrollFileSelectStep';
-import { PayrollUploadResultStep } from './payroll/PayrollUploadResultStep';
+import { PayrollConfirmDialog } from './Payroll/PayrollConfirmDialog';
+import { PayrollFileSelectStep } from './Payroll/PayrollFileSelectStep';
+import { PayrollUploadResultStep } from './Payroll/PayrollUploadResultStep';
 import { 
   validatePayrollFile, 
   executeWithRetry, 

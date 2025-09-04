@@ -64,7 +64,7 @@ const DailyWorkerManagement: React.FC<DailyWorkerManagementProps> = ({ yearMonth
     try {
       const response = await apiService.get(`/payroll/daily-workers/${yearMonth}`);
       if (response.success && response.data) {
-        setWorkers(response.data);
+        setWorkers(response.data as DailyWorker[]);
       } else {
         setWorkers([]);
       }
@@ -123,11 +123,11 @@ const DailyWorkerManagement: React.FC<DailyWorkerManagementProps> = ({ yearMonth
       try {
         const response = await apiService.delete(`/payroll/daily-workers/${worker._id}`);
         if (response.success) {
-          showSuccess('삭제 완료', '일용직 급여가 삭제되었습니다');
+          showSuccess('삭제 완료', '일용직 급여가 삭제되었습니다', 3000);
           loadWorkers();
         }
       } catch (error) {
-        showError('삭제 실패', '일용직 급여 삭제에 실패했습니다');
+        showError('삭제 실패', '일용직 급여 삭제에 실패했습니다', 3000);
       }
     }
   };
@@ -137,7 +137,7 @@ const DailyWorkerManagement: React.FC<DailyWorkerManagementProps> = ({ yearMonth
     const validWorkers = workers.filter(w => w.name && w.salary_in_10k > 0);
     
     if (validWorkers.length === 0) {
-      showWarning('경고', '저장할 일용직 급여 데이터가 없습니다');
+      showWarning('경고', '저장할 일용직 급여 데이터가 없습니다', 3000);
       return;
     }
 
@@ -156,11 +156,11 @@ const DailyWorkerManagement: React.FC<DailyWorkerManagementProps> = ({ yearMonth
 
       const response = await apiService.post('/payroll/daily-workers/bulk', payload);
       if (response.success) {
-        showSuccess('저장 완료', `${validWorkers.length}명의 일용직 급여가 저장되었습니다`);
+        showSuccess('저장 완료', `${validWorkers.length}명의 일용직 급여가 저장되었습니다`, 3000);
         loadWorkers(); // Reload to get server data with IDs
       }
     } catch (error) {
-      showError('저장 실패', '일용직 급여 저장에 실패했습니다');
+      showError('저장 실패', '일용직 급여 저장에 실패했습니다', 3000);
     } finally {
       setSaving(false);
     }
@@ -180,8 +180,8 @@ const DailyWorkerManagement: React.FC<DailyWorkerManagementProps> = ({ yearMonth
     copyText += `\n총 일용직 급여: ${total.toLocaleString()}원`;
     
     navigator.clipboard.writeText(copyText)
-      .then(() => showSuccess('복사 완료', '일용직 급여 정보가 클립보드에 복사되었습니다'))
-      .catch(() => showError('오류', '복사에 실패했습니다'));
+      .then(() => showSuccess('복사 완료', '일용직 급여 정보가 클립보드에 복사되었습니다', 3000))
+      .catch(() => showError('오류', '복사에 실패했습니다', 3000));
   };
 
   const handleKeyNavigation = (e: React.KeyboardEvent, rowIndex: number, field: string) => {

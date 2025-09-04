@@ -18,7 +18,7 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
+  Grid2 as Grid,
   Button
 } from '@mui/material';
 import {
@@ -81,7 +81,7 @@ export const PayrollUploadResultStep: React.FC<PayrollUploadResultStepProps> = (
             처리 요약
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">
                 파일명
               </Typography>
@@ -89,7 +89,7 @@ export const PayrollUploadResultStep: React.FC<PayrollUploadResultStepProps> = (
                 {result.summary?.fileName || 'N/A'}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">
                 처리 시간
               </Typography>
@@ -99,7 +99,7 @@ export const PayrollUploadResultStep: React.FC<PayrollUploadResultStepProps> = (
                   : 'N/A'}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">
                 대상 기간
               </Typography>
@@ -107,7 +107,7 @@ export const PayrollUploadResultStep: React.FC<PayrollUploadResultStepProps> = (
                 {selectedYear}년 {selectedMonth}월
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">
                 성공률
               </Typography>

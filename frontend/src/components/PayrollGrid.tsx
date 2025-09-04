@@ -121,7 +121,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
     
     return validRows.map((row, index) => ({
       ...row,
-      id: row.id || row._id || `row-${index}` // Ensure every row has an id
+      id: row.id || (row as any)._id || `row-${index}` // Ensure every row has an id
     }))
   }, [rowData])
 
@@ -333,10 +333,7 @@ const PayrollGrid: React.FC<PayrollGridProps> = ({ yearMonth, onDataChange }) =>
               columnHeaderHeight={56}
               rowHeight={52}
               slots={{
-                columnHeaderCheckbox: () => null,
                 baseCheckbox: () => null,
-                cellCheckbox: () => null,
-                headerCheckbox: () => null,
               }}
               slotProps={{
                 columnsPanel: {
