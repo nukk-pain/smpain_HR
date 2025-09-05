@@ -1,24 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react-swc' // SWC 사용
+import react from '@vitejs/plugin-react-swc'
 import { resolve } from 'path'
-import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [
-      // SWC로 변경 (40% 빌드 속도 개선)
-      react(),
-      
-      // 번들 분석 (개발 시에만)
-      mode === 'development' && visualizer({
-        filename: 'dist/stats.html',
-        open: false, // 자동으로 열지 않음
-        gzipSize: true,
-        brotliSize: true
-      })
-    ].filter(Boolean),
+    plugins: [react()],
     
     resolve: {
       alias: {
@@ -36,136 +24,23 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       
-      // 병렬 처리 최적화
       rollupOptions: {
-        maxParallelFileOps: 10, // CPU 코어 활용
-        
         output: {
-          // 개선된 청킹 전략
-          manualChunks(id) {
-            // node_modules 최적화
-            if (id.includes('node_modules')) {
-              // React 관련
-              if (id.includes('react')) {
-                if (id.includes('react-router')) return 'react-router';
-                return 'react-vendor';
-              }
-              
-              // MUI 관련 (더 세분화)
-              if (id.includes('@mui')) {
-                if (id.includes('icons-material')) {
-                  // 아이콘별 청킹
-                  const iconName = id.split('icons-material/')[1]?.split('/')[0];
-                  if (iconName) return `icon-${iconName.toLowerCase()}`;
-                  return 'mui-icons';
-                }
-                if (id.includes('x-data-grid')) return 'mui-datagrid';
-                if (id.includes('x-date-pickers')) return 'mui-datepicker';
-                return 'mui-core';
-              }
-              
-              // AG-Grid 관련
-              if (id.includes('ag-grid')) {
-                if (id.includes('csv-export')) return 'ag-grid-csv';
-                if (id.includes('styles')) return 'ag-grid-styles';
-                return 'ag-grid-core';
-              }
-              
-              // 차트 라이브러리
-              if (id.includes('recharts')) return 'charting';
-              
-              // 유틸리티
-              if (id.includes('date-fns')) return 'date-utils';
-              if (id.includes('lodash')) return 'lodash';
-              if (id.includes('axios')) return 'http-client';
-              
-              // 기타 vendor
-              return 'vendor-misc';
-            }
-            
-            // 소스 코드 청킹
-            if (id.includes('src/')) {
-              // Payroll 관련
-              if (id.includes('Payroll') || id.includes('payroll')) {
-                if (id.includes('Excel')) return 'payroll-excel';
-                if (id.includes('Grid')) return 'payroll-grid';
-                return 'payroll-core';
-              }
-              
-              // Leave 관련
-              if (id.includes('Leave') || id.includes('leave')) {
-                return 'leave-module';
-              }
-              
-              // User 관련
-              if (id.includes('User') || id.includes('user')) {
-                return 'user-module';
-              }
-              
-              // Admin 관련
-              if (id.includes('Admin') || id.includes('admin')) {
-                return 'admin-module';
-              }
-              
-              // Dashboard
-              if (id.includes('Dashboard') || id.includes('dashboard')) {
-                return 'dashboard-module';
-              }
-              
-              // 공통 컴포넌트
-              if (id.includes('components/')) {
-                return 'components-common';
-              }
-              
-              // 공통 hooks
-              if (id.includes('hooks/')) {
-                return 'hooks';
-              }
-              
-              // 공통 utils
-              if (id.includes('utils/')) {
-                return 'utils';
-              }
-            }
-          },
-          
-          // 청크 파일명 최적화
-          chunkFileNames: (chunkInfo) => {
-            const name = chunkInfo.name || 'chunk';
-            // 아이콘 청크는 별도 폴더로
-            if (name.startsWith('icon-')) {
-              return 'assets/icons/[name]-[hash].js';
-            }
-            return 'assets/[name]-[hash].js';
-          },
-          
-          // 더 작은 청크 크기
-          experimentalMinChunkSize: 10000, // 10KB
+          // 매우 단순한 청킹 전략
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'mui': ['@mui/material', '@mui/x-data-grid', '@mui/x-date-pickers'],
+            'ag-grid': ['ag-grid-react', 'ag-grid-community'],
+          }
         }
       },
 
       // 빌드 최적화
       target: 'es2020',
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: mode === 'production',
-          drop_debugger: true,
-          passes: 2, // 압축 최적화
-        },
-        format: {
-          comments: false, // 주석 제거
-        }
-      },
-
-      // 소스맵 비활성화 (프로덕션)
-      sourcemap: mode === 'development' ? 'inline' : false,
-
-      // 청크 크기 경고 증가
+      minify: 'esbuild', // terser 대신 esbuild 사용 (더 빠름)
+      sourcemap: false,
       chunkSizeWarningLimit: 2000,
-      
-      // 리포팅 최적화
-      reportCompressedSize: false, // gzip 크기 계산 비활성화
+      reportCompressedSize: false,
     },
 
     preview: {
@@ -173,76 +48,20 @@ export default defineConfig(({ mode }) => {
       strictPort: true
     },
 
-    // 의존성 사전 번들링 최적화
+    // 의존성 사전 번들링
     optimizeDeps: {
       include: [
-        // 핵심 라이브러리 사전 번들링
         'react',
         'react-dom',
         'react-router-dom',
         '@mui/material',
         '@mui/x-data-grid',
         '@mui/x-date-pickers',
-        '@tanstack/react-query',
         'ag-grid-react',
         'ag-grid-community',
-        'recharts',
         'axios',
         'date-fns',
-        'lodash-es'
       ],
-      
-      // 캐싱 강제
-      force: mode === 'production',
-      
-      // esbuild 최적화
-      esbuildOptions: {
-        target: 'es2020',
-        supported: { 
-          'top-level-await': true 
-        },
-      }
     },
-
-    // CSS 최적화
-    css: {
-      devSourcemap: false,
-      
-      // PostCSS 최적화
-      postcss: {
-        plugins: mode === 'production' ? [
-          // CSS 압축 플러그인 추가 가능
-        ] : []
-      },
-      
-      // CSS 모듈 최적화
-      modules: {
-        generateScopedName: mode === 'production' 
-          ? '[hash:base64:5]' 
-          : '[name]__[local]__[hash:base64:5]'
-      }
-    },
-    
-    // 워커 최적화
-    worker: {
-      format: 'es',
-      rollupOptions: {
-        output: {
-          entryFileNames: 'assets/worker-[name]-[hash].js'
-        }
-      }
-    },
-    
-    // 로거 최적화
-    customLogger: {
-      ...console,
-      // 불필요한 로그 제거
-      info: () => {},
-      warn: (msg) => {
-        // 특정 경고 무시
-        if (msg.includes('vite:css') || msg.includes('sourcemap')) return;
-        console.warn(msg);
-      }
-    }
   };
 });
