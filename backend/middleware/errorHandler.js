@@ -208,6 +208,7 @@ const corsOptions = {
           /^https:\/\/.*\.vercel\.app$/,
           /^https:\/\/.*-.*\.vercel\.app$/,
           // Production URLs
+          'https://smpain-hr.vercel.app',
           'https://hr-frontend.vercel.app',
           'https://hr-frontend-git-main.vercel.app',
           // Legacy origins
